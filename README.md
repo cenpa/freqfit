@@ -1,7 +1,7 @@
 # legendfreqfit
 LEGEND 0v2b frequentist analysis
 
-# inputs needed
+### inputs needed
 per detector per partition
 - runtime + unc.
 - PSD efficiency + unc.
