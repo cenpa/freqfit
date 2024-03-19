@@ -13,3 +13,5 @@ per detector per partition
 - multiplicity efficiency + unc.
 - data cleaning efficiency + unc.
 - muon veto efficiency + unc.
+- resolution + unc.
+- energy offset + unc.
