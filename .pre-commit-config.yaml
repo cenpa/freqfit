@@ -66,7 +66,7 @@ repos:
       flake8-print,
       pep8-naming
     ]
-    args: ["--extend-ignore", "E203,E501"]
+    args: ["--extend-ignore", "E203,E501,N803,N806,N801"]
 
 - repo: https://github.com/kynan/nbstripout
   rev: "0.6.1"
