@@ -1,0 +1,96 @@
+[build-system]
+requires = [
+    "setuptools>=61.2",
+    "setuptools_scm[toml]>=7",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legendfreqfit"
+description = "Python package for constructing frequentist limits from unbinned data"
+authors = [
+    { name = "The LEGEND collaboration" },
+]
+maintainers = [
+    { name = "The LEGEND collaboration" },
+]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "h5py>=3.2",
+    "iminuit",
+    "matplotlib",
+    "numba!=0.53.*,!=0.54.*,!=0.57",
+    "numpy>=1.21",
+]
+dynamic = [
+    "version",
+]
+
+[project.urls]
+Homepage = "https://github.com/cenpa/legendfreqfit"
+"Bug Tracker" = "https://github.com/cenpa/legendfreqfit/issues"
+Discussions = "https://github.com/cenpa/legendfreqfit/discussions"
+Changelog = "https://github.com/cenpa/legendfreqfit/releases"
+
+[tool.setuptools_scm]
+write_to = "src/legendfreqfit/_version.py"
+
+[project.optional-dependencies]
+all = [
+    "legendfreqfit[test]",
+]
+test = [
+    "pre-commit",
+    "pytest>=6.0",
+    "pytest-cov",
+]
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+license-files = [
+    "LICENSE",
+]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = [
+    "src",
+]
+namespaces = false
+
+[tool.setuptools.package-data]
+"*" = [
+    "*.json",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error", 'ignore:\nPyarrow:DeprecationWarning']
+log_cli_level = "info"
+testpaths = "tests"
+pythonpath = [
+  "src"
+]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
