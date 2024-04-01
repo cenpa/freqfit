@@ -15,3 +15,6 @@ per detector per partition
 - muon veto efficiency + unc.
 - resolution + unc.
 - energy offset + unc.
+
+### TODO
+- right now, we have numba running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
