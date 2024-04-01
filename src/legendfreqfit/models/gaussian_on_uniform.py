@@ -11,9 +11,10 @@ nb_kwd = {
     "cache": True,
     "fastmath": True,
 }
-Qbb = constants.QBB
+
+QBB = constants.QBB
 N_A = constants.NA
-m_a = constants.MA
+M_A = constants.MA
 seed = 42  # set the random seed
 
 
@@ -40,9 +41,9 @@ def nb_likelihood(
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
-        Systematic energy offset from Qbb, in keV
+        Systematic energy offset from QBB, in keV
     sigma
-        The energy resolution at Qbb, in keV
+        The energy resolution at QBB, in keV
     eff
         The global signal efficiency
     exp
@@ -51,23 +52,23 @@ def nb_likelihood(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/m_a) * eff * exp * S
+    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
     mu_B = exp * BI * deltaE
-    pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, Qbb + delta, sigma) + mu_B/deltaE]}
+    pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/deltaE]}
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / m_a
+    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_B = exp * BI * deltaE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (m_a * np.sqrt(2 * np.pi) * sigma)
+    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     L = 1
     for i in nb.prange(Es.shape[0]):
         L *= (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - Qbb - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
     return L
@@ -96,9 +97,9 @@ def nb_pdf(
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
-        Systematic energy offset from Qbb, in keV
+        Systematic energy offset from QBB, in keV
     sigma
-        The energy resolution at Qbb, in keV
+        The energy resolution at QBB, in keV
     eff
         The global signal efficiency
     exp
@@ -107,23 +108,23 @@ def nb_pdf(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/m_a) * eff * exp * S
+    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
     mu_B = exp * BI * deltaE
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, Qbb + delta, sigma) + mu_B/deltaE]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/deltaE]
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / m_a
+    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_B = exp * BI * deltaE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (m_a * np.sqrt(2 * np.pi) * sigma)
+    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - Qbb - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
     return y
@@ -152,9 +153,9 @@ def nb_logpdf(
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
-        Systematic energy offset from Qbb, in keV
+        Systematic energy offset from QBB, in keV
     sigma
-        The energy resolution at Qbb, in keV
+        The energy resolution at QBB, in keV
     eff
         The global signal efficiency
     exp
@@ -163,12 +164,12 @@ def nb_logpdf(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/m_a) * eff * exp * S
+    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
     mu_B = exp * BI * deltaE
-    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, Qbb + delta, sigma) + mu_B/deltaE])
+    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/deltaE])
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / m_a
+    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_B = exp * BI * deltaE
 
     if sigma == 0:  # need this check for fitting
@@ -178,13 +179,13 @@ def nb_logpdf(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (m_a * np.sqrt(2 * np.pi) * sigma)
+    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         pdf = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - Qbb - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
         if pdf <= 0:
@@ -216,9 +217,9 @@ def nb_rvs(
     E_hi
         The high energy bound of the BI window
     delta
-        Systematic energy offset from Qbb, in keV
+        Systematic energy offset from QBB, in keV
     sigma
-        The energy resolution at Qbb, in keV
+        The energy resolution at QBB, in keV
 
 
     Notes
@@ -228,7 +229,7 @@ def nb_rvs(
 
     np.random.seed(seed)
     # Get energy of signal events from a Gaussian distribution
-    sig = np.random.normal(Qbb + delta, sigma, size=n_sig)
+    sig = np.random.normal(QBB + delta, sigma, size=n_sig)
 
     # Get energy of background events from a uniform distribution
     output = np.append(sig, np.random.uniform(E_lo, E_hi, size=n_bkg))
