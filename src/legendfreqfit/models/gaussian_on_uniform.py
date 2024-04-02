@@ -274,7 +274,8 @@ def nb_rvs(
     n_bkg
         Number of background events to pull from
     window
-        uniform background regions to pull from
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked)
     delta
         Systematic energy offset from QBB, in keV
     sigma
