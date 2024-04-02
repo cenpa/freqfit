@@ -15,7 +15,7 @@ nb_kwd = {
 QBB = constants.QBB
 N_A = constants.NA
 M_A = constants.MA
-seed = 42  # set the random seed
+SEED = 42  # set the default random seed
 
 
 @nb.jit(**nb_kwd)
@@ -37,7 +37,7 @@ def nb_likelihood(
     window
         width of the fit window in keV
     S
-        The signal rate, in units of counts/yr
+        The signal rate, in units of counts/(kg*yr)
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
@@ -45,7 +45,7 @@ def nb_likelihood(
     sigma
         The energy resolution at QBB, in keV
     eff
-        The global signal efficiency
+        The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
 
@@ -57,12 +57,13 @@ def nb_likelihood(
     pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]}
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_S = S * eff * exp
     mu_B = exp * BI * window
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
+    S_amp = mu_S /(np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     likelihood = 1
@@ -93,7 +94,7 @@ def nb_loglikelihood(
     window
         width of the fit window in keV
     S
-        The signal rate, in units of counts/yr
+        The signal rate, in units of counts/(kg*yr)
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
@@ -101,7 +102,7 @@ def nb_loglikelihood(
     sigma
         The energy resolution at QBB, in keV
     eff
-        The global signal efficiency
+        The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
 
@@ -113,17 +114,18 @@ def nb_loglikelihood(
     pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]}
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_S = S * eff * exp
     mu_B = exp * BI * window
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
+    S_amp = mu_S /(np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     loglikelihood = 0
     for i in nb.prange(Es.shape[0]):
-        loglikelihood += (1 / (mu_S + mu_B)) * (
+        loglikelihood += -1.0 * np.log(mu_S + mu_B) + np.log(
             S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
@@ -149,7 +151,7 @@ def nb_pdf(
     window
         width of the fit window in keV
     S
-        The signal rate, in units of counts/yr
+        The signal rate, in units of counts/(kg*yr)
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
@@ -157,7 +159,7 @@ def nb_pdf(
     sigma
         The energy resolution at QBB, in keV
     eff
-        The global signal efficiency
+        The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
 
@@ -169,12 +171,13 @@ def nb_pdf(
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_S = S * eff * exp
     mu_B = exp * BI * window
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
+    S_amp = mu_S /(np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
@@ -185,61 +188,6 @@ def nb_pdf(
 
     return y
 
-@nb.jit(**nb_kwd)
-def nb_density(
-    Es: np.array,
-    window: float,
-    S: float,
-    BI: float,
-    delta: float,
-    sigma: float,
-    eff: float,
-    exp: float,
-) -> np.array:
-    """
-    Parameters
-    ----------
-    Es
-        Energies at which this function is evaluated, in keV
-    window
-        width of the fit window in keV
-    S
-        The signal rate, in units of counts/yr
-    BI
-        The background index rate, in counts/(kg*yr*keV)
-    delta
-        Systematic energy offset from QBB, in keV
-    sigma
-        The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency
-    exp
-        The exposure, in kg*yr
-
-    Notes
-    -----
-    This function computes the following:
-    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
-    mu_B = exp * BI * window
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]
-    """
-
-    # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    mu_B = exp * BI * window
-
-    # Precompute the prefactors so that way we save multiplications in the for loop
-    B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
-
-    # Initialize and execute the for loop
-    y = np.empty_like(Es, dtype=np.float64)
-    for i in nb.prange(Es.shape[0]):
-        y[i] = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
-        )
-
-    return y
 
 @nb.jit(**nb_kwd)
 def nb_logpdf(
@@ -260,7 +208,7 @@ def nb_logpdf(
     window
         width of the fit window in keV
     S
-        The signal rate, in units of counts/yr
+        The signal rate, in units of counts/(kg*yr)
     BI
         The background index rate, in counts/(kg*yr*keV)
     delta
@@ -268,7 +216,7 @@ def nb_logpdf(
     sigma
         The energy resolution at QBB, in keV
     eff
-        The global signal efficiency
+        The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
 
@@ -280,7 +228,8 @@ def nb_logpdf(
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window])
     """
     # Precompute the signal and background counts
-    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_S = S * eff * exp
     mu_B = exp * BI * window
 
     if sigma == 0:  # need this check for fitting
@@ -290,7 +239,7 @@ def nb_logpdf(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (np.log(2) * (N_A * S) * eff * exp) / (M_A * np.sqrt(2 * np.pi) * sigma)
+    S_amp = mu_S /(np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
@@ -306,7 +255,7 @@ def nb_logpdf(
 
     return y
 
-
+# need to allow for removing parts of the range for BI events
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_rvs(
     n_sig: int,
@@ -315,6 +264,7 @@ def nb_rvs(
     E_hi: float,
     delta: float,
     sigma: float,
+    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -331,21 +281,23 @@ def nb_rvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-
+    seed
+        specify a seed, otherwise uses default seed
 
     Notes
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     """
-
+    
     np.random.seed(seed)
+    
     # Get energy of signal events from a Gaussian distribution
     sig = np.random.normal(QBB + delta, sigma, size=n_sig)
 
     # Get energy of background events from a uniform distribution
-    output = np.append(sig, np.random.uniform(E_lo, E_hi, size=n_bkg))
+    Es = np.append(sig, np.random.uniform(E_lo, E_hi, size=n_bkg))
 
-    return output
+    return Es
 
 
 class gaussian_on_uniform_gen:
@@ -377,6 +329,22 @@ class gaussian_on_uniform_gen:
         exp: float,
     ) -> np.array:
         return nb_logpdf(Es, window, S, BI, delta, sigma, eff, exp)
+    
+    # for iminuit ExtendedUnbinnedNLL
+    def density(
+        self,
+        Es: np.array,
+        window: float,
+        S: float,
+        BI: float,
+        delta: float,
+        sigma: float,
+        eff: float,
+        exp: float,
+    ) -> np.array:
+        mu_S = S * eff * exp
+        mu_B = exp * BI * window
+        return (mu_S+mu_B, (mu_S+mu_B)*nb_pdf(Es, window, S, BI, delta, sigma, eff, exp))
 
     def likelihood(
         self,
@@ -404,6 +372,7 @@ class gaussian_on_uniform_gen:
     ) -> float:
         return nb_loglikelihood(Es, window, S, BI, delta, sigma, eff, exp)
     
+    # need to allow for removing parts of the range for BI events
     def rvs(
         self,
         n_sig: int,
@@ -412,8 +381,9 @@ class gaussian_on_uniform_gen:
         E_hi: float,
         delta: float,
         sigma: float,
+        seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, E_lo, E_hi, delta, sigma)
+        return nb_rvs(n_sig, n_bkg, E_lo, E_hi, delta, sigma, seed)
 
     def plot(
         self,
