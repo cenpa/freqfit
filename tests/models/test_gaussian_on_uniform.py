@@ -4,9 +4,9 @@ from iminuit import Minuit, cost
 import legendfreqfit.constants as constants
 from legendfreqfit.models import gaussian_on_uniform
 
-Qbb = constants.QBB
+QBB = constants.QBB
 N_A = constants.NA
-m_a = constants.MA
+M_A = constants.MA
 
 
 def test_gaussian_on_uniform_pdf():
@@ -14,23 +14,23 @@ def test_gaussian_on_uniform_pdf():
     exp = 100
     S = 1e-24
     BI = 2e-4
-    deltaE = 260
+    window = 260
     delta = 0
     sigma = 1
 
     Es = np.linspace(1930, 2190, 100)
 
     # compute using our function
-    model_values = gaussian_on_uniform.pdf(Es, deltaE, S, BI, delta, sigma, eff, exp)
+    model_values = gaussian_on_uniform.pdf(Es, window, S, BI, delta, sigma, eff, exp)
 
     # Compute using scipy
-    mu_S = np.log(2) * (N_A * S) * eff * exp / m_a
-    mu_B = exp * BI * deltaE
+    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_B = exp * BI * window
     scipy_values = (1 / (mu_S + mu_B)) * (
         mu_S
-        * np.exp(-((Es - Qbb - delta) ** 2) / (2 * (sigma**2)))
+        * np.exp(-((Es - QBB - delta) ** 2) / (2 * (sigma**2)))
         / (np.sqrt(2 * np.pi) * sigma)
-        + mu_B / deltaE
+        + mu_B / window
     )
 
     assert np.allclose(model_values, scipy_values, rtol=1e-3)
@@ -41,25 +41,25 @@ def test_gaussian_on_uniform_logpdf():
     exp = 100
     S = 1e-24
     BI = 2e-4
-    deltaE = 260
+    window = 260
     delta = 0
     sigma = 1
 
     Es = np.linspace(1930, 2190, 100)
 
     # compute using our function
-    model_values = gaussian_on_uniform.logpdf(Es, deltaE, S, BI, delta, sigma, eff, exp)
+    model_values = gaussian_on_uniform.logpdf(Es, window, S, BI, delta, sigma, eff, exp)
 
     # Compute using scipy
-    mu_S = np.log(2) * (N_A * S) * eff * exp / m_a
-    mu_B = exp * BI * deltaE
+    mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_B = exp * BI * window
     scipy_values = np.log(
         (1 / (mu_S + mu_B))
         * (
             mu_S
-            * np.exp(-((Es - Qbb - delta) ** 2) / (2 * (sigma**2)))
+            * np.exp(-((Es - QBB - delta) ** 2) / (2 * (sigma**2)))
             / (np.sqrt(2 * np.pi) * sigma)
-            + mu_B / deltaE
+            + mu_B / window
         )
     )
 
@@ -90,18 +90,17 @@ def test_iminuit_integration():
     random_sample = gaussian_on_uniform.rvs(n_sig, n_bkg, E_lo, E_hi, delta, sigma)
 
     c = cost.UnbinnedNLL(random_sample, gaussian_on_uniform.pdf)
-    m = Minuit(c, deltaE=260, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
-    m.fixed["deltaE"] = True
+    m = Minuit(c, window=260, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m.fixed["window", "exp"] = True
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
     assert np.allclose(m.values["delta"], 0.01, rtol=1e0)
 
     c = cost.UnbinnedNLL(random_sample, gaussian_on_uniform.logpdf, log=True)
-    m = Minuit(c, deltaE=260, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
-    m.fixed["deltaE"] = True
-    m.limits["sigma", "S", "BI", "eff", "exp"] = (0.001, 2)
+    m = Minuit(c, window=260, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m.fixed["window", "exp"] = True
     m.migrad()
 
-    assert np.allclose(m.values["sigma"], 1, rtol=1e0)
-    assert np.allclose(m.values["delta"], 0.04, rtol=1e-1)
+    assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
+    assert np.allclose(m.values["delta"], 0.01, rtol=1e0)

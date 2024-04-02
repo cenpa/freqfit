@@ -4,8 +4,9 @@
 *.npz
 *.pdf
 *.csv
+*.ipynb
 
-/src/legendfreqfit/_version.py
+src/legendfreqfit/_version.py
 
 # -------------------- github-generated stuff -------------------
 # Byte-compiled / optimized / DLL files
