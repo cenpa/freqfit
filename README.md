@@ -17,6 +17,7 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
+- think we are going to have to use `_parameters` dict from `iminuit` see (https://github.com/scikit-hep/iminuit/issues/941) and (https://scikit-hep.org/iminuit/reference.html#iminuit.util.describe)
 - can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
 - probably need to settle on some variable name conventions (Louis prefers more characters :) )
