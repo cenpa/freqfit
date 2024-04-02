@@ -15,6 +15,7 @@ nb_kwd = {
 QBB = constants.QBB
 N_A = constants.NA
 M_A = constants.MA
+WINDOW = np.array(constants.WINDOW)
 SEED = 42  # set the default random seed
 
 
@@ -52,7 +53,7 @@ def nb_likelihood(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
+    mu_S = eff * exp * S
     mu_B = exp * BI * window
     pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]}
     """
@@ -109,7 +110,7 @@ def nb_loglikelihood(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
+    mu_S = eff * exp * S
     mu_B = exp * BI * window
     pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]}
     """
@@ -166,7 +167,7 @@ def nb_pdf(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
+    mu_S = eff * exp * S
     mu_B = exp * BI * window
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]
     """
@@ -223,7 +224,7 @@ def nb_logpdf(
     Notes
     -----
     This function computes the following:
-    mu_S = ln(2) * (N_A/M_A) * eff * exp * S
+    mu_S = eff * exp * S
     mu_B = exp * BI * window
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window])
     """
@@ -260,10 +261,9 @@ def nb_logpdf(
 def nb_rvs(
     n_sig: int,
     n_bkg: int,
-    E_lo: float,
-    E_hi: float,
     delta: float,
     sigma: float,
+    window: np.array = WINDOW,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -273,10 +273,8 @@ def nb_rvs(
         Number of signal events to pull from
     n_bkg
         Number of background events to pull from
-    E_lo
-        The lower energy bound of the BI window
-    E_hi
-        The high energy bound of the BI window
+    window
+        uniform background regions to pull from
     delta
         Systematic energy offset from QBB, in keV
     sigma
@@ -287,15 +285,35 @@ def nb_rvs(
     Notes
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
+    in the provided windows, which may be discontinuous.
     """
     
     np.random.seed(seed)
     
     # Get energy of signal events from a Gaussian distribution
-    sig = np.random.normal(QBB + delta, sigma, size=n_sig)
+    # preallocate for background draws
+    Es = np.append(np.random.normal(QBB + delta, sigma, size=n_sig), np.zeros((n_bkg)))
 
-    # Get energy of background events from a uniform distribution
-    Es = np.append(sig, np.random.uniform(E_lo, E_hi, size=n_bkg))
+    # Get background events from a uniform distribution
+    bkg = np.random.uniform(0, 1, n_bkg)
+
+    fullwidth = 0
+    for i in range(len(window)):
+        fullwidth += window[i][1] - window[i][0]
+
+    breaks = np.zeros(shape=(len(window),2))
+    for i in range(len(window)):
+        thiswidth = window[i][1] - window[i][0]
+
+        if (i > 0):
+            breaks[i][0] = breaks[i-1][1]
+        
+        if (i < len(window)):
+            breaks[i][1] =  breaks[i][0] + thiswidth/fullwidth
+
+        for j in range(len(bkg)):
+            if breaks[i][0] <= bkg[j] <= breaks[i][1]:
+                Es[n_sig+j] = (bkg[j] - breaks[i][0]) * thiswidth/(breaks[i][1]-breaks[i][0]) + window[i][0]
 
     return Es
 
@@ -377,13 +395,12 @@ class gaussian_on_uniform_gen:
         self,
         n_sig: int,
         n_bkg: int,
-        E_lo: float,
-        E_hi: float,
         delta: float,
         sigma: float,
+        window: np.array = WINDOW,
         seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, E_lo, E_hi, delta, sigma, seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma, window=window, seed=seed)
 
     def plot(
         self,
