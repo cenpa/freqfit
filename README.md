@@ -26,7 +26,7 @@ per detector per partition
 - models need a `density` to return form expected by `iminuit` ([https://scikit-hep.org/iminuit/notebooks/cost_functions.html)](https://scikit-hep.org/iminuit/notebooks/cost_functions.html#Extended-unbinned-fit))
 
 ### development help
-If you're using a `venv`, add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
+If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
 
 ```bash
 PYTHONPATH="${PYTHONPATH}:/path/to/git/repo/legendfreqfit/src"
