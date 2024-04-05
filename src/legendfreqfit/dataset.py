@@ -25,7 +25,8 @@ class Dataset:
             callable model to be passed to the cost function (e.g. `gaussian_on_uniform.density`).`model`
             must have a callable form `model(data, a, b, c, ...)` where `data` takes a 1D `ndarray` corresponding
             to unbinned events, and `a, b, c,...` are the parameters of the model, which may take any type and may include
-            default values. `model` must return the form expected by `costfunction`.
+            default values. `model` must return the form expected by `costfunction`. Those parameters which are to be 
+            fit by `iminuit` must take a single number.
         parameters
             `dict` for the parameters of this particular model that allow for control over how a fit is performed across
             multiple datasets. The `dict` should have keys corresponding to each required parameter of `model` (each
@@ -59,7 +60,7 @@ class Dataset:
         costfunction
             an `iminuit` cost function. Currently, only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported 
             as cost functions.
-            
+
         Notes
         -----
         Currently, only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as cost functions.
@@ -138,7 +139,7 @@ class Dataset:
         return self.data
 
     def model(self, data, *par):
-        #par should be 1D array like
+        # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
             self._parlist[self._partofitindices[i]] = par[i]
