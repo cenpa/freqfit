@@ -262,7 +262,6 @@ def nb_logpdf(
 
     return y
 
-# need to allow for removing parts of the range for BI events
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_rvs(
     n_sig: int,
@@ -304,9 +303,9 @@ def nb_rvs(
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
 
-    fullwidth = 0
+    windowsize = 0
     for i in range(len(window)):
-        fullwidth += window[i][1] - window[i][0]
+        windowsize += window[i][1] - window[i][0]
 
     breaks = np.zeros(shape=(len(window),2))
     for i in range(len(window)):
@@ -316,7 +315,7 @@ def nb_rvs(
             breaks[i][0] = breaks[i-1][1]
         
         if (i < len(window)):
-            breaks[i][1] =  breaks[i][0] + thiswidth/fullwidth
+            breaks[i][1] =  breaks[i][0] + thiswidth/windowsize
 
         for j in range(len(bkg)):
             if breaks[i][0] <= bkg[j] <= breaks[i][1]:
@@ -324,6 +323,71 @@ def nb_rvs(
 
     return Es
 
+
+@nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
+def nb_extendedrvs(
+    mu_sig: float,
+    mu_bkg: float,
+    delta: float,
+    sigma: float,    
+    eff: float,
+    exp: float,
+    window: np.array = WINDOW,
+    seed: int = SEED,
+) -> np.array:
+    """
+    Parameters
+    ----------
+    mu_sig
+        expected rate of signal events in events/(kg*yr)
+    mu_bkg
+        rate of background events in events/(kev*kg*yr)
+    delta
+        Systematic energy offset from QBB, in keV
+    sigma
+        The energy resolution at QBB, in keV
+    seed
+        specify a seed, otherwise uses default seed
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked). Default is typical analysis window.
+    Notes
+    -----
+    This function pulls from a Gaussian for signal events and from a uniform distribution for background events
+    in the provided windows, which may be discontinuous.
+    """
+    
+    np.random.seed(seed)
+
+    windowsize = 0
+    for i in range(len(window)):
+        windowsize += window[i][1] - window[i][0]
+
+    n_sig = np.random.poisson(mu_sig*eff*exp)
+    n_bkg = np.random.poisson(mu_bkg*exp*windowsize)
+    
+    # Get energy of signal events from a Gaussian distribution
+    # preallocate for background draws
+    Es = np.append(np.random.normal(QBB + delta, sigma, size=n_sig), np.zeros((n_bkg)))
+
+    # Get background events from a uniform distribution
+    bkg = np.random.uniform(0, 1, n_bkg)
+
+    breaks = np.zeros(shape=(len(window),2))
+    for i in range(len(window)):
+        thiswidth = window[i][1] - window[i][0]
+
+        if (i > 0):
+            breaks[i][0] = breaks[i-1][1]
+        
+        if (i < len(window)):
+            breaks[i][1] =  breaks[i][0] + thiswidth/windowsize
+
+        for j in range(len(bkg)):
+            if breaks[i][0] <= bkg[j] <= breaks[i][1]:
+                Es[n_sig+j] = (bkg[j] - breaks[i][0]) * thiswidth/(breaks[i][1]-breaks[i][0]) + window[i][0]
+
+    return Es
 
 class gaussian_on_uniform_gen:
     def __init__(self):
@@ -411,6 +475,19 @@ class gaussian_on_uniform_gen:
     ) -> np.array:
         return nb_rvs(n_sig, n_bkg, delta, sigma, window=window, seed=seed)
 
+    def extendedrvs(
+        self,
+        mu_sig: float,
+        mu_bkg: float,
+        delta: float,
+        sigma: float,
+        eff: float,
+        exp: float,
+        window: np.array = WINDOW,
+        seed: int = SEED,
+    ) -> np.array:
+        return nb_extendedrvs(mu_sig, mu_bkg, delta, sigma, eff, exp, window=window, seed=seed)
+    
     def plot(
         self,
         Es: np.array,
