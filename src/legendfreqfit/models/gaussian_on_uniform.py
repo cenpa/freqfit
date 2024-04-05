@@ -15,27 +15,33 @@ nb_kwd = {
 QBB = constants.QBB
 N_A = constants.NA
 M_A = constants.MA
+
+# default analysis window and width
 WINDOW = np.array(constants.WINDOW)
+WINDOWSIZE = 0.0
+for i in range(len(WINDOW)):
+    WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
+
 SEED = 42  # set the default random seed
 
 
 @nb.jit(**nb_kwd)
 def nb_likelihood(
     Es: np.array,
-    window: float,
     S: float,
     BI: float,
     delta: float,
     sigma: float,
     eff: float,
     exp: float,
+    windowsize: float = WINDOWSIZE,
 ) -> float:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    window
+    windowsize
         width of the fit window in keV
     S
         The signal rate, in units of counts/(kg*yr)
@@ -54,13 +60,13 @@ def nb_likelihood(
     -----
     This function computes the following:
     mu_S = eff * exp * S
-    mu_B = exp * BI * window
-    pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]}
+    mu_B = exp * BI * windowsize
+    pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]}
     """
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * window
+    mu_B = exp * BI * windowsize
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
@@ -79,20 +85,20 @@ def nb_likelihood(
 @nb.jit(**nb_kwd)
 def nb_loglikelihood(
     Es: np.array,
-    window: float,
     S: float,
     BI: float,
     delta: float,
     sigma: float,
     eff: float,
     exp: float,
+    windowsize: float = WINDOWSIZE,
 ) -> float:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    window
+    windowsize
         width of the fit window in keV
     S
         The signal rate, in units of counts/(kg*yr)
@@ -111,13 +117,13 @@ def nb_loglikelihood(
     -----
     This function computes the following:
     mu_S = eff * exp * S
-    mu_B = exp * BI * window
-    pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]}
+    mu_B = exp * BI * windowsize
+    pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]}
     """
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * window
+    mu_B = exp * BI * windowsize
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
@@ -136,13 +142,13 @@ def nb_loglikelihood(
 @nb.jit(**nb_kwd)
 def nb_pdf(
     Es: np.array,
-    window: float,
     S: float,
     BI: float,
     delta: float,
     sigma: float,
     eff: float,
     exp: float,
+    windowsize: float = WINDOWSIZE,
 ) -> np.array:
     """
     Parameters
@@ -168,13 +174,13 @@ def nb_pdf(
     -----
     This function computes the following:
     mu_S = eff * exp * S
-    mu_B = exp * BI * window
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window]
+    mu_B = exp * BI * windowsize
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     """
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * window
+    mu_B = exp * BI * windowsize
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
@@ -193,20 +199,20 @@ def nb_pdf(
 @nb.jit(**nb_kwd)
 def nb_logpdf(
     Es: np.array,
-    window: float,
     S: float,
     BI: float,
     delta: float,
     sigma: float,
     eff: float,
     exp: float,
+    windowsize: float = WINDOWSIZE,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    window
+    windowsize
         width of the fit window in keV
     S
         The signal rate, in units of counts/(kg*yr)
@@ -225,13 +231,13 @@ def nb_logpdf(
     -----
     This function computes the following:
     mu_S = eff * exp * S
-    mu_B = exp * BI * window
-    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/window])
+    mu_B = exp * BI * windowsize
+    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize])
     """
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * window
+    mu_B = exp * BI * windowsize
 
     if sigma == 0:  # need this check for fitting
         return np.full_like(
@@ -326,72 +332,74 @@ class gaussian_on_uniform_gen:
     def pdf(
         self,
         Es: np.array,
-        window: float,
         S: float,
         BI: float,
         delta: float,
         sigma: float,
         eff: float,
         exp: float,
+        windowsize: float = WINDOWSIZE,
     ) -> np.array:
-        return nb_pdf(Es, window, S, BI, delta, sigma, eff, exp)
+        return nb_pdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
 
     def logpdf(
         self,
         Es: np.array,
-        window: float,
         S: float,
         BI: float,
         delta: float,
         sigma: float,
         eff: float,
         exp: float,
+        windowsize: float = WINDOWSIZE,
     ) -> np.array:
-        return nb_logpdf(Es, window, S, BI, delta, sigma, eff, exp)
+        return nb_logpdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
     
     # for iminuit ExtendedUnbinnedNLL
     def density(
         self,
         Es: np.array,
-        window: float,
         S: float,
         BI: float,
         delta: float,
         sigma: float,
         eff: float,
         exp: float,
+        windowsize: float = WINDOWSIZE,
     ) -> np.array:
         mu_S = S * eff * exp
-        mu_B = exp * BI * window
-        return (mu_S+mu_B, (mu_S+mu_B)*nb_pdf(Es, window, S, BI, delta, sigma, eff, exp))
+        mu_B = exp * BI * windowsize
+        return (mu_S+mu_B, (mu_S+mu_B)*nb_pdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize))
 
     def likelihood(
         self,
         Es: np.array,
-        window: float,
         S: float,
         BI: float,
         delta: float,
         sigma: float,
         eff: float,
         exp: float,
+        windowsize: float = WINDOWSIZE,
     ) -> float:
-        return nb_likelihood(Es, window, S, BI, delta, sigma, eff, exp)
+        return nb_likelihood(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
 
     def loglikelihood(
         self,
         Es: np.array,
-        window: float,
         S: float,
         BI: float,
         delta: float,
         sigma: float,
         eff: float,
         exp: float,
+        windowsize: float = WINDOWSIZE,
     ) -> float:
-        return nb_loglikelihood(Es, window, S, BI, delta, sigma, eff, exp)
+        return nb_loglikelihood(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
     
-    # need to allow for removing parts of the range for BI events
+    # should we have an rvs method for drawing a random number of events?
+    # `extendedrvs`
+    # needs to use same parameters as the rest of the functions...
     def rvs(
         self,
         n_sig: int,
@@ -406,15 +414,15 @@ class gaussian_on_uniform_gen:
     def plot(
         self,
         Es: np.array,
-        window: float,
         S: float,
         BI: float,
         delta: float,
         sigma: float,
         eff: float,
         exp: float,
+        windowsize: float = WINDOWSIZE,
     ) -> None:
-        y = nb_pdf(Es, window, S, BI, delta, sigma, eff, exp)
+        y = nb_pdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
 
         plt.step(Es, y)
         plt.show()
