@@ -4,9 +4,8 @@ A class that holds a dataset and its associated model and cost function,
 
 import warnings
 import numpy as np
-from iminuit import cost, util
+from iminuit import cost
 import inspect
-import typing
 
 class Dataset:
     def __init__(
@@ -126,17 +125,6 @@ class Dataset:
                 self._parlist.append(parameters[modelparameter]["value"])
 
         return 
-
-    def rvs(self) -> np.array:
-        if self.data is not None:
-            msg = (
-                f"data already exists in dataset"
-            )
-            warnings.warn(msg)
-        
-        self.data = self.model.rvs()
-
-        return self.data
 
     def model(self, data, *par):
         # par should be 1D array like
