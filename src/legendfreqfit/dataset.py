@@ -10,10 +10,11 @@ import inspect
 class Dataset:
     def __init__(
         self, 
-        data:np.array,
+        data: np.array,
         model,
         parameters: dict,
         costfunction,
+        name: str = None,
         ) -> None:
         """
         Parameters
@@ -66,6 +67,7 @@ class Dataset:
         """
 
         self.data = data
+        self.name = name
 
         self.modelname = model
         modelparameters = inspectmodel(self.modelname)
@@ -74,7 +76,7 @@ class Dataset:
         for parameter in parameters:
             if parameter not in modelparameters:
                 msg = (
-                    f"parameter `{parameter}` not found in model `{self.modelname}`."
+                    f"`Dataset` `{self.name}`: parameter `{parameter}` not found in model `{self.modelname}`."
                 )
                 raise KeyError(msg)
         
@@ -85,7 +87,7 @@ class Dataset:
             if ((modelparameters[modelparameter] == "nodefaultvalue") 
                 and (modelparameter not in parameters)):
                 msg = (
-                    f"required model parameter `{modelparameter}` not found in parameters"
+                    f"`Dataset` `{self.name}`: required model parameter `{modelparameter}` not found in parameters"
                 )
                 raise KeyError(msg)
 
@@ -97,7 +99,7 @@ class Dataset:
             self.costfunction = costfunction(self.data, self.model)
         else:
             msg = (
-                f"only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as cost functions"
+                f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as cost functions"
             )
             raise RuntimeError(msg)
 
@@ -119,7 +121,7 @@ class Dataset:
             else: # parameter was passed but should not be included in the fit
                 if (("value" not in parameters[modelparameter]) and (modelparameters[parameter] == "nodefaultvalue")):
                     msg = (
-                        f"value for parameter `{parameter}` is required for model `{self.model}` parameter `{parameter}`"
+                        f"`Dataset` `{self.name}`: value for parameter `{parameter}` is required for model `{self.model}` parameter `{parameter}`"
                     )
                     raise KeyError(msg)
                 self._parlist.append(parameters[modelparameter]["value"])
