@@ -137,10 +137,10 @@ class Dataset:
         return 
 
     def model(
-            self, 
-            data, 
-            *par,
-            ) -> np.array:
+        self, 
+        data, 
+        *par,
+        ) -> np.array:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
@@ -149,10 +149,10 @@ class Dataset:
         return self.modelname.density(data, *self._parlist)
     
     def maketoy(
-            self, 
-            *par, 
-            seed=SEED, # must be passed as keyword
-            ) -> np.array:
+        self, 
+        *par, 
+        seed=SEED, # must be passed as keyword
+        ) -> np.array:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
@@ -162,7 +162,10 @@ class Dataset:
 
         return self.toy
     
-    def toyll(self, *par):
+    def toyll(
+        self, 
+        *par,
+        ) -> float:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
