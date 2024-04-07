@@ -3,6 +3,7 @@ import numba as nb
 import numpy as np
 
 import legendfreqfit.constants as constants
+from legendfreqfit.utils import inspectparameters
 
 nb_kwd = {
     "nopython": True,
@@ -18,9 +19,6 @@ M_A = constants.MA
 
 # default analysis window and width
 WINDOW = np.array(constants.WINDOW)
-WINDOWSIZE = 0.0
-for i in range(len(WINDOW)):
-    WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
 SEED = 42  # set the default random seed
 
@@ -34,7 +32,7 @@ def nb_likelihood(
     sigma: float,
     eff: float,
     exp: float,
-    windowsize: float = WINDOWSIZE,
+    window: float = WINDOW,
 ) -> float:
     """
     Parameters
@@ -55,6 +53,10 @@ def nb_likelihood(
         The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked), in keV.
+        Default is typical analysis window.
 
     Notes
     -----
@@ -63,6 +65,11 @@ def nb_likelihood(
     mu_B = exp * BI * windowsize
     pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]}
     """
+
+    windowsize = 0.0
+    for i in range(len(window)):
+        windowsize += window[i][1] - window[i][0]
+
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
@@ -91,15 +98,13 @@ def nb_loglikelihood(
     sigma: float,
     eff: float,
     exp: float,
-    windowsize: float = WINDOWSIZE,
+    window: np.array = WINDOW,
 ) -> float:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    windowsize
-        width of the fit window in keV
     S
         The signal rate, in units of counts/(kg*yr)
     BI
@@ -112,6 +117,10 @@ def nb_loglikelihood(
         The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked), in keV.
+        Default is typical analysis window.
 
     Notes
     -----
@@ -120,6 +129,11 @@ def nb_loglikelihood(
     mu_B = exp * BI * windowsize
     pdf = prod_j {1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]}
     """
+
+    windowsize = 0.0
+    for i in range(len(window)):
+        windowsize += window[i][1] - window[i][0]
+
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
@@ -148,15 +162,13 @@ def nb_pdf(
     sigma: float,
     eff: float,
     exp: float,
-    windowsize: float = WINDOWSIZE,
+    window: np.array = WINDOW,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    window
-        width of the fit window in keV
     S
         The signal rate, in units of counts/(kg*yr)
     BI
@@ -169,6 +181,10 @@ def nb_pdf(
         The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked), in keV.
+        Default is typical analysis window.
 
     Notes
     -----
@@ -177,6 +193,11 @@ def nb_pdf(
     mu_B = exp * BI * windowsize
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     """
+
+    windowsize = 0.0
+    for i in range(len(window)):
+        windowsize += window[i][1] - window[i][0]
+
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
@@ -205,15 +226,13 @@ def nb_logpdf(
     sigma: float,
     eff: float,
     exp: float,
-    windowsize: float = WINDOWSIZE,
+    window: np.array = WINDOW,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    windowsize
-        width of the fit window in keV
     S
         The signal rate, in units of counts/(kg*yr)
     BI
@@ -226,6 +245,10 @@ def nb_logpdf(
         The global signal efficiency, unitless
     exp
         The exposure, in kg*yr
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked), in keV.
+        Default is typical analysis window.
 
     Notes
     -----
@@ -234,6 +257,11 @@ def nb_logpdf(
     mu_B = exp * BI * windowsize
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize])
     """
+
+    windowsize = 0.0
+    for i in range(len(window)):
+        windowsize += window[i][1] - window[i][0]
+
     # Precompute the signal and background counts
     #mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
@@ -278,15 +306,16 @@ def nb_rvs(
         Number of signal events to pull from
     n_bkg
         Number of background events to pull from
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
-        where edges of window are monotonically increasing (this is not checked)
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
     seed
         specify a seed, otherwise uses default seed
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
+        where edges of window are monotonically increasing (this is not checked), in keV.
+        Default is typical analysis window.
 
     Notes
     -----
@@ -326,8 +355,8 @@ def nb_rvs(
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
-    mu_sig: float,
-    mu_bkg: float,
+    S: float,
+    BI: float,
     delta: float,
     sigma: float,    
     eff: float,
@@ -338,9 +367,9 @@ def nb_extendedrvs(
     """
     Parameters
     ----------
-    mu_sig
+    S
         expected rate of signal events in events/(kg*yr)
-    mu_bkg
+    BI
         rate of background events in events/(kev*kg*yr)
     delta
         Systematic energy offset from QBB, in keV
@@ -350,7 +379,9 @@ def nb_extendedrvs(
         specify a seed, otherwise uses default seed
     window
         uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])` 
-        where edges of window are monotonically increasing (this is not checked). Default is typical analysis window.
+        where edges of window are monotonically increasing (this is not checked), in keV. 
+        Default is typical analysis window.
+
     Notes
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
@@ -363,8 +394,8 @@ def nb_extendedrvs(
     for i in range(len(window)):
         windowsize += window[i][1] - window[i][0]
 
-    n_sig = np.random.poisson(mu_sig*eff*exp)
-    n_bkg = np.random.poisson(mu_bkg*exp*windowsize)
+    n_sig = np.random.poisson(S*eff*exp)
+    n_bkg = np.random.poisson(BI*exp*windowsize)
     
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
@@ -393,6 +424,13 @@ class gaussian_on_uniform_gen:
     def __init__(self):
         pass
 
+    # maybe not the best to do things this way, but it should work?
+    def parameters(
+        self
+    ) -> dict:
+        
+        return inspectparameters(self.density)
+        
     def pdf(
         self,
         Es: np.array,
@@ -402,9 +440,9 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        windowsize: float = WINDOWSIZE,
+        window: np.array = WINDOW,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
+        return nb_pdf(Es, S, BI, delta, sigma, eff, exp, window=window)
 
     def logpdf(
         self,
@@ -415,9 +453,9 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        windowsize: float = WINDOWSIZE,
+        window: np.array = WINDOW,
     ) -> np.array:
-        return nb_logpdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
+        return nb_logpdf(Es, S, BI, delta, sigma, eff, exp, window=window)
     
     # for iminuit ExtendedUnbinnedNLL
     def density(
@@ -429,11 +467,16 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        windowsize: float = WINDOWSIZE,
+        window: np.array = WINDOW,
     ) -> np.array:
+        
+        windowsize = 0
+        for i in range(len(window)):
+            windowsize += window[i][1] - window[i][0]
+
         mu_S = S * eff * exp
         mu_B = exp * BI * windowsize
-        return (mu_S+mu_B, (mu_S+mu_B)*nb_pdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize))
+        return (mu_S+mu_B, (mu_S+mu_B)*nb_pdf(Es, S, BI, delta, sigma, eff, exp, window=window))
 
     def likelihood(
         self,
@@ -444,9 +487,9 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        windowsize: float = WINDOWSIZE,
+        window: np.array = WINDOW,
     ) -> float:
-        return nb_likelihood(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
+        return nb_likelihood(Es, S, BI, delta, sigma, eff, exp, window=window)
 
     def loglikelihood(
         self,
@@ -457,9 +500,9 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        windowsize: float = WINDOWSIZE,
+        window: np.array = WINDOW,
     ) -> float:
-        return nb_loglikelihood(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
+        return nb_loglikelihood(Es, S, BI, delta, sigma, eff, exp, window=window)
     
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
@@ -477,8 +520,8 @@ class gaussian_on_uniform_gen:
 
     def extendedrvs(
         self,
-        mu_sig: float,
-        mu_bkg: float,
+        S: float,
+        BI: float,
         delta: float,
         sigma: float,
         eff: float,
@@ -486,7 +529,7 @@ class gaussian_on_uniform_gen:
         window: np.array = WINDOW,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(mu_sig, mu_bkg, delta, sigma, eff, exp, window=window, seed=seed)
+        return nb_extendedrvs(S, BI, delta, sigma, eff, exp, window=window, seed=seed)
     
     def plot(
         self,
@@ -497,9 +540,9 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        windowsize: float = WINDOWSIZE,
+        window: np.array = WINDOW,
     ) -> None:
-        y = nb_pdf(Es, S, BI, delta, sigma, eff, exp, windowsize=windowsize)
+        y = nb_pdf(Es, S, BI, delta, sigma, eff, exp, window=window)
 
         plt.step(Es, y)
         plt.show()

@@ -5,7 +5,8 @@ A class that holds a dataset and its associated model and cost function,
 import warnings
 import numpy as np
 from iminuit import cost
-import inspect
+
+SEED = 42
 
 class Dataset:
     def __init__(
@@ -14,7 +15,7 @@ class Dataset:
         model,
         parameters: dict,
         costfunction,
-        name: str = None,
+        name: str = "",
         ) -> None:
         """
         Parameters
@@ -22,8 +23,8 @@ class Dataset:
         data
             D `ndarray` of the data, which should be a list of energies
         model
-            callable model to be passed to the cost function (e.g. `gaussian_on_uniform.density`).`model`
-            must have a callable form `model(data, a, b, c, ...)` where `data` takes a 1D `ndarray` corresponding
+            model to be passed to the cost function (e.g. `gaussian_on_uniform`).`model`
+            must have a method `model.density(data, a, b, c, ...)` where `data` takes a 1D `ndarray` corresponding
             to unbinned events, and `a, b, c,...` are the parameters of the model, which may take any type and may include
             default values. `model` must return the form expected by `costfunction`. Those parameters which are to be 
             fit by `iminuit` must take a single number.
@@ -60,6 +61,8 @@ class Dataset:
         costfunction
             an `iminuit` cost function. Currently, only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported 
             as cost functions.
+        name
+            a `str` name for the `Dataset`
 
         Notes
         -----
@@ -70,7 +73,7 @@ class Dataset:
         self.name = name
 
         self.modelname = model
-        modelparameters = inspectmodel(self.modelname)
+        modelparameters = self.modelname.parameters()
         
         # check that all passed parameters are valid
         for parameter in parameters:
@@ -81,10 +84,8 @@ class Dataset:
                 raise KeyError(msg)
         
         # check that all required parameters were passed
-        for i,modelparameter in enumerate(modelparameters):
-            if i==0: # because model should take data as first argument
-                continue
-            if ((modelparameters[modelparameter] == "nodefaultvalue") 
+        for modelparameter in modelparameters:
+            if ((modelparameters[modelparameter] is str and modelparameters[modelparameter] == "nodefaultvalue") 
                 and (modelparameter not in parameters)):
                 msg = (
                     f"`Dataset` `{self.name}`: required model parameter `{modelparameter}` not found in parameters"
@@ -93,7 +94,10 @@ class Dataset:
 
         self.parameters = parameters
         self._parlist = []
-        self._partofitindices = [] # indices in self._parlist of the the parameters to be fit
+        self._fitparameters_indices = [] # indices in self._parlist of the the parameters to be fit
+        # dict of those parameters for fit, keys are parameter names, values are indices in self._parlist (same as 
+        # self._fitparameters_indices)
+        self.fitparameters = {} 
 
         if ((costfunction is cost.ExtendedUnbinnedNLL) or (costfunction is cost.UnbinnedNLL)):
             self.costfunction = costfunction(self.data, self.model)
@@ -106,49 +110,62 @@ class Dataset:
         # now we make the parameters of the cost function
         # need to go in order of the model
         for i, modelparameter in enumerate(modelparameters):   
-            if i==0: # because model should take data as first argument
-                continue
             # if not passed, use default value (already checked that required parameters passed)
             if modelparameter not in parameters:
                 self._parlist.append(modelparameters[modelparameter])
             # parameter was passed and should be included in the fit
-            elif "includeinfit" in parameters[modelparameter] and parameters[modelparameter]["includeinfit"]:       
+            elif (("includeinfit" in parameters[modelparameter]) and (parameters[modelparameter]["includeinfit"])):      
                 self.costfunction._parameters |= {
                     parameters[modelparameter]["name"] if "name" in parameters[modelparameter] else modelparameter: 
                     parameters[modelparameter]["limits"] if "limits" in parameters[modelparameter] else None}
                 self._parlist.append(None)
-                self._partofitindices.append(i-1) # because model should take data as first argument
+                self._fitparameters_indices.append(i) 
+                self.fitparameters |= {
+                    parameters[modelparameter]["name"] if "name" in parameters[modelparameter] else modelparameter: i}
             else: # parameter was passed but should not be included in the fit
-                if (("value" not in parameters[modelparameter]) and (modelparameters[parameter] == "nodefaultvalue")):
+                if (("value" not in parameters[modelparameter]) and (modelparameters[modelparameter] == "nodefaultvalue")):
                     msg = (
-                        f"`Dataset` `{self.name}`: value for parameter `{parameter}` is required for model `{self.model}` parameter `{parameter}`"
+                        f"`Dataset` `{self.name}`: value for parameter `{modelparameter}` is required for \
+                        model `{self.modelname}` parameter `{modelparameter}`"
                     )
                     raise KeyError(msg)
                 self._parlist.append(parameters[modelparameter]["value"])
 
+        # holds the last toy data
+        self.toy = None
+
         return 
 
-    def model(self, data, *par):
+    def model(
+            self, 
+            data, 
+            *par,
+            ) -> np.array:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
-            self._parlist[self._partofitindices[i]] = par[i]
-
-        return self.modelname(data, *self._parlist)
-
-# takes a model and returns a dict of its parameters with their default value
-def inspectmodel(model):
-    # pulled some of this from `iminuit.util`
-    try:
-        signature = inspect.signature(model)
-    except ValueError:  # raised when used on built-in function
-        return {}
-
-    r = {}
-    for name, par in signature.parameters.items():
-        if (default:=par.default) is par.empty:
-            r[name] = "nodefaultvalue"
-        else:
-            r[name] = default
+            self._parlist[self._fitparameters_indices[i]] = par[i]
         
-    return r
+        return self.modelname.density(data, *self._parlist)
+    
+    def maketoy(
+            self, 
+            *par, 
+            seed=SEED, # must be passed as keyword
+            ) -> np.array:
+        # par should be 1D array like
+        # assign the positional parameters to the correct places in the model parameter list
+        for i in range(len(par)):
+            self._parlist[self._fitparameters_indices[i]] = par[i]     
+
+        self.toy = self.modelname.extendedrvs(*self._parlist, seed=seed)
+
+        return self.toy
+    
+    def toyll(self, *par):
+        # par should be 1D array like
+        # assign the positional parameters to the correct places in the model parameter list
+        for i in range(len(par)):
+            self._parlist[self._fitparameters_indices[i]] = par[i]     
+        
+        return self.modelname.loglikelihood(self.toy, *self._parlist)
