@@ -4,6 +4,8 @@ A class that holds a combination of datasets.
 
 import warnings
 from legendfreqfit.dataset import Dataset
+from iminuit import cost
+import numpy as np
 
 SEED = 42
 
@@ -43,7 +45,17 @@ class Superset:
         # fitparameters of Superset are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
     
-    
+    def add_normalconstraint(
+        self,
+        parameters: list[str],
+        values: list[float],
+        covariance: np.array,
+        ) -> None:
+
+        self.costfunction = self.costfunction + cost.NormalConstraint(parameters, values, covariance)
+
+        return None
+
     def maketoy(
         self,
         parameters: dict,
