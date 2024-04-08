@@ -45,7 +45,7 @@ class Dataset:
                 `model`. If True, no "value" will be passed to `model` for this parameter and will instead be taken
                 from `iminuit` during the minimization. If "False", then "value" is required if the parameter does not
                 have a default value and will be passed to `model`. Note that it is still possible to include 
-                parameters in the `iminuit` minimization and set them to `fixed`, which can be desireable in some cases.
+                parameters in the `iminuit` minimization and set them to `fixed`, which can be desirable in some cases.
             
             - "value": If "includeinfit" is `False` and no default value for the parameter is specified in `model`, then
                 this is required. This may be any type and will be passed to `model`. If "includeinfit" is `True`, this

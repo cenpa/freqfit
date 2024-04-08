@@ -12,5 +12,8 @@ class Pseudoexperiment(Superset):
         ) -> None:
 
         super().__init__(datasets=datasets, name=name)
+
+        # get the fit parameters and set the parameter initial values
         
+        # self.minuit = Minuit(self.costfunction)
 
