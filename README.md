@@ -102,9 +102,9 @@ A `.yaml` file should be set up like the following. (Need to adjust how `Dataset
 # collection of `NormalConstraint`
 - "constraints":
     - "constraint1"
-        - "parameters": # list of the parameters in the order of `values` and `covariance`
-        - "values": # list of the central value of the parameters
-        - "covariance": # covariance matrix of the parameters
+        - "parameters": [] # list of the parameters in the order of `values` and `covariance`
+        - "values": [] # list of the central value of the parameters
+        - "covariance": [] # covariance matrix of the parameters
 ```
 
 ### development help
