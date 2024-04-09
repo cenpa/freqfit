@@ -99,10 +99,12 @@ A `.yaml` file should be set up like the following. (Need to adjust how `Dataset
         - "includeinfit": False
         - "value": 1.0
 
-- "NormalConstraint"
-    - "parameters": a list of the parameters in the order of the covariance matrix
-    - "values": a list of the central value of the parameters
-    - "covariance": the covariance matrix of the parameters
+# collection of `NormalConstraint`
+- "constraints":
+    - "constraint1"
+        - "parameters": # list of the parameters in the order of `values` and `covariance`
+        - "values": # list of the central value of the parameters
+        - "covariance": # covariance matrix of the parameters
 ```
 
 ### development help
