@@ -49,6 +49,12 @@ def load_config(
         )
         raise KeyError(msg)
 
+    if "parameters" not in config:
+        msg = (
+            f"`parameters` not found in `{file}`"
+        )
+        raise KeyError(msg)
+    
     for datasetname, dataset in config["datasets"].items():
         if "model" in dataset:
             models.add(dataset["model"])
@@ -82,6 +88,11 @@ def load_config(
         for datasetname, dataset in config["datasets"].items():
             if dataset["costfunction"] == costfunctionname:
                 dataset["costfunction"] = costfunction
+
+    # convert any limits from string to python object
+    for par, pardict in config["parameters"].items():
+        if "limits" in pardict and type(pardict["limits"]) is str:
+            pardict["limits"] = eval(pardict["limits"])
 
     return config
     

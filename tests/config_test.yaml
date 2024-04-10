@@ -1,6 +1,6 @@
 datasets:
   "datasetname1":
-    data: [2039.0, 2145.1, 1956.7, 2012.9]
+    data: [2061.55097903, 2030.55066863, 2151.12979847, 2018.13550212, 2014.38864454]
     costfunction: "ExtendedUnbinnedNLL"
     model: "legendfreqfit.models.gaussian_on_uniform"
     model_parameters:
@@ -12,7 +12,7 @@ datasets:
       "exp": "exp_datasetname1"
 
   "datasetname2":
-    data: [2045.1, 1966.5, 2112.9]
+    data: [1954.27940129, 2049.28163933, 2024.10741244, 2092.64877668, 2165.27444874]
     costfunction: "ExtendedUnbinnedNLL"
     model: "legendfreqfit.models.gaussian_on_uniform"
     model_parameters:
@@ -27,11 +27,11 @@ parameters:
   "global_S":
     includeinfit: True
     limits: (0, None)
-    value: ~
+    value: 0.0
   "BI_datasetname1":
     includeinfit: True
     limits: (0, None)
-    value: ~
+    value: 0.01
   "delta_datasetname1":
     includeinfit: False
     limits: ~
@@ -50,7 +50,7 @@ parameters:
   "BI_datasetname2":
     includeinfit: True
     limits: (0, None)
-    value: ~
+    value: 0.01
   "delta_datasetname2":
     includeinfit: False
     limits: ~
@@ -72,4 +72,4 @@ constraints:
   "constraint1":
     parameters: ["BI_datasetname1","BI_datasetname2"] # list of the parameters in the order of `values` and `covariance`
     values: [0.,0.] # list of the central value of the parameters
-    covariance: [[1.,0.],[0.,1.]] # covariance matrix of the parameters
+    covariance: [[10.,0.],[0.,10.]] # covariance matrix of the parameters

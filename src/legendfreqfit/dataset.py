@@ -98,7 +98,7 @@ class Dataset:
         self.model_parameters = model_parameters
         self._parlist = []
         self._parlist_indices = [] # indices in self._parlist of the the parameters to be fit
-        # dict of those parameters for fit, keys are parameter names, values are indices in self._parlist (same as 
+        # dict of those parameters for fit, keys are parameter names, values are indices in self._parlist (same as in
         # self._parlist_indices)
         self.fitparameters = {} 
 
@@ -141,7 +141,7 @@ class Dataset:
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
             self._parlist[self._parlist_indices[i]] = par[i]
-        
+                    
         return self.model.density(data, *self._parlist)
     
     def maketoy(

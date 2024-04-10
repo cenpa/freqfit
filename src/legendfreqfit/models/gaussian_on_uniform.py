@@ -463,7 +463,7 @@ class gaussian_on_uniform_gen:
         exp: float,
         window: np.array = WINDOW,
     ) -> np.array:
-        
+            
         windowsize = 0
         for i in range(len(window)):
             windowsize += window[i][1] - window[i][0]
