@@ -1,0 +1,75 @@
+datasets:
+  "datasetname1":
+    data: [2039.0, 2145.1, 1956.7, 2012.9]
+    costfunction: "ExtendedUnbinnedNLL"
+    model: "legendfreqfit.models.gaussian_on_uniform"
+    model_parameters:
+      "S": "global_S"
+      "BI": "BI_datasetname1"
+      "delta": "delta_datasetname1"
+      "sigma": "sigma_datasetname1"
+      "eff": "eff_datasetname1"
+      "exp": "exp_datasetname1"
+
+  "datasetname2":
+    data: [2045.1, 1966.5, 2112.9]
+    costfunction: "ExtendedUnbinnedNLL"
+    model: "legendfreqfit.models.gaussian_on_uniform"
+    model_parameters:
+      "S": "global_S"
+      "BI": "BI_datasetname2"
+      "delta": "delta_datasetname2"
+      "sigma": "sigma_datasetname2"
+      "eff": "eff_datasetname2"
+      "exp": "exp_datasetname2"
+
+parameters:
+  "global_S":
+    includeinfit: True
+    limits: (0, None)
+    value: ~
+  "BI_datasetname1":
+    includeinfit: True
+    limits: (0, None)
+    value: ~
+  "delta_datasetname1":
+    includeinfit: False
+    limits: ~
+    value: 0.0
+  "sigma_datasetname1":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "eff_datasetname1":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "exp_datasetname1":
+    includeinfit: False
+    value: 1.0
+  "BI_datasetname2":
+    includeinfit: True
+    limits: (0, None)
+    value: ~
+  "delta_datasetname2":
+    includeinfit: False
+    limits: ~
+    value: 0.0
+  "sigma_datasetname2":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "eff_datasetname2":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "exp_datasetname2":
+    includeinfit: False
+    value: 1.0
+
+# collection of `NormalConstraint`
+constraints:
+  "constraint1":
+    parameters: ["BI_datasetname1","BI_datasetname2"] # list of the parameters in the order of `values` and `covariance`
+    values: [0.,0.] # list of the central value of the parameters
+    covariance: [[1.,0.],[0.,1.]] # covariance matrix of the parameters

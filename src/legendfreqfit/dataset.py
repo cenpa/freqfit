@@ -5,7 +5,6 @@ A class that holds a dataset and its associated model and cost function,
 import warnings
 import numpy as np
 from iminuit import cost
-import importlib
 
 SEED = 42
 
@@ -16,7 +15,7 @@ class Dataset:
         model,
         model_parameters: dict[str,str],
         parameters: dict,
-        costfunction,
+        costfunction: cost.Cost,
         name: str = "",
         ) -> None:
         """
@@ -91,7 +90,7 @@ class Dataset:
             self.costfunction = costfunction(self.data, self.density)
         else:
             msg = (
-                f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as 
+                f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as \
                 cost functions"
             )
             raise RuntimeError(msg)
@@ -107,7 +106,7 @@ class Dataset:
         # need to go in order of the model
         for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):   
             # if not passed, use default value (already checked that required parameters passed)
-            if model_parameters[par] not in parameters:
+            if par not in model_parameters:
                 self._parlist.append(defaultvalue)
                 
             # parameter was passed and should be included in the fit
@@ -126,7 +125,7 @@ class Dataset:
                         model `{self.model}` parameter `{par}`"
                     )
                     raise KeyError(msg)
-                self._parlist.append(parameters[par]["value"])
+                self._parlist.append(parameters[model_parameters[par]]["value"])
 
         # holds the last toy data
         self.toy = None

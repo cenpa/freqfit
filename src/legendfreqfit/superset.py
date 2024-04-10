@@ -14,6 +14,7 @@ class Superset:
         self,
         datasets: dict,
         parameters: dict,
+        constraints: dict = None,
         name: str = None,
         ) -> None:
         """
@@ -26,6 +27,7 @@ class Superset:
         self.name = name
         self.parameters = parameters
         self.datasets = {}
+        self.constraints = {}
 
         # create the Datasets
         for datasetname in datasets:
@@ -47,17 +49,27 @@ class Superset:
         
         # fitparameters of Superset are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
+
+        if constraints is not None:
+            for constraintname, constraint in constraints.items():
+                self.constraints |= {constraintname: 
+                                     self.add_normalconstraint(
+                                        parameters=constraint["parameters"], 
+                                        values=constraint["values"],
+                                        covariance=constraint["covariance"])}
     
     def add_normalconstraint(
         self,
         parameters: list[str],
         values: list[float],
         covariance: np.array,
-        ) -> None:
+        ) -> cost.NormalConstraint:
 
-        self.costfunction = self.costfunction + cost.NormalConstraint(parameters, values, covariance)
+        thiscost = cost.NormalConstraint(parameters, values, covariance)
 
-        return None
+        self.costfunction = self.costfunction + thiscost
+
+        return thiscost
 
     def maketoy(
         self,
