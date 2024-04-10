@@ -422,14 +422,8 @@ def nb_extendedrvs(
 
 class gaussian_on_uniform_gen:
     def __init__(self):
+        self.parameters = inspectparameters(self.density)
         pass
-
-    # maybe not the best to do things this way, but it should work?
-    def parameters(
-        self
-    ) -> dict:
-        
-        return inspectparameters(self.density)
         
     def pdf(
         self,

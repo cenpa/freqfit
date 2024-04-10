@@ -13,6 +13,7 @@ class Superset:
     def __init__(
         self,
         datasets: dict,
+        parameters: dict,
         name: str = None,
         ) -> None:
         """
@@ -23,6 +24,7 @@ class Superset:
         """
 
         self.name = name
+        self.parameters = parameters
         self.datasets = {}
 
         # create the Datasets
@@ -30,7 +32,8 @@ class Superset:
             self.datasets[datasetname] = Dataset(
                 data=datasets[datasetname]["data"],
                 model=datasets[datasetname]["model"],
-                parameters=datasets[datasetname]["parameters"],
+                model_parameters=datasets[datasetname]["model_parameters"],
+                parameters=parameters,
                 costfunction=datasets[datasetname]["costfunction"],
                 name=datasetname)
     
