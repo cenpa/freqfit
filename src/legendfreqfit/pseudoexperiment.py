@@ -21,12 +21,10 @@ class Pseudoexperiment(Superset):
                          constraints=constraints, name=name)
 
         # get the fit parameters and set the parameter initial values
-        self.initialguess = {fitpar: self.parameters[fitpar]["value"]  if "value" in self.parameters[fitpar] 
-                        else None for fitpar in self.fitparameters}
-        self.initialguess = self.guess()
+        self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.initialguess)
 
-    def guess(
+    def initialguess(
         self,
         ) -> dict:
 
