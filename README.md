@@ -1,4 +1,4 @@
-w# legendfreqfit
+# legendfreqfit
 LEGEND 0v2b frequentist analysis
 
 ### inputs needed
@@ -17,7 +17,6 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
-- think we are going to have to use `_parameters` dict from `iminuit` see (https://github.com/scikit-hep/iminuit/issues/941) and (https://scikit-hep.org/iminuit/reference.html#iminuit.util.describe)
 - can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
 - probably need to settle on some variable name conventions (Louis prefers more characters :) )
@@ -25,6 +24,7 @@ per detector per partition
 - models shouldn't multiply a bunch of little numbers together when returning a `logpdf` and instead sum up logs of pdfs
 - models should have a function `loglikelihood` to compute the -2LL by summation instead of multiplying a bunch of little numbers together to get the likelihood
 - [x] models need a `density` to return form expected by `iminuit` ([https://scikit-hep.org/iminuit/notebooks/cost_functions.html)](https://scikit-hep.org/iminuit/notebooks/cost_functions.html#Extended-unbinned-fit))
+- [x] think we are going to have to use `_parameters` dict from `iminuit` see (https://github.com/scikit-hep/iminuit/issues/941) and (https://scikit-hep.org/iminuit/reference.html#iminuit.util.describe)
 
 ### "config" format
 
