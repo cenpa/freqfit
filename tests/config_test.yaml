@@ -31,7 +31,7 @@ parameters:
   "BI_datasetname1":
     includeinfit: True
     limits: (0, None)
-    value: 0.01
+    value: ~
   "delta_datasetname1":
     includeinfit: False
     limits: ~

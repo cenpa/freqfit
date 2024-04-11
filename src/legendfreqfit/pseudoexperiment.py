@@ -33,7 +33,7 @@ class Pseudoexperiment(Superset):
         
         for fitpar, value in guess.items():
             if value is None:
-                guess[fitpar] = 0.0
+                guess[fitpar] = 1e-9
         
         # could put other stuff here to get a better initial guess
 
