@@ -22,6 +22,10 @@ class Superset:
         ----------
         datasets
             `dict`
+        parameters
+            `dict`
+        constraints
+            `dict`
         """
 
         self.name = name

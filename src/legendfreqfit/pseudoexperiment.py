@@ -22,7 +22,7 @@ class Pseudoexperiment(Superset):
 
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
-        self.minuit = Minuit(self.costfunction, **self.initialguess)
+        self.minuit = Minuit(self.costfunction, **self.guess)
 
     def initialguess(
         self,
