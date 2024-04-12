@@ -31,6 +31,11 @@ per detector per partition
 ### development help
 If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
 
+```bash
+PYTHONPATH="${PYTHONPATH}:/path/to/git/repo/legendfreqfit/src"
+export PYTHONPATH
+```
+
 ### "config" format
 
 A `.yaml` file should be set up like the following.
@@ -112,7 +117,4 @@ constraints:
     values: [] # list of the central value of the parameters
     covariance: [] # covariance matrix of the parameters
 ```
-```bash
-PYTHONPATH="${PYTHONPATH}:/path/to/git/repo/legendfreqfit/src"
-export PYTHONPATH
-```
+
