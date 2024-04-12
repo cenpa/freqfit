@@ -27,11 +27,11 @@ parameters:
   "global_S":
     includeinfit: True
     limits: (0, None)
-    value: 0.0
+    value: 1.E-9
   "BI_datasetname1":
     includeinfit: True
     limits: (0, None)
-    value: ~
+    value: 1.E-9
   "delta_datasetname1":
     includeinfit: False
     limits: ~
@@ -50,7 +50,7 @@ parameters:
   "BI_datasetname2":
     includeinfit: True
     limits: (0, None)
-    value: 0.01
+    value: 1.E-9
   "delta_datasetname2":
     includeinfit: False
     limits: ~
