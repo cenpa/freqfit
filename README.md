@@ -28,6 +28,9 @@ per detector per partition
 - [x] models need a `density` to return form expected by `iminuit` ([https://scikit-hep.org/iminuit/notebooks/cost_functions.html)](https://scikit-hep.org/iminuit/notebooks/cost_functions.html#Extended-unbinned-fit))
 - [x] think we are going to have to use `_parameters` dict from `iminuit` see (https://github.com/scikit-hep/iminuit/issues/941) and (https://scikit-hep.org/iminuit/reference.html#iminuit.util.describe)
 
+### development help
+If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
+
 ### "config" format
 
 A `.yaml` file should be set up like the following.
@@ -109,10 +112,6 @@ constraints:
     values: [] # list of the central value of the parameters
     covariance: [] # covariance matrix of the parameters
 ```
-
-### development help
-If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
-
 ```bash
 PYTHONPATH="${PYTHONPATH}:/path/to/git/repo/legendfreqfit/src"
 export PYTHONPATH
