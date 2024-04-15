@@ -26,14 +26,20 @@ datasets:
 parameters:
   "global_S":
     includeinfit: True
+    nuisance: False
+    fixed: False
     limits: (0, None)
     value: 1.E-9
   "BI_datasetname1":
     includeinfit: True
+    nuisance: True
+    fixed: False
     limits: (0, None)
     value: 1.E-9
   "delta_datasetname1":
     includeinfit: False
+    nuisance: True
+    fixed: False
     limits: ~
     value: 0.0
   "sigma_datasetname1":
