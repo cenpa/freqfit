@@ -30,7 +30,7 @@ class Pseudoexperiment(Superset):
         self.minuit_reset()
 
 
-        self.minuit_global = None
+        self.minll = None
 
     def initialguess(
         self,

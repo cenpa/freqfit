@@ -55,6 +55,7 @@ parameters:
     value: 1.0
   "BI_datasetname2":
     includeinfit: True
+    nuisance: False
     limits: (0, None)
     value: 1.E-9
   "delta_datasetname2":

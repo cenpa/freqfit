@@ -1,6 +1,7 @@
 import inspect
 import yaml
 import importlib
+import warnings
 
 # takes a model function and returns a dict of its parameters with their default value
 def inspectparameters(
@@ -93,6 +94,13 @@ def load_config(
     for par, pardict in config["parameters"].items():
         if "limits" in pardict and type(pardict["limits"]) is str:
             pardict["limits"] = eval(pardict["limits"])
+        if "includeinfit" in pardict and not pardict["includeinfit"]:
+            if "nuisance" in pardict and pardict["nuisance"]:
+                msg = (
+                    f"{par} has `includeinfit` as `False` but `nuisance` as `True`. {par} will not be included in fit."
+                )
+                warnings.warn(msg)
+
 
     return config
     

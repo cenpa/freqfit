@@ -19,7 +19,7 @@ per detector per partition
 ### TODO
 - think we need a class to hold an `iminuit` result, because you can't access the values of the other parameters from `Minuit.mnprofile()`, which we will need for our toys. So instead, have a class to hold the result of `Minuit.migrad()` and do separate calls for values of the parameters to profile over. This is rather ugly... but not sure what else to do.
 - options for different test statistics (see Cowan)
-- add a "isnuisance" parameter key to `parameters` `dict`
+- [x] add a "isnuisance" parameter key to `parameters` `dict`
 - can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
 - probably need to settle on some variable name conventions (Louis prefers more characters :) )
