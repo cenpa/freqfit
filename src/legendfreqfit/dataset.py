@@ -24,14 +24,13 @@ class Dataset:
         data
             `list` or `np.array` of the unbinned data
         model
-            `str` name of the model `class` to be passed to the cost function (e.g. `gaussian_on_uniform`). The `model` 
+            model `class` to be passed to the cost function. The `model` 
             class must have a method `model.density(data, a, b, c, ...)` where `data` takes a 1D `ndarray` corresponding
             to unbinned events, and `a, b, c, ...` are the parameters of the model, which may take any type and may 
             include default values. `model` must return the form expected by `costfunction`. Those parameters which 
             are to be fit by `iminuit` must take a single number. `model` must have a `parameters` attribute that is a
             `dict` with keys of the parameter names `a, b, c, ...` and values of the default values of the parameters
             or "nodefaultvalue" if no default is provided. (e.g. the return of the `utils.inspectparameters()` method).
-            The model `class` should be located in `legendfreqfit.models`.
         model_parameters
             `dict` that contains the mapping between the named model parameters `a, b, c, ...` and a string containing 
             a different name for the parameter that will be passed to `iminuit` in place of the original name. 
