@@ -126,9 +126,6 @@ class Dataset:
                     raise KeyError(msg)
                 self._parlist.append(parameters[model_parameters[par]]["value"])
 
-        # holds the last toy data
-        self.toy = None
-
         return 
 
     def density(
@@ -142,28 +139,3 @@ class Dataset:
             self._parlist[self._parlist_indices[i]] = par[i]
                     
         return self.model.density(data, *self._parlist)
-    
-    def maketoy(
-        self, 
-        *par, 
-        seed=SEED, # must be passed as keyword
-        ) -> np.array:
-        # par should be 1D array like
-        # assign the positional parameters to the correct places in the model parameter list
-        for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]     
-
-        self.toy = self.model.extendedrvs(*self._parlist, seed=seed)
-
-        return self.toy
-    
-    def toyll(
-        self, 
-        *par,
-        ) -> float:
-        # par should be 1D array like
-        # assign the positional parameters to the correct places in the model parameter list
-        for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]     
-        
-        return self.model.loglikelihood(self.toy, *self._parlist)

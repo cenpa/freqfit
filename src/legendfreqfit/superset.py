@@ -78,7 +78,7 @@ class Superset:
     def maketoy(
         self,
         parameters: dict,
-        seed:int = SEED,
+        seed: int = SEED,
         ) -> None:
 
         for i, (datasetname, dataset) in enumerate(self.datasets.items()):
