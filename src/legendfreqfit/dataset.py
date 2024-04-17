@@ -86,6 +86,7 @@ class Dataset:
 
         # make the cost function
         if ((costfunction is cost.ExtendedUnbinnedNLL) or (costfunction is cost.UnbinnedNLL)):
+            self._costfunctioncall = costfunction
             self.costfunction = costfunction(self.data, self.density)
         else:
             msg = (
@@ -139,3 +140,21 @@ class Dataset:
             self._parlist[self._parlist_indices[i]] = par[i]
                     
         return self.model.density(data, *self._parlist)
+
+    def rvs(
+        self, 
+        *par, 
+        seed: int = SEED, # must be passed as keyword
+        ) -> np.array:
+        # par should be 1D array like
+        # assign the positional parameters to the correct places in the model parameter list
+        for i in range(len(par)):
+            self._parlist[self._parlist_indices[i]] = par[i]     
+
+        return self.model.extendedrvs(*self._parlist, seed=seed)
+
+    def ll(
+        self
+        ):
+
+        return

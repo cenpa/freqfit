@@ -4,6 +4,7 @@ A class that holds a combination of datasets.
 
 import warnings
 from legendfreqfit.dataset import Dataset
+from legendfreqfit.toy import Toy
 from iminuit import cost
 import numpy as np
 
@@ -32,6 +33,7 @@ class Superset:
         self.parameters = parameters
         self.datasets = {}
         self.constraints = {}
+        self.toy = None
 
         # create the Datasets
         for datasetname in datasets:
@@ -66,7 +68,7 @@ class Superset:
         self,
         parameters: list[str],
         values: list[float],
-        covariance: np.array,
+        covariance,
         ) -> cost.NormalConstraint:
 
         thiscost = cost.NormalConstraint(parameters, values, covariance)
@@ -79,58 +81,13 @@ class Superset:
         self,
         parameters: dict,
         seed: int = SEED,
-        ) -> None:
+        ) -> Toy:
 
-        for i, (datasetname, dataset) in enumerate(self.datasets.items()):
-            # worried that this is not totally deterministic (depends on number of Datasets),
-            # but more worried that random draws between datasets would be correlated otherwise.
-            thisseed = seed + i 
-
-            # these are the parameters and their order needed to call the dataset's model functions
-            fitparameters = dataset.fitparameters.items()
-
-            # allocate length in case `parameters` is passed out of order
-            par = [None for j in range(len(fitparameters))]
-
-            for j, (fitpar, fitparindex) in enumerate(fitparameters):
-                if fitpar not in parameters:
-                    msg = (
-                        f"parameter `{fitpar}` not found in passed `parameters`"
-                    )
-                    raise KeyError(msg)
-                
-                par[j] = parameters[fitpar]
-
-            dataset.maketoy(*par, seed=thisseed)
+        self.toy = Toy(superset=self, parameters=parameters, seed=seed)
         
-        return None
+        return self.toy
     
-    def toyll(
-        self,
-        parameters: dict,
-        ) -> float:
 
-        ll = 0.0
-
-        for i, (datasetname, dataset) in enumerate(self.datasets.items()):
-            # these are the parameters and their order needed to call the dataset's model functions
-            fitparameters = dataset.fitparameters.items()
-
-            # allocate length in case `parameters` is passed out of order
-            par = [None for j in range(len(fitparameters))]
-
-            for j, (fitpar, fitparindex) in enumerate(fitparameters):
-                if fitpar not in parameters:
-                    msg = (
-                        f"parameter `{fitpar}` not found in passed `parameters`"
-                    )
-                    raise KeyError(msg)
-                
-                par[j] = parameters[fitpar]
-
-            ll += dataset.toyll(*par)
-        
-        return ll
                 
 
 

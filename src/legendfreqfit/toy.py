@@ -1,80 +1,96 @@
 """
-A class that holds a toy dataset and its associated model and cost function,
+A class that holds a collection of fake datasets
 """
 
 import warnings
 import numpy as np
 from iminuit import cost
-from legendfreqfit import Dataset
+from legendfreqfit.superset import Superset
 
 SEED = 42
 
 class Toy:
     def __init__(
             self,
-            dataset: Dataset,
-            par: np.array,
+            superset: Superset,
+            parameters: dict,
             seed: int = SEED,
         ) -> None:
         """
-        dataset
-            `Dataset` to make a toy model from
-        par
-            1D `np.array` that contains the values of parameters of the model to pull from, based on
-            format of `Superset.maketoy`. Don't love this and maybe it changes later to a dict.
+        superset
+            `Superset` to base this `Toy` on
+        parameters
+            `dict` of parameters and their values to model with
         """
 
-        self.model = dataset.model
-        self._parlist = dataset._parlist
-        self._parlist_indices = dataset._parlist_indices
+        self.superset = superset
 
-        self.toydata = self.maketoy(*par, seed=seed)
+        self.costfunction = None
+        for i, (datasetname, dataset) in enumerate(superset.datasets.items()):
+            # worried that this is not totally deterministic (depends on number of Datasets),
+            # but more worried that random draws between datasets would be correlated otherwise.
+            thisseed = seed + i 
 
-        if (dataset.costfunction is cost.ExtendedUnbinnedNLL):
-            self.costfunction = cost.ExtendedUnbinnedNLL(self.toydata, self.density)
-        elif (dataset.costfunction is cost.UnbinnedNLL):
-            self.costfunction = cost.UnbinnedNLL(self.toydata, self.density)
-        else:
-            msg = (
-                f"`Toy`: only `ExtendedUnbinnedNLL` or `UnbinnedNLL` are currently supported as cost functions."
-            )
-            raise RuntimeError(msg)
+            # allocate length in case `parameters` is passed out of order
+            par = [None for j in range(len(dataset.fitparameters))]
+
+            for j, (fitpar, fitparindex) in enumerate(dataset.fitparameters.items()):
+                if fitpar not in parameters:
+                    msg = (
+                        f"`Toy`: for `Dataset` {datasetname}, parameter `{fitpar}` not found in passed `parameters`"
+                    )
+                    raise KeyError(msg)
+                
+                par[j] = parameters[fitpar]
+
+            # make the fake data for this particular dataset
+            toydata = dataset.rvs(*par, seed=thisseed)
+
+            # make the cost function for this particular dataset
+            thiscostfunction = dataset._costfunctioncall(toydata, dataset.density)
+
+            # tell the cost function which parameters to use
+            thiscostfunction._parameters = dataset.costfunction._parameters
+            
+            if (i==0):
+                self.costfunction = thiscostfunction
+            else: 
+                self.costfunction += thiscostfunction
+
+       # fitparameters of Toy are a little different than fitparameters of Dataset
+        self.fitparameters = self.costfunction._parameters
+
+        if superset.constraints is not None:
+            for constraintname, constraint in superset.constraints.items():
+                self.costfunction = cost.NormalConstraint(constraint["parameters"],
+                                                          constraint["values"],
+                                                          constraint["covariance"])
         
         return
-        
-    def maketoy(
-        self, 
-        *par, 
-        seed: int = SEED, # must be passed as keyword
-        ) -> np.array:
-        # par should be 1D array like
-        # assign the positional parameters to the correct places in the model parameter list
-        for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]     
-
-        self.toy = self.model.extendedrvs(*self._parlist, seed=seed)
-
-        return self.toy
-
-    def density(
-        self, 
-        data, 
-        *par,
-        ) -> np.array:
-        # par should be 1D array like
-        # assign the positional parameters to the correct places in the model parameter list
-        for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]
-                    
-        return self.model.density(data, *self._parlist)
-        
-    def toyll(
-        self, 
-        *par,
+ 
+    def ll(
+        self,
+        parameters: dict,
         ) -> float:
-        # par should be 1D array like
-        # assign the positional parameters to the correct places in the model parameter list
-        for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]     
+
+        ll = 0.0
+
+        for i, (datasetname, dataset) in enumerate(self.datasets.items()):
+            # these are the parameters and their order needed to call the dataset's model functions
+            fitparameters = dataset.fitparameters.items()
+
+            # allocate length in case `parameters` is passed out of order
+            par = [None for j in range(len(fitparameters))]
+
+            for j, (fitpar, fitparindex) in enumerate(fitparameters):
+                if fitpar not in parameters:
+                    msg = (
+                        f"parameter `{fitpar}` not found in passed `parameters`"
+                    )
+                    raise KeyError(msg)
+                
+                par[j] = parameters[fitpar]
+
+            ll += dataset.toyll(*par)
         
-        return self.model.loglikelihood(self.toy, *self._parlist)
+        return ll
