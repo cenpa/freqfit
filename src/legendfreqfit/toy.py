@@ -5,14 +5,13 @@ A class that holds a collection of fake datasets
 import warnings
 import numpy as np
 from iminuit import cost
-from legendfreqfit.superset import Superset
 
 SEED = 42
 
 class Toy:
     def __init__(
             self,
-            superset: Superset,
+            superset,
             parameters: dict,
             seed: int = SEED,
         ) -> None:
@@ -60,11 +59,8 @@ class Toy:
        # fitparameters of Toy are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
 
-        if superset.constraints is not None:
-            for constraintname, constraint in superset.constraints.items():
-                self.costfunction = cost.NormalConstraint(constraint["parameters"],
-                                                          constraint["values"],
-                                                          constraint["covariance"])
+        for constraintname, constraint in superset.constraints.items():
+            self.costfunction += constraint
         
         return
  
