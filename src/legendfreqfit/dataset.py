@@ -153,8 +153,3 @@ class Dataset:
 
         return self.model.extendedrvs(*self._parlist, seed=seed)
 
-    def ll(
-        self
-        ):
-
-        return

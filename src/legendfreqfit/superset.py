@@ -86,8 +86,3 @@ class Superset:
         self.toy = Toy(superset=self, parameters=parameters, seed=seed)
         
         return self.toy
-    
-
-                
-
-
