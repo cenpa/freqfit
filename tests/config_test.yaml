@@ -43,7 +43,9 @@ parameters:
     limits: ~
     value: 0.0
   "sigma_datasetname1":
-    includeinfit: False
+    includeinfit: True
+    fixed: True
+    nuisance: True
     limits: ~
     value: 1.0
   "eff_datasetname1":

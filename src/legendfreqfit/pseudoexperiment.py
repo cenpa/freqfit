@@ -5,7 +5,7 @@ A class that controls a pseudoexperiment and calls the `Superset` class.
 from legendfreqfit.superset import Superset
 from legendfreqfit.utils import load_config, grab_results
 from iminuit.minuit import Minuit
-import copy
+import warnings
 
 class Pseudoexperiment(Superset):
     def __init__(
@@ -21,6 +21,19 @@ class Pseudoexperiment(Superset):
 
         super().__init__(datasets=self.config["datasets"], parameters=self.config["parameters"], 
                          constraints=constraints, name=name)
+        
+        # collect which parameters are included as nuisance parameters
+        self.nuisance = []
+        for parname, pardict in self.config["parameters"].items():
+            if "includeinfit" in pardict and pardict["includeinfit"]:
+                if "nuisance" in pardict and pardict["nuisance"]:
+                    if "fixed" in pardict and pardict["fixed"]:
+                        msg = (
+                            f"{parname} has `fixed` as `True` and `nuisance` as `True`. {parname} will be treated as fixed."
+                        )
+                        warnings.warn(msg)
+                    else:
+                        self.nuisance.append(parname)
 
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
@@ -93,3 +106,10 @@ class Pseudoexperiment(Superset):
         self.best = grab_results(self.minuit)
 
         return self.best
+    
+    def profile(
+        self,
+        parameters: dict,
+        ) :
+        
+        pass

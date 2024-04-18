@@ -101,7 +101,6 @@ def load_config(
                 )
                 warnings.warn(msg)
 
-
     return config
     
 def grab_results(
@@ -111,6 +110,7 @@ def grab_results(
     # I checked whether we need to shallow/deep copy these and it seems like we do not
 
     toreturn = {}
+    toreturn["fixed"] = minuit.fixed.to_dict()      # returns dict
     toreturn["fval"] = minuit.fval                  # returns float
     toreturn["nfit"] = minuit.nfit                  # returns int
     toreturn["npar"] = minuit.npar                  # returns int
