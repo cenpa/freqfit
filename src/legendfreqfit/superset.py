@@ -2,13 +2,14 @@
 A class that holds a combination of datasets.
 """
 
-import warnings
+
+from iminuit import cost
+
 from legendfreqfit.dataset import Dataset
 from legendfreqfit.toy import Toy
-from iminuit import cost
-import numpy as np
 
 SEED = 42
+
 
 class Superset:
     def __init__(
@@ -17,7 +18,7 @@ class Superset:
         parameters: dict,
         constraints: dict = None,
         name: str = None,
-        ) -> None:
+    ) -> None:
         """
         Parameters
         ----------
@@ -43,34 +44,36 @@ class Superset:
                 model_parameters=datasets[datasetname]["model_parameters"],
                 parameters=parameters,
                 costfunction=datasets[datasetname]["costfunction"],
-                name=datasetname)
-    
+                name=datasetname,
+            )
+
         # add the costfunctions together
         self.costfunction = None
         for i, datasetname in enumerate(self.datasets):
-            if (i==0):
+            if i == 0:
                 self.costfunction = self.datasets[datasetname].costfunction
             else:
                 self.costfunction += self.datasets[datasetname].costfunction
-        
+
         # fitparameters of Superset are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
 
         if constraints is not None:
             for constraintname, constraint in constraints.items():
-                self.constraints |= {constraintname: 
-                                     self.add_normalconstraint(
-                                        parameters=constraint["parameters"], 
-                                        values=constraint["values"],
-                                        covariance=constraint["covariance"])}
-    
+                self.constraints |= {
+                    constraintname: self.add_normalconstraint(
+                        parameters=constraint["parameters"],
+                        values=constraint["values"],
+                        covariance=constraint["covariance"],
+                    )
+                }
+
     def add_normalconstraint(
         self,
         parameters: list[str],
         values: list[float],
         covariance,
-        ) -> cost.NormalConstraint:
-
+    ) -> cost.NormalConstraint:
         thiscost = cost.NormalConstraint(parameters, values, covariance)
 
         self.costfunction = self.costfunction + thiscost
@@ -81,8 +84,7 @@ class Superset:
         self,
         parameters: dict,
         seed: int = SEED,
-        ) -> Toy:
-
+    ) -> Toy:
         self.toy = Toy(superset=self, parameters=parameters, seed=seed)
-        
+
         return self.toy
