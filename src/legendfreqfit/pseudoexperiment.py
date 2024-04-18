@@ -90,8 +90,6 @@ class Pseudoexperiment(Superset):
 
         self.minuit.migrad()
 
-        results = grab_results(self.minuit)
+        self.best = grab_results(self.minuit)
 
-        self.best = results
-
-        return results
+        return self.best
