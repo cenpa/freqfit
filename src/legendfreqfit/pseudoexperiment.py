@@ -3,7 +3,7 @@ A class that controls a pseudoexperiment and calls the `Superset` class.
 """
 
 from legendfreqfit.superset import Superset
-from legendfreqfit.utils import load_config
+from legendfreqfit.utils import load_config, grab_results
 from iminuit.minuit import Minuit
 import copy
 
@@ -26,11 +26,15 @@ class Pseudoexperiment(Superset):
         self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.guess)
 
+        # raise a RunTime error if function evaluates to NaN
+        self.minuit.throw_nan = True
+
         # to set limits and fixed variables
         self.minuit_reset()
+        
+        # to store the best fit result
+        self.best = None
 
-
-        self.minll = None
 
     def initialguess(
         self,
@@ -70,6 +74,24 @@ class Pseudoexperiment(Superset):
                 if "fixed" in pardict:
                     self.minuit.fixed[parname] = pardict["fixed"]    
 
-        return
-        
+        return        
 
+    def bestfit(
+        self,
+        force=False,
+        ) -> dict:
+
+        # don't run this more than once if we don't have to
+        if self.best is not None and not force:
+            return self.best
+
+        # remove any previous minimizations
+        self.minuit_reset()
+
+        self.minuit.migrad()
+
+        results = grab_results(self.minuit)
+
+        self.best = results
+
+        return results

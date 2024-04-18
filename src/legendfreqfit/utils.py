@@ -104,3 +104,19 @@ def load_config(
 
     return config
     
+def grab_results(
+    minuit,
+    ) -> dict:
+    
+    # I checked whether we need to shallow/deep copy these and it seems like we do not
+
+    toreturn = {}
+    toreturn["fval"] = minuit.fval                  # returns float
+    toreturn["nfit"] = minuit.nfit                  # returns int
+    toreturn["npar"] = minuit.npar                  # returns int
+    toreturn["parameters"] = minuit.parameters      # returns tuple of str
+    toreturn["tol"] = minuit.tol                    # returns float
+    toreturn["valid"] = minuit.valid                # returns bool
+    toreturn["values"] = minuit.values.to_dict()    # returns dict
+
+    return toreturn
