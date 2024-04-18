@@ -2,16 +2,14 @@
 A class that controls a pseudoexperiment and calls the `Superset` class.
 """
 
-import warnings
-
-from iminuit.minuit import Minuit
+from iminuit import Minuit
 
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
 from legendfreqfit.utils import load_config, grab_results
-from iminuit import Minuit
-import warnings
+
 import numpy as np
+import warnings
 
 SEED = 42
 
