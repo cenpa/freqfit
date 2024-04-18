@@ -17,9 +17,8 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
-- think we need a class to hold an `iminuit` result, because you can't access the values of the other parameters from `Minuit.mnprofile()`, which we will need for our toys. So instead, have a class to hold the result of `Minuit.migrad()` and do separate calls for values of the parameters to profile over. This is rather ugly... but not sure what else to do.
+
 - options for different test statistics (see Cowan)
-- [x] add a "isnuisance" parameter key to `parameters` `dict`
 - can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
 - probably need to settle on some variable name conventions (Louis prefers more characters :) )
@@ -28,6 +27,8 @@ per detector per partition
 - models should have a function `loglikelihood` to compute the -2LL by summation instead of multiplying a bunch of little numbers together to get the likelihood
 - [x] models need a `density` to return form expected by `iminuit` ([https://scikit-hep.org/iminuit/notebooks/cost_functions.html)](https://scikit-hep.org/iminuit/notebooks/cost_functions.html#Extended-unbinned-fit))
 - [x] think we are going to have to use `_parameters` dict from `iminuit` see (https://github.com/scikit-hep/iminuit/issues/941) and (https://scikit-hep.org/iminuit/reference.html#iminuit.util.describe)
+- [x] add a "isnuisance" parameter key to `parameters` `dict`
+- [x] ~~think we need a class to hold an `iminuit` result, because you can't access the values of the other parameters from `Minuit.mnprofile()`, which we will need for our toys. So instead, have a class to hold the result of `Minuit.migrad()` and do separate calls for values of the parameters to profile over. This is rather ugly... but not sure what else to do.~~ use `utils.grab_results()` and it returns a `dict`
 
 ### development help
 If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
@@ -39,83 +40,5 @@ export PYTHONPATH
 
 ### "config" format
 
-A `.yaml` file should be set up like the following.
-
-```yaml
-datasets:
-  "datasetname1":
-    data: [2039.0, 2145.1, 1956.7, 2012.9]
-    costfunction: "ExtendedUnbinnedNLL"
-    model: "gaussian_on_uniform"
-    model_parameters:
-      "S": "global_S"
-      "BI": "BI_datasetname1"
-      "delta": "delta_datasetname1"
-      "sigma": "sigma_datasetname1"
-      "eff": "eff_datasetname1"
-      "exp": "exp_datasetname1"
-
-  "datasetname2":
-    data: [2045.1, 1966.5, 2112.9]
-    costfunction: "ExtendedUnbinnedNLL"
-    model: "gaussian_on_uniform"
-    model_parameters:
-      "S": "global_S"
-      "BI": "BI_datasetname2"
-      "delta": "delta_datasetname2"
-      "sigma": "sigma_datasetname2"
-      "eff": "eff_datasetname2"
-      "exp": "exp_datasetname2"
-
-parameters:
-  "global_S":
-    includeinfit: True
-    limits: (0, None)
-    value: ~
-  "BI_datasetname1":
-    includeinfit: True
-    limits: (0, None)
-    value: ~
-  "delta_datasetname1":
-    includeinfit: False
-    limits: ~
-    value: 0.0
-  "sigma_datasetname1":
-    includeinfit: False
-    limits: ~
-    value: 1.0
-  "eff_datasetname1":
-    includeinfit: False
-    limits: ~
-    value: 1.0
-  "exp_datasetname1":
-    includeinfit: False
-    value: 1.0
-  "BI_datasetname2":
-    includeinfit: True
-    limits: (0, None)
-    value: ~
-  "delta_datasetname2":
-    includeinfit: False
-    limits: ~
-    value: 0.0
-  "sigma_datasetname2":
-    includeinfit: False
-    limits: ~
-    value: 1.0
-  "eff_datasetname2":
-    includeinfit: False
-    limits: ~
-    value: 1.0
-  "exp_datasetname2":
-    includeinfit: False
-    value: 1.0
-
-# collection of `NormalConstraint`
-constraints:
-  "constraint1":
-    parameters: [] # list of the parameters in the order of `values` and `covariance`
-    values: [] # list of the central value of the parameters
-    covariance: [] # covariance matrix of the parameters
-```
+A `.yaml` file should be set up like `tests/config_test.yaml`. There are a few things in there that will raise warnings, which I was trying to test.
 

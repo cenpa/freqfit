@@ -109,7 +109,15 @@ class Pseudoexperiment(Superset):
     
     def profile(
         self,
-        parameters: dict,
+        parameters: list[str] = None,
         ) :
+        """
+        parameters
+            `list` of parameter names to profile out. Optional - if not passed, then all parameters labeled as nuisance
+            parameters will be profiled.
+        """
+
+        if 
+
         
         pass
