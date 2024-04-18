@@ -7,8 +7,13 @@ import warnings
 from iminuit.minuit import Minuit
 
 from legendfreqfit.superset import Superset
-from legendfreqfit.utils import grab_results, load_config
+from legendfreqfit.toy import Toy
+from legendfreqfit.utils import load_config, grab_results
+from iminuit import Minuit
+import warnings
+import numpy as np
 
+SEED = 42
 
 class Pseudoexperiment(Superset):
     def __init__(
@@ -132,9 +137,9 @@ class Pseudoexperiment(Superset):
         self.minuit.migrad()
 
         return grab_results(self.minuit)
-
-    # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters=
-    def teststatistic(
+    
+    # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters
+    def ts(
         self,
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         force: bool = False,
@@ -146,8 +151,28 @@ class Pseudoexperiment(Superset):
         # because these are already -2*ln(L) from iminuit
         return num - denom
 
-    def toy_teststat(
+    def maketoy(
         self,
         parameters: dict,
-    ):
-        pass
+        seed: int = SEED,
+        ) -> Toy:
+
+        toy = Toy(pseuodexperiment=self, parameters=parameters, seed=seed)
+        
+        return toy
+    
+    def toy_tsdist(
+        self,
+        parameters: dict, # parameters and values needed to generate the toys
+        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
+        num: int = 1000,
+        seed: int = SEED,
+        ):
+
+        ts = np.zeros(num)
+
+        for i in range(num):
+            thistoy = self.maketoy(parameters=parameters, seed=seed+i)
+            ts[i] = thistoy.ts(profile_parameters=profile_parameters)
+
+        return ts

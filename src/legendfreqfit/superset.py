@@ -1,5 +1,5 @@
 """
-A class that holds a combination of datasets.
+A class that holds a combination of datasets and NormalConstraints.
 """
 
 
@@ -7,6 +7,8 @@ from iminuit import cost
 
 from legendfreqfit.dataset import Dataset
 from legendfreqfit.toy import Toy
+from iminuit import cost
+import numpy as np
 
 SEED = 42
 
@@ -80,11 +82,3 @@ class Superset:
 
         return thiscost
 
-    def maketoy(
-        self,
-        parameters: dict,
-        seed: int = SEED,
-    ) -> Toy:
-        self.toy = Toy(superset=self, parameters=parameters, seed=seed)
-
-        return self.toy
