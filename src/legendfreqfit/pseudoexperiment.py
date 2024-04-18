@@ -109,15 +109,20 @@ class Pseudoexperiment(Superset):
     
     def profile(
         self,
-        parameters: list[str] = None,
-        ) :
+        parameters: dict,
+        ) -> dict:
         """
         parameters
-            `list` of parameter names to profile out. Optional - if not passed, then all parameters labeled as nuisance
-            parameters will be profiled.
+            `dict` where keys are names of parameters to fix and values are the value that the parameter should be 
+            fixed to
         """
 
-        if 
+        self.minuit_reset()
 
-        
-        pass
+        for parname, parvalue in parameters.items():
+            self.minuit.fixed[parname] = True
+            self.minuit.values[parname] = parvalue
+
+        self.minuit.migrad()
+
+        return grab_results(self.minuit)
