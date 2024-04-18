@@ -6,6 +6,7 @@ from legendfreqfit.superset import Superset
 from legendfreqfit.utils import load_config, grab_results
 from iminuit.minuit import Minuit
 import warnings
+import numpy as np
 
 class Pseudoexperiment(Superset):
     def __init__(
@@ -126,3 +127,24 @@ class Pseudoexperiment(Superset):
         self.minuit.migrad()
 
         return grab_results(self.minuit)
+    
+    # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters=
+    def teststatistic(
+        self,
+        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
+        force: bool = False,
+        ) -> float:
+
+        denom = self.bestfit(force=force)["fval"]
+
+        num = self.profile(parameters=profile_parameters)["fval"]
+        
+        # because these are already -2*ln(L) from iminuit
+        return num - denom
+    
+    def toy_teststat(
+        self,
+        parameters: dict,
+        ):
+
+        pass
