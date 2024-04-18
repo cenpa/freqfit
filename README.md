@@ -41,4 +41,3 @@ export PYTHONPATH
 ### "config" format
 
 A `.yaml` file should be set up like `tests/config_test.yaml`. There are a few things in there that will raise warnings, which I was trying to test.
-

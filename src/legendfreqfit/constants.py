@@ -3,7 +3,7 @@ NA = 6.0221408e23  # Avogadro's number
 MA = 0.0759214027  # kilograms per mole, molar mass of 76Ge
 
 # default analysis window (in keV)
-WINDOW = [[1930.0, 2099.0],[2109.0, 2114.0],[2124.0, 2190.0]]
+WINDOW = [[1930.0, 2099.0], [2109.0, 2114.0], [2124.0, 2190.0]]
 
 # could use these to go a little faster?
 LOG2 = 0.69314718055994528622676398299518041312694549560546875

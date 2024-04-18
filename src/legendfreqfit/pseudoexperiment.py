@@ -2,36 +2,41 @@
 A class that controls a pseudoexperiment and calls the `Superset` class.
 """
 
-from legendfreqfit.superset import Superset
-from legendfreqfit.utils import load_config, grab_results
-from iminuit.minuit import Minuit
 import warnings
-import numpy as np
+
+from iminuit.minuit import Minuit
+
+from legendfreqfit.superset import Superset
+from legendfreqfit.utils import grab_results, load_config
+
 
 class Pseudoexperiment(Superset):
     def __init__(
         self,
         file: str,
         name: str = None,
-        ) -> None:
-
+    ) -> None:
         config = load_config(file=file)
         self.config = config
 
-        constraints = self.config["constraints"] if "constraints" in self.config else None
+        constraints = (
+            self.config["constraints"] if "constraints" in self.config else None
+        )
 
-        super().__init__(datasets=self.config["datasets"], parameters=self.config["parameters"], 
-                         constraints=constraints, name=name)
-        
+        super().__init__(
+            datasets=self.config["datasets"],
+            parameters=self.config["parameters"],
+            constraints=constraints,
+            name=name,
+        )
+
         # collect which parameters are included as nuisance parameters
         self.nuisance = []
         for parname, pardict in self.config["parameters"].items():
             if "includeinfit" in pardict and pardict["includeinfit"]:
                 if "nuisance" in pardict and pardict["nuisance"]:
                     if "fixed" in pardict and pardict["fixed"]:
-                        msg = (
-                            f"{parname} has `fixed` as `True` and `nuisance` as `True`. {parname} will be treated as fixed."
-                        )
+                        msg = f"{parname} has `fixed` as `True` and `nuisance` as `True`. {parname} will be treated as fixed."
                         warnings.warn(msg)
                     else:
                         self.nuisance.append(parname)
@@ -45,39 +50,40 @@ class Pseudoexperiment(Superset):
 
         # to set limits and fixed variables
         self.minuit_reset()
-        
+
         # to store the best fit result
         self.best = None
 
-
     def initialguess(
         self,
-        ) -> dict:
+    ) -> dict:
+        guess = {
+            fitpar: self.parameters[fitpar]["value"]
+            if "value" in self.parameters[fitpar]
+            else None
+            for fitpar in self.fitparameters
+        }
 
-        guess = {fitpar: self.parameters[fitpar]["value"] if "value" in self.parameters[fitpar] 
-                        else None for fitpar in self.fitparameters}
-        
         # for fitpar, value in guess.items():
         #     if value is None:
         #         guess[fitpar] = 1e-9
-        
+
         # could put other stuff here to get a better initial guess though probably that should be done
         # somewhere specific to the analysis. Or maybe this function could call something for the analysis.
         # eh, probably better to make the initial guess elsewhere and stick it in the config file.
         # for that reason, I'm commenting out the few lines above.
 
         return guess
-        
+
     def minuit_reset(
         self,
-        ) -> None:
-
+    ) -> None:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
         self.minuit.reset()
 
         # overwrite the limits
-        # note that this information can also be contained in a Dataset when instantiated 
+        # note that this information can also be contained in a Dataset when instantiated
         # and is overwritten here
 
         # also set which parameters are fixed
@@ -86,15 +92,14 @@ class Pseudoexperiment(Superset):
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
                 if "fixed" in pardict:
-                    self.minuit.fixed[parname] = pardict["fixed"]    
+                    self.minuit.fixed[parname] = pardict["fixed"]
 
-        return        
+        return
 
     def bestfit(
         self,
         force=False,
-        ) -> dict:
-
+    ) -> dict:
         # don't run this more than once if we don't have to
         if self.best is not None and not force:
             return self.best
@@ -107,14 +112,14 @@ class Pseudoexperiment(Superset):
         self.best = grab_results(self.minuit)
 
         return self.best
-    
+
     def profile(
         self,
         parameters: dict,
-        ) -> dict:
+    ) -> dict:
         """
         parameters
-            `dict` where keys are names of parameters to fix and values are the value that the parameter should be 
+            `dict` where keys are names of parameters to fix and values are the value that the parameter should be
             fixed to
         """
 
@@ -127,24 +132,22 @@ class Pseudoexperiment(Superset):
         self.minuit.migrad()
 
         return grab_results(self.minuit)
-    
+
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters=
     def teststatistic(
         self,
-        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         force: bool = False,
-        ) -> float:
-
+    ) -> float:
         denom = self.bestfit(force=force)["fval"]
 
         num = self.profile(parameters=profile_parameters)["fval"]
-        
+
         # because these are already -2*ln(L) from iminuit
         return num - denom
-    
+
     def toy_teststat(
         self,
         parameters: dict,
-        ):
-
+    ):
         pass
