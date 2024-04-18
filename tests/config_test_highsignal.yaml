@@ -1,0 +1,84 @@
+datasets:
+  "datasetname1":
+    data: [2039.389870082813, 2040.8497988106876, 2037.8790508599343, 2038.6291781012594, 2038.8896920245522, 2040.7673027478108, 2040.6582603755285, 2039.738882320732, 2040.7192970604885, 2039.3925481600925, 2039.255208443342, 2041.3184564519897, 2039.2170753668406, 2091.383954168292, 1962.596572240777, 2091.899617545767, 2147.8912476333358, 1978.3870088423619, 2157.771430365881, 2071.3450245462095, 1992.0526981751811, 1938.2132559690112, 2171.2022470371876, 1963.3624874256823, 2014.092733113656, 1959.0838772512313, 2024.7775030783243, 2098.8385740364115, 1939.8316560820476, 1947.960828334163, 2062.8753200742585, 2144.2895185728057, 1950.699864733206, 2152.8585346784366, 1981.8210729862678]
+    costfunction: "ExtendedUnbinnedNLL"
+    model: "legendfreqfit.models.gaussian_on_uniform"
+    model_parameters:
+      "S": "global_S"
+      "BI": "BI_datasetname1"
+      "delta": "delta_datasetname1"
+      "sigma": "sigma_datasetname1"
+      "eff": "eff_datasetname1"
+      "exp": "exp_datasetname1"
+
+  "datasetname2":
+    data: [2038.327652679176, 2038.915440915382, 2038.0549152750662, 2039.0279865565055, 2037.5927564576064, 2038.5130981339112, 2038.0527793415026, 2040.0060549925736, 2040.1317432886165, 2030.1083160322296, 2014.6777445351531, 2073.198985356974, 1978.4231748458333, 2029.0781029700659, 2185.3817178906916, 2051.6376285997703, 2080.2697832708327, 2026.8697889673824, 1975.8973875628699, 1991.0762910532326, 2097.4290431628187, 2149.274949457307, 2041.7091802444713, 2054.3786814821256, 2174.206542308371, 2056.5516996845085, 2085.317866166671]
+    costfunction: "ExtendedUnbinnedNLL"
+    model: "legendfreqfit.models.gaussian_on_uniform"
+    model_parameters:
+      "S": "global_S"
+      "BI": "BI_datasetname2"
+      "delta": "delta_datasetname2"
+      "sigma": "sigma_datasetname2"
+      "eff": "eff_datasetname2"
+      "exp": "exp_datasetname2"
+
+parameters:
+  "global_S":
+    includeinfit: True
+    nuisance: False
+    fixed: False
+    limits: (0, None)
+    value: 10.0
+  "BI_datasetname1":
+    includeinfit: True
+    nuisance: True
+    fixed: False
+    limits: (0, None)
+    value: 1.E-9
+  "delta_datasetname1":
+    includeinfit: False
+    nuisance: True
+    fixed: False
+    limits: ~
+    value: 0.0
+  "sigma_datasetname1":
+    includeinfit: True
+    fixed: True
+    nuisance: True
+    limits: ~
+    value: 1.0
+  "eff_datasetname1":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "exp_datasetname1":
+    includeinfit: False
+    value: 1.0
+  "BI_datasetname2":
+    includeinfit: True
+    nuisance: False
+    limits: (0, None)
+    value: 1.E-9
+  "delta_datasetname2":
+    includeinfit: False
+    limits: ~
+    value: 0.0
+  "sigma_datasetname2":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "eff_datasetname2":
+    includeinfit: False
+    limits: ~
+    value: 1.0
+  "exp_datasetname2":
+    includeinfit: False
+    value: 1.0
+
+# collection of `NormalConstraint`
+constraints:
+  "constraint1":
+    parameters: ["BI_datasetname1","BI_datasetname2"] # list of the parameters in the order of `values` and `covariance`
+    values: [0.,0.] # list of the central value of the parameters
+    covariance: [[10.,0.],[0.,10.]] # covariance matrix of the parameters
