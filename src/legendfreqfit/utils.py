@@ -105,6 +105,7 @@ def grab_results(
     # I checked whether we need to shallow/deep copy these and it seems like we do not
 
     toreturn = {}
+    toreturn["errors"] = minuit.errors.to_dict() # returns dict
     toreturn["fixed"] = minuit.fixed.to_dict()  # returns dict
     toreturn["fval"] = minuit.fval  # returns float
     toreturn["nfit"] = minuit.nfit  # returns int
