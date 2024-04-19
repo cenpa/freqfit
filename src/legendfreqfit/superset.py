@@ -7,7 +7,6 @@ from iminuit import cost
 
 from legendfreqfit.dataset import Dataset
 from legendfreqfit.toy import Toy
-from iminuit import cost
 import numpy as np
 
 SEED = 42

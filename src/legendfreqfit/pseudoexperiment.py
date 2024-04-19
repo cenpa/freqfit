@@ -159,13 +159,16 @@ class Pseudoexperiment(Superset):
         
         return toy
     
-    def toy_tsdist(
+    def toy_ts(
         self,
         parameters: dict, # parameters and values needed to generate the toys
         profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
-        num: int = 1000,
+        num: int = 1,
         seed: int = SEED,
         ):
+        """
+        Makes a number of toys and returns their test statistics.
+        """
 
         ts = np.zeros(num)
 
