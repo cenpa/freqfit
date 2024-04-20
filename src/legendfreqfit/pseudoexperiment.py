@@ -16,10 +16,9 @@ SEED = 42
 class Pseudoexperiment(Superset):
     def __init__(
         self,
-        file: str,
+        config: dict,
         name: str = None,
     ) -> None:
-        config = load_config(file=file)
         self.config = config
 
         constraints = (
@@ -56,6 +55,16 @@ class Pseudoexperiment(Superset):
 
         # to store the best fit result
         self.best = None
+    
+    @classmethod
+    def file(
+        cls, 
+        file: str,
+        name: str = None,
+        ):
+
+        config = load_config(file=file)
+        return cls(config=config, name=name)
 
     def initialguess(
         self,
