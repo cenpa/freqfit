@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
 
-import legendfreqfit.constants as constants
+import legendfreqfit.models.constants as constants
 from legendfreqfit.utils import inspectparameters
 
 nb_kwd = {
