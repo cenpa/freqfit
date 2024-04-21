@@ -110,8 +110,17 @@ class Pseudoexperiment(Superset):
 
     def bestfit(
         self,
-        force=False,
+        force: bool = False,
     ) -> dict:
+        """
+        force
+            By default (`False`), if `self.best` has a result, the minimization will be skipped and that
+            result will be returned instead. If `True`, the minimization will be run and the result returned and 
+            stored as `self.best`
+        
+        Performs a global minimization and returns a `dict` with the results. These results are also stored in 
+        `self.best`.
+        """
         # don't run this more than once if we don't have to
         if self.best is not None and not force:
             return self.best
@@ -151,6 +160,10 @@ class Pseudoexperiment(Superset):
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         force: bool = False,
     ) -> float:
+        """
+        force
+            See `Pseudoexperiment.bestfit()` for description. Default is `False`.
+        """
         denom = self.bestfit(force=force)["fval"]
 
         num = self.profile(parameters=profile_parameters)["fval"]
