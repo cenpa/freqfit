@@ -17,7 +17,8 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
-
+- implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
+- for `gaussian_on_uniform`, check that `loglikelihood` and `likelihood` are implemented correctly - the analysis window needs to be removed if it is included. This will affect the calculation of the likelihood if the passed `Es` are treated as bins. the likelihood and loglikehood here should be zero.
 - options for different test statistics (see Cowan)
 - can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
