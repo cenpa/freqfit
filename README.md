@@ -18,7 +18,6 @@ per detector per partition
 
 ### TODO
 - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
-- for `gaussian_on_uniform`, check that `loglikelihood` and `likelihood` are implemented correctly - the analysis window needs to be removed if it is included. This will affect the calculation of the likelihood if the passed `Es` are treated as bins. the likelihood and loglikehood here should be zero.
 - options for different test statistics (see Cowan)
 - can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
@@ -30,6 +29,7 @@ per detector per partition
 - [x] think we are going to have to use `_parameters` dict from `iminuit` see (https://github.com/scikit-hep/iminuit/issues/941) and (https://scikit-hep.org/iminuit/reference.html#iminuit.util.describe)
 - [x] add a "isnuisance" parameter key to `parameters` `dict`
 - [x] ~~think we need a class to hold an `iminuit` result, because you can't access the values of the other parameters from `Minuit.mnprofile()`, which we will need for our toys. So instead, have a class to hold the result of `Minuit.migrad()` and do separate calls for values of the parameters to profile over. This is rather ugly... but not sure what else to do.~~ use `utils.grab_results()` and it returns a `dict`
+- [x] for `gaussian_on_uniform`, check that `loglikelihood` and `likelihood` are implemented correctly - the analysis window needs to be removed if it is included. This will affect the calculation of the likelihood if the passed `Es` are treated as bins. the likelihood and loglikehood here should be zero. (For now, these are removed.)
 
 ### development help
 If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
