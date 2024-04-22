@@ -129,3 +129,23 @@ def test_density_gradient():
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
     assert np.allclose(m.values["delta"], 0.01, rtol=1e0)
+
+
+def test_logdensity():
+    n_sig = 1000
+    n_bkg = 100
+    delta = 0
+    sigma = 1
+
+    random_sample = gaussian_on_uniform.rvs(n_sig, n_bkg, delta, sigma)
+
+    c = cost.ExtendedUnbinnedNLL(
+        random_sample, gaussian_on_uniform.log_density, log=True
+    )
+    c._parameters.pop("window")
+    m = Minuit(c, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m.fixed["eff", "exp"] = True
+    m.migrad()
+
+    assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
+    assert np.allclose(m.values["delta"], 0.01, rtol=1e0)

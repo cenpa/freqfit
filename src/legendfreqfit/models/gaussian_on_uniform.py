@@ -456,6 +456,35 @@ class gaussian_on_uniform_gen:
     ) -> tuple:
         return nb_density_gradient(Es, S, BI, delta, sigma, eff, exp, window=window)
 
+    # for iminuit ExtendedUnbinnedNLL
+    def log_density(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        delta: float,
+        sigma: float,
+        eff: float,
+        exp: float,
+        window: np.array = WINDOW,
+    ) -> np.array:
+        windowsize = 0
+        for i in range(len(window)):
+            windowsize += window[i][1] - window[i][0]
+
+        mu_S = S * eff * exp
+        mu_B = exp * BI * windowsize
+
+        # Do a quick check and return -inf if log args are negative
+        if (mu_S + mu_B <= 0) or np.isnan(np.array([mu_S, mu_B])).any():
+            return mu_S + mu_B, np.full(Es.shape[0], -np.inf)
+        else:
+            return (
+                mu_S + mu_B,
+                np.log(mu_S + mu_B)
+                + nb_logpdf(Es, S, BI, delta, sigma, eff, exp, window=window),
+            )
+
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
     # needs to use same parameters as the rest of the functions...
