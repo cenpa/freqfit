@@ -2,16 +2,17 @@
 A class that controls a pseudoexperiment and calls the `Superset` class.
 """
 
+import warnings
+
+import numpy as np
 from iminuit import Minuit
 
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
-from legendfreqfit.utils import load_config, grab_results
-
-import numpy as np
-import warnings
+from legendfreqfit.utils import grab_results, load_config
 
 SEED = 42
+
 
 class Pseudoexperiment(Superset):
     def __init__(
@@ -55,14 +56,13 @@ class Pseudoexperiment(Superset):
 
         # to store the best fit result
         self.best = None
-    
+
     @classmethod
     def file(
-        cls, 
+        cls,
         file: str,
         name: str = None,
-        ):
-
+    ):
         config = load_config(file=file)
         return cls(config=config, name=name)
 
@@ -115,10 +115,10 @@ class Pseudoexperiment(Superset):
         """
         force
             By default (`False`), if `self.best` has a result, the minimization will be skipped and that
-            result will be returned instead. If `True`, the minimization will be run and the result returned and 
+            result will be returned instead. If `True`, the minimization will be run and the result returned and
             stored as `self.best`
-        
-        Performs a global minimization and returns a `dict` with the results. These results are also stored in 
+
+        Performs a global minimization and returns a `dict` with the results. These results are also stored in
         `self.best`.
         """
         # don't run this more than once if we don't have to
@@ -153,7 +153,7 @@ class Pseudoexperiment(Superset):
         self.minuit.migrad()
 
         return grab_results(self.minuit)
-    
+
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters
     def ts(
         self,
@@ -175,19 +175,18 @@ class Pseudoexperiment(Superset):
         self,
         parameters: dict,
         seed: int = SEED,
-        ) -> Toy:
-
+    ) -> Toy:
         toy = Toy(pseuodexperiment=self, parameters=parameters, seed=seed)
-        
+
         return toy
-    
+
     def toy_ts(
         self,
-        parameters: dict, # parameters and values needed to generate the toys
-        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
+        parameters: dict,  # parameters and values needed to generate the toys
+        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seed: int = SEED,
-        ):
+    ):
         """
         Makes a number of toys and returns their test statistics.
         """
@@ -195,7 +194,7 @@ class Pseudoexperiment(Superset):
         ts = np.zeros(num)
 
         for i in range(num):
-            thistoy = self.maketoy(parameters=parameters, seed=seed+i)
+            thistoy = self.maketoy(parameters=parameters, seed=seed + i)
             ts[i] = thistoy.ts(profile_parameters=profile_parameters)
 
         return ts

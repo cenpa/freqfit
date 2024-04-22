@@ -3,6 +3,7 @@ A class that holds a collection of fake datasets and associated hardware
 """
 
 from iminuit import Minuit
+
 from legendfreqfit.utils import grab_results
 
 SEED = 42
@@ -10,11 +11,11 @@ SEED = 42
 
 class Toy:
     def __init__(
-            self,
-            pseuodexperiment,
-            parameters: dict,
-            seed: int = SEED,
-        ) -> None:
+        self,
+        pseuodexperiment,
+        parameters: dict,
+        seed: int = SEED,
+    ) -> None:
         """
         pseuodexperiment
             `Pseuodexperiment` to base this `Toy` on
@@ -63,21 +64,19 @@ class Toy:
         guess = {}
         for par in self.fitparameters:
             guess |= {par: parameters[par]}
-        
+
         self.minuit = Minuit(self.costfunction, **guess)
         self.best = None
 
-
     def minuit_reset(
         self,
-        ) -> None:
-
+    ) -> None:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
         self.minuit.reset()
 
         # overwrite the limits
-        # note that this information can also be contained in a Dataset when instantiated 
+        # note that this information can also be contained in a Dataset when instantiated
         # and is overwritten here
 
         # also set which parameters are fixed
@@ -86,15 +85,14 @@ class Toy:
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
                 if "fixed" in pardict:
-                    self.minuit.fixed[parname] = pardict["fixed"]    
+                    self.minuit.fixed[parname] = pardict["fixed"]
 
-        return        
+        return
 
     def bestfit(
         self,
         force=False,
-        ) -> dict:
-
+    ) -> dict:
         # don't run this more than once if we don't have to
         if self.best is not None and not force:
             return self.best
@@ -107,14 +105,14 @@ class Toy:
         self.best = grab_results(self.minuit)
 
         return self.best
-    
+
     def profile(
         self,
         parameters: dict,
-        ) -> dict:
+    ) -> dict:
         """
         parameters
-            `dict` where keys are names of parameters to fix and values are the value that the parameter should be 
+            `dict` where keys are names of parameters to fix and values are the value that the parameter should be
             fixed to
         """
 
@@ -127,17 +125,16 @@ class Toy:
         self.minuit.migrad()
 
         return grab_results(self.minuit)
-    
+
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters
     def ts(
         self,
-        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         force: bool = False,
-        ) -> float:
-
+    ) -> float:
         denom = self.bestfit(force=force)["fval"]
 
         num = self.profile(parameters=profile_parameters)["fval"]
-        
+
         # because these are already -2*ln(L) from iminuit
         return num - denom
