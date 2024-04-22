@@ -7,7 +7,7 @@ from legendfreqfit.utils import inspectparameters
 
 nb_kwd = {
     "nopython": True,
-    "parallel": True,
+    "parallel": False,
     "nogil": True,
     "cache": True,
     "fastmath": True,
@@ -346,28 +346,25 @@ def nb_density_gradient(
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
 
-    grad_CDF = np.array(
-        [0, eff * exp, exp * windowsize, 0, 0, S * exp, S * eff, exp * BI]
-    )
+    grad_CDF = np.array([eff * exp, exp * windowsize, 0, 0, S * exp, S * eff])
 
-    grad_PDF = np.zeros(shape=(8, len(Es)))
+    grad_PDF = np.zeros(shape=(6, len(Es)))
     for i in nb.prange(Es.shape[0]):
         # For readability, don't precompute anything and see how performance is impacted
         grad_PDF[0][i] = (
-            (-1 * (Es[i] - QBB - delta) / sigma**2)
-            * mu_S
-            * (1 / (np.sqrt(2 * np.pi) * sigma))
-            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
-        )
-        grad_PDF[1][i] = (
             eff
             * exp
             * (1 / (np.sqrt(2 * np.pi) * sigma))
             * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
         )
-        grad_PDF[2][i] = exp
-        grad_PDF[3][i] = -1 * grad_PDF[0][i]
-        grad_PDF[4][i] = (
+        grad_PDF[1][i] = exp
+        grad_PDF[2][i] = (
+            ((Es[i] - QBB - delta) / sigma**2)
+            * mu_S
+            * (1 / (np.sqrt(2 * np.pi) * sigma))
+            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
+        )
+        grad_PDF[3][i] = (
             (
                 ((Es[i] - QBB - delta) ** 2 - sigma**2)
                 / (np.sqrt(2 * np.pi) * sigma**4)
@@ -375,20 +372,19 @@ def nb_density_gradient(
             * mu_S
             * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
         )
-        grad_PDF[5][i] = (
+        grad_PDF[4][i] = (
             S
             * exp
             * (1 / (np.sqrt(2 * np.pi) * sigma))
             * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
         )
-        grad_PDF[6][i] = (
+        grad_PDF[5][i] = (
             S
             * eff
             * (1 / (np.sqrt(2 * np.pi) * sigma))
             * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
             + BI
         )
-        grad_PDF[7][i] = 0
 
     return grad_CDF, grad_PDF
 
