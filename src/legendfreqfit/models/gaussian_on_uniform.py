@@ -88,6 +88,69 @@ def nb_pdf(
 
 
 @nb.jit(**nb_kwd)
+def nb_density(
+    Es: np.array,
+    S: float,
+    BI: float,
+    delta: float,
+    sigma: float,
+    eff: float,
+    exp: float,
+    window: np.array = WINDOW,
+) -> np.array:
+    """
+    Parameters
+    ----------
+    Es
+        Energies at which this function is evaluated, in keV
+    S
+        The signal rate, in units of counts/(kg*yr)
+    BI
+        The background index rate, in counts/(kg*yr*keV)
+    delta
+        Systematic energy offset from QBB, in keV
+    sigma
+        The energy resolution at QBB, in keV
+    eff
+        The global signal efficiency, unitless
+    exp
+        The exposure, in kg*yr
+    window
+        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
+        where edges of window are monotonically increasing (this is not checked), in keV.
+        Default is typical analysis window.
+
+    Notes
+    -----
+    This function computes the following, faster than without a numba wrapper:
+    mu_S = eff * exp * S
+    mu_B = exp * BI * windowsize
+    CDF(E) = mu_S + mu_B
+    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    """
+
+    windowsize = 0.0
+    for i in range(len(window)):
+        windowsize += window[i][1] - window[i][0]
+
+    # Precompute the signal and background counts
+    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_S = S * eff * exp
+    mu_B = exp * BI * windowsize
+
+    # Precompute the prefactors so that way we save multiplications in the for loop
+    B_amp = exp * BI
+    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
+
+    # Initialize and execute the for loop
+    y = np.empty_like(Es, dtype=np.float64)
+    for i in nb.prange(Es.shape[0]):
+        y[i] = S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+
+    return mu_S + mu_B, y
+
+
+@nb.jit(**nb_kwd)
 def nb_logpdf(
     Es: np.array,
     S: float,
@@ -432,16 +495,7 @@ class gaussian_on_uniform_gen:
         exp: float,
         window: np.array = WINDOW,
     ) -> np.array:
-        windowsize = 0
-        for i in range(len(window)):
-            windowsize += window[i][1] - window[i][0]
-
-        mu_S = S * eff * exp
-        mu_B = exp * BI * windowsize
-        return (
-            mu_S + mu_B,
-            (mu_S + mu_B) * nb_pdf(Es, S, BI, delta, sigma, eff, exp, window=window),
-        )
+        return nb_density(Es, S, BI, delta, sigma, eff, exp, window=window)
 
     def density_gradient(
         self,
