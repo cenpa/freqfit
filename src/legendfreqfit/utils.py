@@ -4,6 +4,7 @@ import json
 import re
 import warnings
 
+import numpy as np
 import yaml
 
 
@@ -127,7 +128,7 @@ def convert_gerda_results_to_config(
     Parameters
     ----------
     metadata_path
-        Absolute path to `ovbb-analysis-parameters.txt` as provided by the GERDA Collaboration
+        Absolute path to `0vbb-analysis-parameters.txt` as provided by the GERDA Collaboration
     data_path
         Absolute path to `0vbb-analysis-event-list.txt`  as provided by the GERDA Collaboration
     output_path
@@ -266,5 +267,203 @@ def convert_gerda_results_to_config(
 
     # Now, enjoy the fruits of our labors. Write to a file
     f = open(output_path + "/gerda_config.yaml", "w+")
+    yaml.safe_dump(output_data, f)
+    f.close()
+
+
+def convert_majorana_results_to_config(
+    metadata_path: str, data_path: str, output_path: str
+) -> None:
+    """
+    Parameters
+    ----------
+    metadata_path
+        Absolute path to `supp_analysis_parameters.txt` as provided by the MAJORANA DEMONSTRATOR Collaboration
+    data_path
+        Absolute path to `supp_event_list.txt`  as provided by the MAJORANA DEMONSTRATOR  Collaboration
+    output_path
+        Absolute path to dump the `gerda_config.yaml` file
+    """
+
+    f_metadata = open(metadata_path)
+    file_metadata = f_metadata.readlines()
+    f_metadata.close()
+
+    metadata_dict = {}
+
+    # Make a list of the keys of each entry, kind of tedious but worth it
+    pre_decoding_list = file_metadata[43].split(" ")
+    decoding_list = [pre_decoding_list[0]]
+    key = pre_decoding_list[1]
+    new_key = False
+    for i in range(1, len(pre_decoding_list)):
+        if pre_decoding_list[i][0] == '"':
+            key = pre_decoding_list[i]
+            new_key = False
+        elif pre_decoding_list[i][-1] == '"':
+            decoding_list.append(key + " " + pre_decoding_list[i])
+            new_key = True
+        elif (
+            (pre_decoding_list[i][0] != '"')
+            and (pre_decoding_list[i][-1] != '"')
+            and new_key
+        ):
+            decoding_list.append(pre_decoding_list[i])
+        else:
+            key += " " + pre_decoding_list[i]
+
+    final_decoding_list = []
+    for key in decoding_list:
+        if '"' in key:
+            final_decoding_list.append(key.split('"')[1])
+        else:
+            final_decoding_list.append(key)
+
+    decoding_list = final_decoding_list
+
+    # Now, read in the metadata and store it in our dictionary
+    file_metadata = file_metadata[44:]
+
+    for row in file_metadata[:]:
+        values = row.split(" ")
+        metadata_dict[values[decoding_list.index("dataset")]] = {}
+
+        # To get the exposure, need to combine the active exposure and the enrichement fraction
+        # first, symmetrize the errors
+        active_exposure_err = (
+            float(values[decoding_list.index("active exp unc high")])
+            + float(values[decoding_list.index("active exp unc low")])
+        ) / 2
+        active_exposure = float(values[decoding_list.index("active exp")])
+
+        enr_frac_err = float(values[decoding_list.index("enr frac unc")])
+        enr_frac = float(values[decoding_list.index("enr frac")])
+
+        exposure = enr_frac * active_exposure
+        exposure_err = exposure * np.sqrt(
+            (active_exposure_err / active_exposure) ** 2
+            + (enr_frac_err / enr_frac) ** 2
+        )
+
+        metadata_dict[values[decoding_list.index("dataset")]]["exp"] = exposure
+        metadata_dict[values[decoding_list.index("dataset")]]["exp_err"] = exposure_err
+
+        # Now, grab the total cut efficiency
+        metadata_dict[values[decoding_list.index("dataset")]]["eff"] = float(
+            values[decoding_list.index("combined eff")]
+        )
+        # first, symmetrize the errors
+        metadata_dict[values[decoding_list.index("dataset")]]["eff_err"] = (
+            float(values[decoding_list.index("combined eff unc high")])
+            + float(values[decoding_list.index("combined eff unc low")])
+        ) / 2
+
+        # Get the FWHM
+        metadata_dict[values[decoding_list.index("dataset")]]["sigma"] = float(
+            values[decoding_list.index("FWHM")]
+        )
+        metadata_dict[values[decoding_list.index("dataset")]]["sigma_err"] = float(
+            values[decoding_list.index("FWHM unc")]
+        )
+
+        # Get the delta
+        metadata_dict[values[decoding_list.index("dataset")]]["delta"] = float(
+            values[decoding_list.index("delta mu")]
+        )
+
+    # Read in the actual data
+    f_data = open(data_path)
+    file_data = f_data.readlines()
+    f_data.close()
+
+    datasets = []
+    energies = []
+    for row in file_data[3:]:
+        dataset = row[2:3] if row[3] == " " else row[2:4]
+        energy = row[-8:-1]
+
+        if dataset == "8":
+            dataset = "8P"  # This renames the dataset to match how it appears in the other file...
+        datasets.append("DS" + dataset)
+        energies.append(float(energy))
+
+    output_data = dict({"datasets": dict({})})
+
+    dset_names = list(set(datasets))
+    # Create empty datasets in partitions that need it
+    for dset in datasets:
+        output_data["datasets"][dset] = dict({})
+        output_data["datasets"][dset]["data"] = []
+
+    for j in range(len(energies)):
+        output_data["datasets"][datasets[j]]["data"].append(float(energies[j]))
+
+    # add all the stuff we need to each dataset
+
+    for key in list(output_data["datasets"].keys()):
+        output_data["datasets"][key]["costfunction"] = "ExtendedUnbinnedNLL"
+        output_data["datasets"][key][
+            "model"
+        ] = "legendfreqfit.models.gaussian_on_uniform"
+        output_data["datasets"][key]["model_parameters"] = dict({})
+        output_data["datasets"][key]["model_parameters"]["S"] = "global_S"
+        output_data["datasets"][key]["model_parameters"]["BI"] = "global_BI"
+        output_data["datasets"][key]["model_parameters"]["delta"] = f"delta_{key}"
+        output_data["datasets"][key]["model_parameters"]["sigma"] = f"sigma_{key}"
+        output_data["datasets"][key]["model_parameters"]["eff"] = f"eff_{key}"
+        output_data["datasets"][key]["model_parameters"]["exp"] = f"exp_{key}"
+
+    # Now set the parameters and initial values from the metadata
+
+    output_data["parameters"] = dict({})
+
+    output_data["parameters"]["global_S"] = dict({})
+
+    output_data["parameters"]["global_S"]["includeinfit"] = True
+    output_data["parameters"]["global_S"]["nuisance"] = False
+    output_data["parameters"]["global_S"]["fixed"] = False
+    output_data["parameters"]["global_S"]["limits"] = str([0, None])
+    output_data["parameters"]["global_S"]["value"] = 1e-9
+
+    output_data["parameters"]["global_BI"] = dict({})
+    output_data["parameters"]["global_BI"]["includeinfit"] = True
+    output_data["parameters"]["global_BI"]["nuisance"] = False
+    output_data["parameters"]["global_BI"]["fixed"] = False
+    output_data["parameters"]["global_BI"]["limits"] = str([0, None])
+    output_data["parameters"]["global_BI"]["value"] = 1e-3
+
+    # now handle the loop over the individual dataset nuisance parameters
+    datasets = list(metadata_dict.keys())
+    # Create empty datasets in partitions that need it
+    for dset in dset_names:
+        output_data["parameters"]["delta_" + dset] = dict({})
+        output_data["parameters"]["delta_" + dset]["includeinfit"] = False
+        output_data["parameters"]["delta_" + dset]["nuisance"] = True
+        output_data["parameters"]["delta_" + dset]["fixed"] = False
+        output_data["parameters"]["delta_" + dset]["limits"] = None
+        output_data["parameters"]["delta_" + dset]["value"] = metadata_dict[dset][
+            "delta"
+        ]
+
+        output_data["parameters"]["sigma_" + dset] = dict({})
+        output_data["parameters"]["sigma_" + dset]["includeinfit"] = True
+        output_data["parameters"]["sigma_" + dset]["nuisance"] = True
+        output_data["parameters"]["sigma_" + dset]["fixed"] = True
+        output_data["parameters"]["sigma_" + dset]["limits"] = None
+        output_data["parameters"]["sigma_" + dset]["value"] = metadata_dict[dset][
+            "sigma"
+        ]
+
+        output_data["parameters"]["eff_" + dset] = dict({})
+        output_data["parameters"]["eff_" + dset]["includeinfit"] = False
+        output_data["parameters"]["eff_" + dset]["limits"] = None
+        output_data["parameters"]["eff_" + dset]["value"] = metadata_dict[dset]["eff"]
+
+        output_data["parameters"]["exp_" + dset] = dict({})
+        output_data["parameters"]["exp_" + dset]["includeinfit"] = False
+        output_data["parameters"]["exp_" + dset]["limits"] = None
+        output_data["parameters"]["exp_" + dset]["value"] = metadata_dict[dset]["exp"]
+
+    f = open(output_path, "w+")
     yaml.safe_dump(output_data, f)
     f.close()
