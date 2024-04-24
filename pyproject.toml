@@ -92,6 +92,9 @@ pythonpath = [
   "src"
 ]
 
+[tool.codespell]
+ignore-words-list = "gaus"
+
 [tool.isort]
 profile = "black"
 multi_line_output = 3
