@@ -9,7 +9,7 @@ from iminuit import Minuit
 
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
-from legendfreqfit.utils import grab_results, load_config, emp_cdf, dkw_band
+from legendfreqfit.utils import dkw_band, emp_cdf, grab_results, load_config
 
 SEED = 42
 
@@ -200,13 +200,13 @@ class Pseudoexperiment(Superset):
         return ts
 
     def toy_ts_critical(
-            self,
-            ts_dist: np.array, # output of toy_ts 
-            threshold: float = 0.9, # critical threshold for test statistic
-            confidence: float = 0.68, # width of confidence interval 
+        self,
+        ts_dist: np.array,  # output of toy_ts
+        threshold: float = 0.9,  # critical threshold for test statistic
+        confidence: float = 0.68,  # width of confidence interval
     ):
         """
-        Returns the critical value of the test statistic and confidence interval 
+        Returns the critical value of the test statistic and confidence interval
         """
         cdf, bins = emp_cdf(ts_dist)
 
@@ -215,10 +215,10 @@ class Pseudoexperiment(Superset):
         idx_crit = np.where(cdf >= threshold)[0][0]
         critical = bins[idx_crit]
 
-        lo = lo_band[idx_crit] 
-        hi = hi_band[idx_crit] 
+        lo = lo_band[idx_crit]
+        hi = hi_band[idx_crit]
 
         lo_idx = np.where(cdf >= lo)[0][0]
         hi_idx = np.where(cdf >= hi)[0][0]
-        
-        return critical, bins[lo_idx], bins[hi_idx] 
+
+        return critical, bins[lo_idx], bins[hi_idx]
