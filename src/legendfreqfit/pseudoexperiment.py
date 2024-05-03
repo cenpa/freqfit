@@ -202,13 +202,14 @@ class Pseudoexperiment(Superset):
     def toy_ts_critical(
             self,
             ts_dist: np.array, # output of toy_ts 
+            bins = 100, #int or array, numbins or list of bin edges for CDF
             threshold: float = 0.9, # critical threshold for test statistic
             confidence: float = 0.68, # width of confidence interval 
     ):
         """
         Returns the critical value of the test statistic and confidence interval 
         """
-        cdf, bins = emp_cdf(ts_dist)
+        cdf, bins = emp_cdf(ts_dist, bins)
 
         lo_band, hi_band = dkw_band(cdf, nevts=len(ts_dist), confidence=confidence)
 
