@@ -32,12 +32,7 @@ per detector per partition
 - [x] for `gaussian_on_uniform`, check that `loglikelihood` and `likelihood` are implemented correctly - the analysis window needs to be removed if it is included. This will affect the calculation of the likelihood if the passed `Es` are treated as bins. the likelihood and loglikehood here should be zero. (For now, these are removed.)
 
 ### development help
-If you're using a Python virtual environment for development (`venv`), add something like these lines to `.venv/bin/activate` to add the `legendfreqfit` module to your `PYTHONPATH`.
-
-```bash
-PYTHONPATH="${PYTHONPATH}:/path/to/git/repo/legendfreqfit/src"
-export PYTHONPATH
-```
+You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `legendfreqfit/`.
 
 
 ### running on cenpa-rocks
