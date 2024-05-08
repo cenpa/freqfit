@@ -87,9 +87,7 @@ class Dataset:
             costfunction is cost.UnbinnedNLL
         ):
             self._costfunctioncall = costfunction
-            self.costfunction = costfunction(
-                self.data, self.density, grad=self.density_gradient
-            )
+            self.costfunction = costfunction(self.data, self.density)
         else:
             msg = f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as \
                 cost functions"
