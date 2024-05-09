@@ -11,7 +11,7 @@ from scipy.stats import chi2
 
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
-from legendfreqfit.utils import grab_results, load_config, emp_cdf, dkw_band
+from legendfreqfit.utils import dkw_band, emp_cdf, grab_results, load_config
 
 SEED = 42
 
@@ -210,7 +210,7 @@ class Pseudoexperiment(Superset):
             plot: bool = False # if True, save plots of CDF and PDF with critical bands
     ):
         """
-        Returns the critical value of the test statistic and confidence interval 
+        Returns the critical value of the test statistic and confidence interval
         """
         cdf, bins = emp_cdf(ts_dist, bins)
 
@@ -219,8 +219,8 @@ class Pseudoexperiment(Superset):
         idx_crit = np.where(cdf >= threshold)[0][0]
         critical = bins[idx_crit]
 
-        lo = lo_band[idx_crit] 
-        hi = hi_band[idx_crit] 
+        lo = lo_band[idx_crit]
+        hi = hi_band[idx_crit]
 
         lo_idx = np.where(cdf >= lo)[0][0]
         hi_idx = np.where(cdf >= hi)[0][0]

@@ -145,6 +145,29 @@ class Dataset:
 
         return self.model.density(data, *self._parlist)
 
+    def density_gradient(
+        self,
+        data,
+        *par,
+    ) -> np.array:
+        """
+        Parameters
+        ----------
+        data
+            Unbinned data
+        par
+            Potentially a subset of the actual model density_gradient parameters, depending on the config
+        """
+        # par should be 1D array like
+        # assign the positional parameters to the correct places in the model parameter list
+        for i in range(len(par)):
+            self._parlist[self._parlist_indices[i]] = par[i]
+
+        grad_cdf, grad_pdf = self.model.density_gradient(data, *self._parlist)
+
+        # Mask the return values according to what the actual cost function expects
+        return grad_cdf[self._parlist_indices], *grad_pdf[[self._parlist_indices], :]
+
     def rvs(
         self,
         *par,

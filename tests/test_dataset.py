@@ -1,6 +1,7 @@
 import numpy as np
 from iminuit import cost
 
+from legendfreqfit.dataset import Dataset
 from legendfreqfit.models import gaussian_on_uniform
 
 
@@ -29,4 +30,45 @@ def test_dataset():
 
     costfunction = cost.ExtendedUnbinnedNLL
     name = "test_dset"
-    assert True
+    dset = Dataset(data, model, model_parameters, parameters, costfunction, name)
+
+    assert np.array_equal(dset.data, data)
+    assert dset.name == name
+    assert dset.model == model
+    assert dset._parlist_indices == [
+        0,
+        1,
+    ]  # We are fitting both S and BI, which are the first 2 parameters of the gaussian_on_uniform density
+    assert np.array_equal(
+        dset._parlist[:-1], [None, None, 1e-1, 1e-2, 1e-3, 1e-4]
+    )  # Check that the initial values are set correctly, exclude the window
+
+    # Test the density function handling
+    S = 1
+    BI = 2
+    reference_density = gaussian_on_uniform.density(data, S, BI, 1e-1, 1e-2, 1e-3, 1e-4)
+    test_density = dset.density(data, S, BI)
+
+    assert np.array_equal(test_density[0], reference_density[0])
+    assert np.array_equal(test_density[1], reference_density[1])
+
+    reference_density_gradient = gaussian_on_uniform.density_gradient(
+        data, S, BI, 1e-1, 1e-2, 1e-3, 1e-4
+    )
+    test_density_gradient = dset.density_gradient(data, S, BI)
+
+    # Test the density gradient function handling
+    assert (
+        len(test_density_gradient[0]) == 2
+    )  # make sure we are masking things correctly
+    mask_idxs = np.array([0, 1])
+    assert np.array_equal(
+        test_density_gradient[0], reference_density_gradient[0][mask_idxs]
+    )  # only the first two parameters are being varied
+
+    assert np.array_equal(
+        test_density_gradient[1][0], reference_density_gradient[1][0, :]
+    )  # only the first two parameters are being varied
+    assert np.array_equal(
+        test_density_gradient[1][1], reference_density_gradient[1][1, :]
+    )  # only the first two parameters are being varied
