@@ -14,17 +14,17 @@ def test_dkw():
     ]
     bins = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5, 16.5]
 
-    cdf = emp_cdf(data = data, bins=bins) 
+    cdf, _ = emp_cdf(data = data, bins=bins) 
 
-    dkw_lo, dkw_hi = dkw_band(cdf, len(data), bins=bins)
+    dkw_lo, dkw_hi = dkw_band(cdf, len(data))
 
     hand_cdf = np.array([0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1])
-    hand_dkw_hi = hand_cdf + 0.13537 
-    hand_dkw_lo = hand_cdf - 0.13537
+    hand_dkw_hi = np.minimum(hand_cdf + 0.13537, 1) 
+    hand_dkw_lo = np.maximum(hand_cdf - 0.13537, 0)
 
-    assert hand_cdf == cdf
-    assert np.isclose(dkw_lo, hand_dkw_lo)
-    assert np.isclose(dkw_hi, hand_dkw_hi) 
+    assert (hand_cdf == cdf).all()
+    assert np.isclose(dkw_lo, hand_dkw_lo, atol=1e-5).all()
+    assert np.isclose(dkw_hi, hand_dkw_hi, atol=1e-5).all()
 
 def test_criticalts():
     true_S = 10.0

@@ -130,12 +130,13 @@ def emp_cdf(
 
     if isinstance(bins, int):
         x = np.linspace(np.nanmin(data), np.nanmax(data), bins)
-    elif isinstance(bins, np.array) or isinstance(bins, list):
+    elif isinstance(bins, np.ndarray) or isinstance(bins, list):
         x = np.array(bins)
     else:
         raise ValueError("bins must be array-like or int")
+    
 
-    return np.array([len(np.where(data <= b)[0]) / len(data) for b in x]), x
+    return np.array([len(np.where(data <= b)[0]) / len(data) for b in x[1:]]), x
 
 
 def dkw_band(
