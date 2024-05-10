@@ -194,20 +194,22 @@ class Pseudoexperiment(Superset):
         """
 
         ts = np.zeros(num)
+        np.random.seed(SEED)
+        seed = np.random.randint(1000000, size=num)
 
         for i in range(num):
-            thistoy = self.maketoy(parameters=parameters, seed=seed + i)
+            thistoy = self.maketoy(parameters=parameters, seed=seed[i])
             ts[i] = thistoy.ts(profile_parameters=profile_parameters)
 
         return ts
 
     def toy_ts_critical(
-            self,
-            ts_dist: np.array, # output of toy_ts 
-            bins = 100, #int or array, numbins or list of bin edges for CDF
-            threshold: float = 0.9, # critical threshold for test statistic
-            confidence: float = 0.68, # width of confidence interval
-            plot: bool = False # if True, save plots of CDF and PDF with critical bands
+        self,
+        ts_dist: np.array,  # output of toy_ts
+        bins=100,  # int or array, numbins or list of bin edges for CDF
+        threshold: float = 0.9,  # critical threshold for test statistic
+        confidence: float = 0.68,  # width of confidence interval
+        plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
     ):
         """
         Returns the critical value of the test statistic and confidence interval
@@ -226,40 +228,46 @@ class Pseudoexperiment(Superset):
         hi_idx = np.where(cdf >= hi)[0][0]
 
         lo_ts = bins[lo_idx]
-        hi_ts = bins[hi_idx] 
+        hi_ts = bins[hi_idx]
 
         if plot:
-            int_thresh = int(100*threshold)
-            int_conf = int(100*confidence)
-            fig, axs = plt.subplots(1, 2, layout='constrained', figsize=(11, 5))
-            axs[0].plot(bins, cdf, color='red', label='data cdf')
-            axs[0].plot(bins, lo_band, color='orange', label=f'cdf {int_conf}% interval')
-            axs[0].plot(bins, hi_band, color='orange')
-            axs[0].plot(bins, chi2.cdf(bins, df=1), color='black', label='chi2 df=1 cdf')
+            int_thresh = int(100 * threshold)
+            int_conf = int(100 * confidence)
+            fig, axs = plt.subplots(1, 2, layout="constrained", figsize=(11, 5))
+            axs[0].plot(bins, cdf, color="red", label="data cdf")
+            axs[0].plot(
+                bins, lo_band, color="orange", label=f"cdf {int_conf}% interval"
+            )
+            axs[0].plot(bins, hi_band, color="orange")
+            axs[0].plot(
+                bins, chi2.cdf(bins, df=1), color="black", label="chi2 df=1 cdf"
+            )
 
-            axs[0].axvline(critical, color='blue', label=f'{int_thresh}% ts')
-            axs[0].axvspan(lo_ts, hi_ts, alpha=0.5, color='blue')
-            axs[0].axhline(threshold, color='green')
-            axs[0].axhspan(lo, hi, color='green', alpha=0.5)
-            axs[0].set_xlabel(r'$\tilde{t}_S$')
-            axs[0].set_ylabel(r'$cdf(\tilde{t}_S)$')
+            axs[0].axvline(critical, color="blue", label=f"{int_thresh}% ts")
+            axs[0].axvspan(lo_ts, hi_ts, alpha=0.5, color="blue")
+            axs[0].axhline(threshold, color="green")
+            axs[0].axhspan(lo, hi, color="green", alpha=0.5)
+            axs[0].set_xlabel(r"$\tilde{t}_S$")
+            axs[0].set_ylabel(r"$cdf(\tilde{t}_S)$")
             axs[0].legend()
 
-            bincenters = (bins[1:] + bins[:-1])/2
+            bincenters = (bins[1:] + bins[:-1]) / 2
             axs[1].hist(ts_dist, bins=bins, density=True)
-            axs[1].plot(bincenters, chi2.pdf(bincenters, df=1), 'k', label='chi2 df=1')
+            axs[1].plot(bincenters, chi2.pdf(bincenters, df=1), "k", label="chi2 df=1")
 
-            axs[1].axvline(critical, color='red', label='ts_crit')
-            axs[1].axvspan(lo_ts, hi_ts, color='blue', alpha=0.5)
-            axs[1].axvline(chi2.ppf(threshold, df=1), color='black', linestyle='dashed', label='chi2 critical')
+            axs[1].axvline(critical, color="red", label="ts_crit")
+            axs[1].axvspan(lo_ts, hi_ts, color="blue", alpha=0.5)
+            axs[1].axvline(
+                chi2.ppf(threshold, df=1),
+                color="black",
+                linestyle="dashed",
+                label="chi2 critical",
+            )
 
-            axs[1].set_xlabel(r'$\tilde{t}_S$')
-            axs[1].set_ylabel(r'$pdf(\tilde{t}_S)$')
+            axs[1].set_xlabel(r"$\tilde{t}_S$")
+            axs[1].set_ylabel(r"$pdf(\tilde{t}_S)$")
             axs[1].legend()
 
-            plt.savefig(f'ts_critical_{int_thresh}.jpg')
+            plt.savefig(f"ts_critical_{int_thresh}.jpg")
 
-
-
-        
         return critical, lo_ts, hi_ts

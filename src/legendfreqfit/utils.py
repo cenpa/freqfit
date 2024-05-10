@@ -133,8 +133,7 @@ def emp_cdf(
     elif isinstance(bins, np.ndarray) or isinstance(bins, list):
         x = np.array(bins)
     else:
-        raise ValueError("bins must be array-like or int")
-    
+        raise ValueError(f"bins must be array-like or int, instead is {type(bins)}")
 
     return np.array([len(np.where(data <= b)[0]) / len(data) for b in x[1:]]), x
 

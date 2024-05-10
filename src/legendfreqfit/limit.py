@@ -136,6 +136,27 @@ class SetLimit(Pseudoexperiment):
         # TODO: write this function
         return None
 
+    def toy_ts_mp(
+        self,
+        parameters: dict,  # parameters and values needed to generate the toys
+        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
+        num: int = 1,
+    ):
+        """
+        Makes a number of toys and returns their test statistics. Multiprocessed
+        """
+        x = np.arange(0, num)
+        toys_per_core = np.full(NUM_CORES, num // NUM_CORES)
+        toys_per_core = np.insert(toys_per_core, len(toys_per_core), num % NUM_CORES)
+        args = [
+            [parameters, profile_parameters, num_toy] for num_toy in toys_per_core
+        ]  # give each core multiple MCs
+
+        with mp.Pool(NUM_CORES) as pool:
+            ts = pool.starmap(self.toy_ts, args)
+
+        return np.hstack(ts)
+
     def run_toys(
         self,
         scan_point,
@@ -157,12 +178,12 @@ class SetLimit(Pseudoexperiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts = self.toy_ts(
+        toyts = self.toy_ts_mp(
             toypars, {f"{self.var_to_profile}": scan_point}, num=num_toys
         )
 
         # Now grab the critical test statistic
         t_crit, t_crit_low, t_crit_high = self.toy_ts_critical(
-            toyts, threshold, confidence
+            toyts, threshold=threshold, confidence=confidence
         )
         return toyts, t_crit, t_crit_low, t_crit_high
