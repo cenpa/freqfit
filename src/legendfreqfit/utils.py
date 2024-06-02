@@ -141,13 +141,13 @@ def emp_cdf(
 def dkw_band(
     cdf: np.array,  # binned CDF
     nevts: int,  # number of events the CDF is based off of
-    confidence: float = 0.68,  # confidence level for band
+    CL: float = 0.68,  # confidence level for band
 ) -> Tuple[np.array, np.array]:
     """
     Returns the confidence band for a given CDF following the DKW inequality
     https://lamastex.github.io/scalable-data-science/as/2019/jp/11.html
     """
-    alp = 1 - confidence
+    alp = 1 - CL
     eps = np.sqrt(np.log(2 / alp) / (2 * nevts))
     lo_band = np.maximum(cdf - eps, np.zeros_like(cdf))
     hi_band = np.minimum(cdf + eps, np.ones_like(cdf))
