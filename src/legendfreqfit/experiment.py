@@ -1,5 +1,5 @@
 """
-A class that controls a pseudoexperiment and calls the `Superset` class.
+A class that controls an experiment and calls the `Superset` class.
 """
 
 import warnings
@@ -16,7 +16,7 @@ from legendfreqfit.utils import dkw_band, emp_cdf, grab_results, load_config
 SEED = 42
 
 
-class Pseudoexperiment(Superset):
+class Experiment(Superset):
     def __init__(
         self,
         config: dict,
@@ -164,7 +164,7 @@ class Pseudoexperiment(Superset):
     ) -> float:
         """
         force
-            See `Pseudoexperiment.bestfit()` for description. Default is `False`.
+            See `experiment.bestfit()` for description. Default is `False`.
         """
         denom = self.bestfit(force=force)["fval"]
 
@@ -178,7 +178,7 @@ class Pseudoexperiment(Superset):
         parameters: dict,
         seed: int = SEED,
     ) -> Toy:
-        toy = Toy(pseuodexperiment=self, parameters=parameters, seed=seed)
+        toy = Toy(experiment=self, parameters=parameters, seed=seed)
 
         return toy
 

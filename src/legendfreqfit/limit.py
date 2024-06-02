@@ -1,5 +1,5 @@
 """
-Class that holds a pseudoexperiment and has methods that help set a frequentist limit
+This class inherits from `Experiment`, and also holds the name of the variable to profile
 """
 
 
@@ -8,20 +8,20 @@ import multiprocessing as mp
 import numpy as np
 from scipy.special import erfcinv
 
-from legendfreqfit.pseudoexperiment import Pseudoexperiment
+from legendfreqfit.experiment import Experiment
 
 NUM_CORES = 2  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
 
 
-class SetLimit(Pseudoexperiment):
+class SetLimit(Experiment):
     def __init__(
         self,
         config: dict,
         name: str = None,
     ) -> None:
         """
-        This class inherits from the pseudoexperiment, and also holds the name of the variable to profile
+        This class inherits from `Experiment`, and also holds the name of the variable to profile
         """
         super().__init__(config, name)
 
