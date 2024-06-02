@@ -1,4 +1,4 @@
-from legendfreqfit import Pseudoexperiment
+from legendfreqfit import Experiment
 from legendfreqfit.utils import emp_cdf, dkw_band
 from matplotlib import pyplot as plt
 import numpy as np
@@ -28,7 +28,7 @@ def test_dkw():
 
 def test_criticalts():
     true_S = 10.0
-    p = Pseudoexperiment.file('tests/config_test_highsignal.yaml', 'pseudo');
+    p = Experiment.file('tests/config_test_highsignal.yaml', 'experiment');
 
     # profile over the test statistic
     x = np.arange(0,30,0.1)
