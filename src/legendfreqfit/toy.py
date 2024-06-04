@@ -91,7 +91,7 @@ class Toy:
 
     def bestfit(
         self,
-        force=False,
+        force: bool = False,
     ) -> dict:
         # don't run this more than once if we don't have to
         if self.best is not None and not force:
