@@ -17,7 +17,12 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
+- I think probably we need to rename the models to something more specific to 0vbb
 - separate event energies into two types: 1. those close to Qbb and 2. those not close to Qbb. Can fit those close to Qbb using Gaussian + uniform w/ nuisance parameters and those not close with just a uniform. Should improve computation speed but requires two different models and then separate the data based on the two different models. The separation of the events into these two different categories should be done in the config file. Just need to write a model for the purely uniform case!
+
+  Actually, this becomes rather tricky, because we need to draw rvs from both models but have them appropriately pulled from. So I guess the correct thing to do would be to specify different analysis windows for them that are not overlapping.
+
+- [x] made models for this /\
 - add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?
 - need a way to run the analysis automatically for an experiment.
 - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
