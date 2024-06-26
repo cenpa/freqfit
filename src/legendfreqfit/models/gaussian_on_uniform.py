@@ -11,6 +11,7 @@ nb_kwd = {
     "nogil": True,
     "cache": True,
     "fastmath": True,
+    "inline": "always",
 }
 
 QBB = constants.QBB
