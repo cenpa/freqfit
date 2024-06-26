@@ -12,21 +12,21 @@ SEED = 42
 class Toy:
     def __init__(
         self,
-        pseuodexperiment,
+        experiment,
         parameters: dict,
         seed: int = SEED,
     ) -> None:
         """
-        pseuodexperiment
-            `Pseuodexperiment` to base this `Toy` on
+        experiment
+            `experiment` to base this `Toy` on
         parameters
             `dict` of parameters and their values to model with
         """
 
-        self.pseuodexperiment = pseuodexperiment
+        self.experiment = experiment
 
         self.costfunction = None
-        for i, (datasetname, dataset) in enumerate(pseuodexperiment.datasets.items()):
+        for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
             # worried that this is not totally deterministic (depends on number of Datasets),
             # but more worried that random draws between datasets would be correlated otherwise.
             thisseed = seed + i
@@ -58,7 +58,7 @@ class Toy:
         # fitparameters of Toy are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
 
-        for constraintname, constraint in pseuodexperiment.constraints.items():
+        for constraintname, constraint in experiment.constraints.items():
             self.costfunction += constraint
 
         guess = {}
@@ -80,7 +80,7 @@ class Toy:
         # and is overwritten here
 
         # also set which parameters are fixed
-        for parname, pardict in self.pseuodexperiment.config["parameters"].items():
+        for parname, pardict in self.experiment.config["parameters"].items():
             if parname in self.minuit.parameters:
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
@@ -91,7 +91,7 @@ class Toy:
 
     def bestfit(
         self,
-        force=False,
+        force: bool = False,
     ) -> dict:
         # don't run this more than once if we don't have to
         if self.best is not None and not force:
