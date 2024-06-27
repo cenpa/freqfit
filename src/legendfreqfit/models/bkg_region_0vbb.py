@@ -20,7 +20,7 @@ M_A = constants.MA
 # window
 #     must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
 #     where edges of window are monotonically increasing (this is not checked), in keV.
-#     Default is typical analysis window. 
+#     Default is typical analysis window.
 
 # default analysis window and width
 WINDOW = np.array(constants.WINDOW_BKG_REGION_0VBB)
@@ -30,6 +30,7 @@ for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
 SEED = 42  # set the default random seed
+
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
@@ -43,7 +44,7 @@ def nb_pdf(
 
     Notes
     -----
-    This function makes an approximation to the model `gaussian_on_uniform` and assumes that the peak has zero 
+    This function makes an approximation to the model `gaussian_on_uniform` and assumes that the peak has zero
     contribution to the pdf to simplify computation. Because of this, we assume that there are no signal events in the
     window and therefore the normalization should be only to the expected number of background events in the window. Note that
     whether the events are properly in the window is not checked!
@@ -53,7 +54,7 @@ def nb_pdf(
     mu_B = exp * BI * windowsize
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
 
-    But instead in this pdf we should have 
+    But instead in this pdf we should have
     # mu_S = eff * exp * S <-- not needed, so do not need these parameters
     mu_B = exp * BI * windowsize
     # pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize] <-- we consider a different window so we should have instead
@@ -82,7 +83,7 @@ def nb_pdf(
     #         S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
     #     )
 
-    y = np.full_like(Es, fill_value=1.0/WINDOWSIZE, dtype=np.float64)
+    y = np.full_like(Es, fill_value=1.0 / WINDOWSIZE, dtype=np.float64)
 
     return y
 
@@ -107,7 +108,7 @@ def nb_density(
     # expected number of background events
     mu_B = exp * BI * WINDOWSIZE
 
-    y = np.full_like(Es, fill_value=1.0/WINDOWSIZE, dtype=np.float64)
+    y = np.full_like(Es, fill_value=exp * BI, dtype=np.float64)
 
     return mu_B, y
 
@@ -123,10 +124,10 @@ def nb_logpdf(
         Energies at which this function is evaluated, in keV
     """
 
-    y = np.full_like(Es, fill_value=np.log(1.0/WINDOWSIZE), dtype=np.float64)
-
+    y = np.full_like(Es, fill_value=np.log(1.0 / WINDOWSIZE), dtype=np.float64)
 
     return y
+
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
@@ -219,5 +220,6 @@ class bkg_region_0vbb_gen:
 
         plt.step(Es, y)
         plt.show()
+
 
 bkg_region_0vbb = bkg_region_0vbb_gen()
