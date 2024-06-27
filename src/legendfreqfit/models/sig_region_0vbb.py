@@ -20,7 +20,7 @@ M_A = constants.MA
 # window
 #     must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
 #     where edges of window are monotonically increasing (this is not checked), in keV.
-#     Default is typical analysis window. 
+#     Default is typical analysis window.
 
 # default analysis window and width
 WINDOW = np.array(constants.WINDOW_SIG_REGION_0VBB)
@@ -30,6 +30,7 @@ for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
 SEED = 42  # set the default random seed
+
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
@@ -430,7 +431,7 @@ def nb_density_gradient(
     return grad_CDF, grad_PDF
 
 
-class gaussian_on_uniform_gen:
+class sig_region_0vbb_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
         pass
@@ -504,8 +505,7 @@ class gaussian_on_uniform_gen:
         else:
             return (
                 mu_S + mu_B,
-                np.log(mu_S + mu_B)
-                + nb_logpdf(Es, S, BI, delta, sigma, eff, exp),
+                np.log(mu_S + mu_B) + nb_logpdf(Es, S, BI, delta, sigma, eff, exp),
             )
 
     # should we have an rvs method for drawing a random number of events?
@@ -549,4 +549,4 @@ class gaussian_on_uniform_gen:
         plt.show()
 
 
-gaussian_on_uniform = gaussian_on_uniform_gen()
+sig_region_0vbb = sig_region_0vbb_gen()
