@@ -23,22 +23,21 @@ class Experiment(Superset):
         config: dict,
         name: str = None,
     ) -> None:
-        self.config = config
 
         constraints = (
-            self.config["constraints"] if "constraints" in self.config else None
+            config["constraints"] if "constraints" in config else None
         )
 
         super().__init__(
-            datasets=self.config["datasets"],
-            parameters=self.config["parameters"],
+            datasets=config["datasets"],
+            parameters=config["parameters"],
             constraints=constraints,
             name=name,
         )
 
         # collect which parameters are included as nuisance parameters
         self.nuisance = []
-        for parname, pardict in self.config["parameters"].items():
+        for parname, pardict in self.parameters.items():
             if "includeinfit" in pardict and pardict["includeinfit"]:
                 if "nuisance" in pardict and pardict["nuisance"]:
                     if "fixed" in pardict and pardict["fixed"]:
@@ -53,6 +52,10 @@ class Experiment(Superset):
 
         # raise a RunTime error if function evaluates to NaN
         self.minuit.throw_nan = True
+
+        # check which nuisance parameters can be fixed in the fit due to no data
+        # for parname in self.nuisance:
+        #     if self.conf
 
         # to set limits and fixed variables
         self.minuit_reset()
@@ -102,7 +105,7 @@ class Experiment(Superset):
         # and is overwritten here
 
         # also set which parameters are fixed
-        for parname, pardict in self.config["parameters"].items():
+        for parname, pardict in self.parameters.items():
             if parname in self.minuit.parameters:
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
