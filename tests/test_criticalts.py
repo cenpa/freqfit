@@ -1,5 +1,5 @@
 from legendfreqfit import Experiment
-from legendfreqfit.utils import emp_cdf, dkw_band
+from legendfreqfit.statistics import emp_cdf, dkw_band
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import chi2
