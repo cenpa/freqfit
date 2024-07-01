@@ -11,7 +11,8 @@ from scipy.stats import chi2
 
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
-from legendfreqfit.utils import dkw_band, emp_cdf, grab_results, load_config
+from legendfreqfit.utils import grab_results, load_config
+from legendfreqfit.statistics import dkw_band, emp_cdf
 
 SEED = 42
 
