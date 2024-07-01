@@ -7,6 +7,8 @@ from iminuit import cost
 
 from legendfreqfit.dataset import Dataset
 
+import warnings
+
 SEED = 42
 
 
@@ -67,6 +69,18 @@ class Superset:
                     )
                 }
 
+        # check that parameters are actually used in the Datasets and remove them if not
+        for parameter in list(self.parameters.keys()):
+            is_used = False
+            for datasetname in datasets:
+                if parameter in self.datasets[datasetname].model_parameters.values():
+                    is_used = True
+                    break
+            if not is_used:
+                msg = f"{parameter} was included as a parameter but was not used in a `Dataset` - removing {parameter} as a parameter"
+                warnings.warn(msg)
+                del self.parameters[parameter]
+                
     def add_normalconstraint(
         self,
         parameters: list[str],
