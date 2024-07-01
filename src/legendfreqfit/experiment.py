@@ -216,7 +216,7 @@ class Experiment(Superset):
         """
         cdf, bins = emp_cdf(ts_dist, bins)
 
-        lo_band, hi_band = dkw_band(cdf, nevts=len(ts_dist), confidence=confidence)
+        lo_band, hi_band = dkw_band(cdf, nevts=len(ts_dist), CL=confidence)
 
         idx_crit = np.where(cdf >= threshold)[0][0]
         critical = bins[idx_crit]
