@@ -1,9 +1,7 @@
 import importlib
 import inspect
 import warnings
-from typing import Tuple
 
-import numpy as np
 import yaml
 
 
@@ -44,7 +42,8 @@ def load_config(
     Loads a config file and converts `str` for some fields to the appropriate objects.
     """
     with open(file) as stream:
-        config = yaml.safe_load(stream)
+        # switch from safe_load to load in order to check for duplicate keys
+        config = yaml.load(stream, Loader=UniqueKeyLoader)
 
     # get list of models and cost functions to import
     models = set()
@@ -119,36 +118,15 @@ def grab_results(
 
     return toreturn
 
-
-def emp_cdf(
-    data: np.array,  # the data to make a cdf out of
-    bins=100,  # either number of bins or list of bin edges
-) -> Tuple[np.array, np.array]:
-    """
-    Create a binned empirical CDF given a dataset
-    """
-
-    if isinstance(bins, int):
-        x = np.linspace(np.nanmin(data), np.nanmax(data), bins)
-    elif isinstance(bins, np.ndarray) or isinstance(bins, list):
-        x = np.array(bins)
-    else:
-        raise TypeError(f"bins must be array-like or int, instead is {type(bins)}")
-
-    return np.array([len(np.where(data <= b)[0]) / len(data) for b in x[1:]]), x
-
-
-def dkw_band(
-    cdf: np.array,  # binned CDF
-    nevts: int,  # number of events the CDF is based off of
-    CL: float = 0.68,  # confidence level for band
-) -> Tuple[np.array, np.array]:
-    """
-    Returns the confidence band for a given CDF following the DKW inequality
-    https://lamastex.github.io/scalable-data-science/as/2019/jp/11.html
-    """
-    alpha = 1 - CL
-    eps = np.sqrt(np.log(2 / alpha) / (2 * nevts))
-    lo_band = np.maximum(cdf - eps, np.zeros_like(cdf))
-    hi_band = np.minimum(cdf + eps, np.ones_like(cdf))
-    return lo_band, hi_band
+# use this YAML loader to detect duplicate keys in a config file
+# https://stackoverflow.com/a/76090386
+class UniqueKeyLoader(yaml.SafeLoader):
+    def construct_mapping(self, node, deep=False):
+        mapping = set()
+        for key_node, value_node in node.value:
+            each_key = self.construct_object(key_node, deep=deep)
+            if each_key in mapping:
+                raise ValueError(f"Duplicate Key: {each_key!r} is found in YAML File.\n"
+                                 f"Error File location: {key_node.end_mark}")
+            mapping.add(each_key)
+        return super().construct_mapping(node, deep)

@@ -9,9 +9,10 @@ import numpy as np
 from iminuit import Minuit
 from scipy.stats import chi2
 
+from legendfreqfit.statistics import dkw_band, emp_cdf
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
-from legendfreqfit.utils import dkw_band, emp_cdf, grab_results, load_config
+from legendfreqfit.utils import grab_results, load_config
 
 SEED = 42
 

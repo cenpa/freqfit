@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import chi2
 
 from legendfreqfit import Experiment
-from legendfreqfit.utils import dkw_band, emp_cdf
+from legendfreqfit.statistics import dkw_band, emp_cdf
 
 
 def test_dkw():
