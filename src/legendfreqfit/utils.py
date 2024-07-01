@@ -44,6 +44,7 @@ def load_config(
     Loads a config file and converts `str` for some fields to the appropriate objects.
     """
     with open(file) as stream:
+        # switch from safe_load to load in order to check for duplicate keys
         config = yaml.load(stream, Loader=UniqueKeyLoader)
 
     # get list of models and cost functions to import
