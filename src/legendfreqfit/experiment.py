@@ -9,10 +9,10 @@ import numpy as np
 from iminuit import Minuit
 from scipy.stats import chi2
 
+from legendfreqfit.statistics import dkw_band, emp_cdf
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
 from legendfreqfit.utils import grab_results, load_config
-from legendfreqfit.statistics import dkw_band, emp_cdf
 
 SEED = 42
 
@@ -217,7 +217,7 @@ class Experiment(Superset):
         """
         cdf, bins = emp_cdf(ts_dist, bins)
 
-        lo_band, hi_band = dkw_band(cdf, nevts=len(ts_dist), confidence=confidence)
+        lo_band, hi_band = dkw_band(cdf, nevts=len(ts_dist), CL=confidence)
 
         idx_crit = np.where(cdf >= threshold)[0][0]
         critical = bins[idx_crit]
