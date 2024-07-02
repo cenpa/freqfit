@@ -128,6 +128,8 @@ class Experiment(Superset):
                     self.minuit.limits[parname] = pardict["limits"]
                 if "fixed" in pardict:
                     self.minuit.fixed[parname] = pardict["fixed"]
+                # fix those nuisance parameters which can be fixed because they are not part of a
+                # Dataset that has data
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
                     self.minuit.values[parname] = self.fixed_bc_no_data[parname]

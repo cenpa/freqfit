@@ -47,7 +47,6 @@ class Toy:
             # make the fake data for this particular dataset
             toydata = dataset.rvs(*par, seed=thisseed)
 
-            print(toydata)
             # make the cost function for this particular dataset
             thiscostfunction = dataset._costfunctioncall(toydata, dataset.density)
 
@@ -86,6 +85,9 @@ class Toy:
                 if parname not in parstofitthathavedata:
                     self.fixed_bc_no_data[parname] = self.experiment.parameters[parname]["value"]
 
+        # to set limits and fixed variables
+        # this function will also fix those nuisance parameters which can be fixed because they are not part of a
+        # Dataset that has data
         self.minuit_reset()
         
     def minuit_reset(
@@ -106,6 +108,8 @@ class Toy:
                     self.minuit.limits[parname] = pardict["limits"]
                 if "fixed" in pardict:
                     self.minuit.fixed[parname] = pardict["fixed"]
+                # fix those nuisance parameters which can be fixed because they are not part of a
+                # Dataset that has data
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
                     self.minuit.values[parname] = self.fixed_bc_no_data[parname]
