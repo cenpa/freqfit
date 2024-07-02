@@ -36,7 +36,7 @@ class Experiment(Superset):
         )
 
         # collect which parameters are included as nuisance parameters
-        self.nuisance = []
+        self.nuisance = set()
         for parname, pardict in self.parameters.items():
             if "includeinfit" in pardict and pardict["includeinfit"]:
                 if "nuisance" in pardict and pardict["nuisance"]:
@@ -44,7 +44,7 @@ class Experiment(Superset):
                         msg = f"{parname} has `fixed` as `True` and `nuisance` as `True`. {parname} will be treated as fixed."
                         warnings.warn(msg)
                     else:
-                        self.nuisance.append(parname)
+                        self.nuisance.add(parname)
 
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
@@ -54,10 +54,27 @@ class Experiment(Superset):
         self.minuit.throw_nan = True
 
         # check which nuisance parameters can be fixed in the fit due to no data
-        # for parname in self.nuisance:
-        #     if self.conf
+        self.fixed_bc_no_data = {}
+
+        # find which parameters are part of Datasets that have data
+        parstofitthathavedata = set()
+        for datasetname in self.datasets:
+            # check if there is some data
+            if self.datasets[datasetname].data.size > 0:
+                # add the fit parameters of this Dataset if there is some data
+                for fitpar in self.datasets[datasetname].fitparameters:
+                    parstofitthathavedata.add(fitpar)
+
+        # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
+        for parname in self.nuisance:
+            if "fix_if_no_data" in self.parameters[parname] and self.parameters[parname]["fix_if_no_data"]:
+                # check if this parameter is part of a Dataset that has data
+                if parname not in parstofitthathavedata:
+                    self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]
 
         # to set limits and fixed variables
+        # this function will also fix those nuisance parameters which can be fixed because they are not part of a
+        # Dataset that has data
         self.minuit_reset()
 
         # to store the best fit result
@@ -111,6 +128,9 @@ class Experiment(Superset):
                     self.minuit.limits[parname] = pardict["limits"]
                 if "fixed" in pardict:
                     self.minuit.fixed[parname] = pardict["fixed"]
+                if parname in self.fixed_bc_no_data:
+                    self.minuit.fixed[parname] = True
+                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
 
         return
 

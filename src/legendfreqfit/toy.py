@@ -25,6 +25,9 @@ class Toy:
 
         self.experiment = experiment
 
+        # find which parameters are part of Datasets that have data
+        parstofitthathavedata = set()
+
         self.costfunction = None
         for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
             # worried that this is not totally deterministic (depends on number of Datasets),
@@ -44,11 +47,18 @@ class Toy:
             # make the fake data for this particular dataset
             toydata = dataset.rvs(*par, seed=thisseed)
 
+            print(toydata)
             # make the cost function for this particular dataset
             thiscostfunction = dataset._costfunctioncall(toydata, dataset.density)
 
             # tell the cost function which parameters to use
             thiscostfunction._parameters = dataset.costfunction._parameters
+
+            # find which parameters are part of Datasets that have data
+            if toydata.size > 0:
+                # add the fit parameters of this Dataset if there is some data
+                for fitpar in thiscostfunction._parameters:
+                    parstofitthathavedata.add(fitpar)
 
             if i == 0:
                 self.costfunction = thiscostfunction
@@ -68,6 +78,16 @@ class Toy:
         self.minuit = Minuit(self.costfunction, **guess)
         self.best = None
 
+        # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
+        self.fixed_bc_no_data = {}
+        for parname in self.experiment.nuisance:
+            if "fix_if_no_data" in self.experiment.parameters[parname] and self.experiment.parameters[parname]["fix_if_no_data"]:
+                # check if this parameter is part of a Dataset that has data
+                if parname not in parstofitthathavedata:
+                    self.fixed_bc_no_data[parname] = self.experiment.parameters[parname]["value"]
+
+        self.minuit_reset()
+        
     def minuit_reset(
         self,
     ) -> None:
@@ -80,13 +100,15 @@ class Toy:
         # and is overwritten here
 
         # also set which parameters are fixed
-        for parname, pardict in self.experiment.config["parameters"].items():
+        for parname, pardict in self.experiment.parameters.items():
             if parname in self.minuit.parameters:
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
                 if "fixed" in pardict:
                     self.minuit.fixed[parname] = pardict["fixed"]
-
+                if parname in self.fixed_bc_no_data:
+                    self.minuit.fixed[parname] = True
+                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
         return
 
     def bestfit(
