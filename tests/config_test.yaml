@@ -23,6 +23,18 @@ datasets:
       "eff": "eff_datasetname2"
       "exp": "exp_datasetname2"
 
+  "datasetname3":
+    data: []
+    costfunction: "ExtendedUnbinnedNLL"
+    model: "legendfreqfit.models.gaussian_on_uniform"
+    model_parameters:
+      "S": "global_S"
+      "BI": "BI_datasetname3"
+      "delta": "delta_datasetname3"
+      "sigma": "sigma_datasetname3"
+      "eff": "eff_datasetname3"
+      "exp": "exp_datasetname3"
+
 parameters:
   "global_S":
     includeinfit: True
@@ -62,10 +74,14 @@ parameters:
     value: 1.E-9
   "delta_datasetname2":
     includeinfit: False
+    nuisance: True
+    fix_if_no_data: True
     limits: ~
     value: 0.0
   "sigma_datasetname2":
     includeinfit: False
+    nuisance: True
+    fix_if_no_data: True
     limits: ~
     value: 1.0
   "eff_datasetname2":
@@ -74,6 +90,34 @@ parameters:
     value: 1.0
   "exp_datasetname2":
     includeinfit: False
+    value: 1.0
+  "BI_datasetname3":
+    includeinfit: True
+    nuisance: False
+    limits: (0, None)
+    value: 1.E-9
+  "delta_datasetname3":
+    includeinfit: True
+    nuisance: True
+    fix_if_no_data: True
+    limits: ~
+    value: 0.0
+  "sigma_datasetname3":
+    includeinfit: True
+    nuisance: True
+    fix_if_no_data: True
+    limits: ~
+    value: 1.0
+  "eff_datasetname3":
+    includeinfit: True
+    nuisance: True
+    fix_if_no_data: True
+    limits: ~
+    value: 1.0
+  "exp_datasetname3":
+    includeinfit: True
+    nuisance: True
+    fix_if_no_data: True
     value: 1.0
 
 # collection of `NormalConstraint`
