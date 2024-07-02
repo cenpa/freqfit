@@ -21,6 +21,10 @@ M_A = constants.MA
 # default analysis window and width
 WINDOW = np.array(constants.WINDOW)
 
+WINDOWSIZE = 0.0
+for i in range(len(WINDOW)):
+    WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
+
 SEED = 42  # set the default random seed
 
 
@@ -33,7 +37,6 @@ def nb_pdf(
     sigma: float,
     eff: float,
     exp: float,
-    window: np.array = WINDOW,
 ) -> np.array:
     """
     Parameters
@@ -65,14 +68,10 @@ def nb_pdf(
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     """
 
-    windowsize = 0.0
-    for i in range(len(window)):
-        windowsize += window[i][1] - window[i][0]
-
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * windowsize
+    mu_B = exp * BI * WINDOWSIZE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
@@ -97,7 +96,6 @@ def nb_density(
     sigma: float,
     eff: float,
     exp: float,
-    window: np.array = WINDOW,
 ) -> np.array:
     """
     Parameters
@@ -130,14 +128,10 @@ def nb_density(
     pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     """
 
-    windowsize = 0.0
-    for i in range(len(window)):
-        windowsize += window[i][1] - window[i][0]
-
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * windowsize
+    mu_B = exp * BI * WINDOWSIZE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
@@ -160,7 +154,6 @@ def nb_logpdf(
     sigma: float,
     eff: float,
     exp: float,
-    window: np.array = WINDOW,
 ) -> np.array:
     """
     Parameters
@@ -192,14 +185,10 @@ def nb_logpdf(
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize])
     """
 
-    windowsize = 0.0
-    for i in range(len(window)):
-        windowsize += window[i][1] - window[i][0]
-
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
-    mu_B = exp * BI * windowsize
+    mu_B = exp * BI * WINDOWSIZE
 
     if sigma == 0:  # need this check for fitting
         return np.full_like(
@@ -231,7 +220,6 @@ def nb_rvs(
     n_bkg: int,
     delta: float,
     sigma: float,
-    window: np.array = WINDOW,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -267,25 +255,21 @@ def nb_rvs(
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
 
-    windowsize = 0
-    for i in range(len(window)):
-        windowsize += window[i][1] - window[i][0]
-
-    breaks = np.zeros(shape=(len(window), 2))
-    for i in range(len(window)):
-        thiswidth = window[i][1] - window[i][0]
+    breaks = np.zeros(shape=(len(WINDOW), 2))
+    for i in range(len(WINDOW)):
+        thiswidth = WINDOW[i][1] - WINDOW[i][0]
 
         if i > 0:
             breaks[i][0] = breaks[i - 1][1]
 
-        if i < len(window):
-            breaks[i][1] = breaks[i][0] + thiswidth / windowsize
+        if i < len(WINDOW):
+            breaks[i][1] = breaks[i][0] + thiswidth / WINDOWSIZE
 
         for j in range(len(bkg)):
             if breaks[i][0] <= bkg[j] <= breaks[i][1]:
                 Es[n_sig + j] = (bkg[j] - breaks[i][0]) * thiswidth / (
                     breaks[i][1] - breaks[i][0]
-                ) + window[i][0]
+                ) + WINDOW[i][0]
 
     return Es
 
@@ -298,7 +282,6 @@ def nb_extendedrvs(
     sigma: float,
     eff: float,
     exp: float,
-    window: np.array = WINDOW,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -327,12 +310,8 @@ def nb_extendedrvs(
 
     np.random.seed(seed)
 
-    windowsize = 0
-    for i in range(len(window)):
-        windowsize += window[i][1] - window[i][0]
-
     n_sig = np.random.poisson(S * eff * exp)
-    n_bkg = np.random.poisson(BI * exp * windowsize)
+    n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
@@ -341,21 +320,21 @@ def nb_extendedrvs(
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
 
-    breaks = np.zeros(shape=(len(window), 2))
-    for i in range(len(window)):
-        thiswidth = window[i][1] - window[i][0]
+    breaks = np.zeros(shape=(len(WINDOW), 2))
+    for i in range(len(WINDOW)):
+        thiswidth = WINDOW[i][1] - WINDOW[i][0]
 
         if i > 0:
             breaks[i][0] = breaks[i - 1][1]
 
-        if i < len(window):
-            breaks[i][1] = breaks[i][0] + thiswidth / windowsize
+        if i < len(WINDOW):
+            breaks[i][1] = breaks[i][0] + thiswidth / WINDOWSIZE
 
         for j in range(len(bkg)):
             if breaks[i][0] <= bkg[j] <= breaks[i][1]:
                 Es[n_sig + j] = (bkg[j] - breaks[i][0]) * thiswidth / (
                     breaks[i][1] - breaks[i][0]
-                ) + window[i][0]
+                ) + WINDOW[i][0]
 
     return Es
 
@@ -369,7 +348,6 @@ def nb_density_gradient(
     sigma: float,
     eff: float,
     exp: float,
-    window: np.array = WINDOW,
 ) -> np.array:
     """
     Parameters
@@ -403,14 +381,10 @@ def nb_density_gradient(
     cdf(E) = mu_S + mu_B
     """
 
-    windowsize = 0.0
-    for i in range(len(window)):
-        windowsize += window[i][1] - window[i][0]
-
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
 
-    grad_CDF = np.array([eff * exp, exp * windowsize, 0, 0, S * exp, S * eff])
+    grad_CDF = np.array([eff * exp, exp * WINDOWSIZE, 0, 0, S * exp, S * eff])
 
     grad_PDF = np.zeros(shape=(6, len(Es)))
     for i in nb.prange(Es.shape[0]):
@@ -467,9 +441,8 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, delta, sigma, eff, exp, window=window)
+        return nb_pdf(Es, S, BI, delta, sigma, eff, exp)
 
     def logpdf(
         self,
@@ -480,9 +453,8 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
     ) -> np.array:
-        return nb_logpdf(Es, S, BI, delta, sigma, eff, exp, window=window)
+        return nb_logpdf(Es, S, BI, delta, sigma, eff, exp)
 
     # for iminuit ExtendedUnbinnedNLL
     def density(
@@ -494,9 +466,8 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
     ) -> np.array:
-        return nb_density(Es, S, BI, delta, sigma, eff, exp, window=window)
+        return nb_density(Es, S, BI, delta, sigma, eff, exp)
 
     def density_gradient(
         self,
@@ -507,9 +478,8 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
     ) -> tuple:
-        return nb_density_gradient(Es, S, BI, delta, sigma, eff, exp, window=window)
+        return nb_density_gradient(Es, S, BI, delta, sigma, eff, exp)
 
     # for iminuit ExtendedUnbinnedNLL
     def log_density(
@@ -521,14 +491,10 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
     ) -> np.array:
-        windowsize = 0
-        for i in range(len(window)):
-            windowsize += window[i][1] - window[i][0]
 
         mu_S = S * eff * exp
-        mu_B = exp * BI * windowsize
+        mu_B = exp * BI * WINDOWSIZE
 
         # Do a quick check and return -inf if log args are negative
         if (mu_S + mu_B <= 0) or np.isnan(np.array([mu_S, mu_B])).any():
@@ -537,7 +503,7 @@ class gaussian_on_uniform_gen:
             return (
                 mu_S + mu_B,
                 np.log(mu_S + mu_B)
-                + nb_logpdf(Es, S, BI, delta, sigma, eff, exp, window=window),
+                + nb_logpdf(Es, S, BI, delta, sigma, eff, exp),
             )
 
     # should we have an rvs method for drawing a random number of events?
@@ -549,10 +515,9 @@ class gaussian_on_uniform_gen:
         n_bkg: int,
         delta: float,
         sigma: float,
-        window: np.array = WINDOW,
         seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, delta, sigma, window=window, seed=seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma, seed=seed)
 
     def extendedrvs(
         self,
@@ -562,10 +527,9 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, BI, delta, sigma, eff, exp, window=window, seed=seed)
+        return nb_extendedrvs(S, BI, delta, sigma, eff, exp, seed=seed)
 
     def plot(
         self,
@@ -576,9 +540,8 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        window: np.array = WINDOW,
     ) -> None:
-        y = nb_pdf(Es, S, BI, delta, sigma, eff, exp, window=window)
+        y = nb_pdf(Es, S, BI, delta, sigma, eff, exp)
 
         plt.step(Es, y)
         plt.show()
