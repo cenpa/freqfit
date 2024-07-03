@@ -1,12 +1,14 @@
 """
 A class that holds a dataset and its associated model and cost function,
 """
-
+import logging
 
 import numpy as np
 from iminuit import cost
 
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class Dataset:

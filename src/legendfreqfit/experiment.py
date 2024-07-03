@@ -1,7 +1,7 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
-
+import logging
 import warnings
 
 import matplotlib.pyplot as plt
@@ -16,6 +16,8 @@ from legendfreqfit.utils import grab_results, load_config
 
 SEED = 42
 
+log = logging.getLogger(__name__)
+
 
 class Experiment(Superset):
     def __init__(
@@ -23,10 +25,7 @@ class Experiment(Superset):
         config: dict,
         name: str = None,
     ) -> None:
-
-        constraints = (
-            config["constraints"] if "constraints" in config else None
-        )
+        constraints = config["constraints"] if "constraints" in config else None
 
         super().__init__(
             datasets=config["datasets"],
@@ -67,7 +66,10 @@ class Experiment(Superset):
 
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.nuisance:
-            if "fix_if_no_data" in self.parameters[parname] and self.parameters[parname]["fix_if_no_data"]:
+            if (
+                "fix_if_no_data" in self.parameters[parname]
+                and self.parameters[parname]["fix_if_no_data"]
+            ):
                 # check if this parameter is part of a Dataset that has data
                 if parname not in parstofitthathavedata:
                     self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]

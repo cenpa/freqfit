@@ -2,7 +2,7 @@
 This class inherits from `Experiment`, and also holds the name of the variable to profile
 """
 
-
+import logging
 import multiprocessing as mp
 
 import numpy as np
@@ -12,6 +12,8 @@ from legendfreqfit.experiment import Experiment
 
 NUM_CORES = 2  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class SetLimit(Experiment):
