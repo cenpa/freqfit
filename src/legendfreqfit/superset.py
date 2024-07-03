@@ -1,15 +1,16 @@
 """
 A class that holds a combination of datasets and NormalConstraints.
 """
-
+import logging
+import warnings
 
 from iminuit import cost
 
 from legendfreqfit.dataset import Dataset
 
-import warnings
-
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class Superset:
@@ -80,7 +81,7 @@ class Superset:
                 msg = f"{parameter} was included as a parameter but was not used in a `Dataset` - removing {parameter} as a parameter"
                 warnings.warn(msg)
                 del self.parameters[parameter]
-                
+
     def add_normalconstraint(
         self,
         parameters: list[str],

@@ -1,12 +1,15 @@
 """
 A class that holds a collection of fake datasets and associated hardware
 """
+import logging
 
 from iminuit import Minuit
 
 from legendfreqfit.utils import grab_results
 
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class Toy:
@@ -80,16 +83,21 @@ class Toy:
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         self.fixed_bc_no_data = {}
         for parname in self.experiment.nuisance:
-            if "fix_if_no_data" in self.experiment.parameters[parname] and self.experiment.parameters[parname]["fix_if_no_data"]:
+            if (
+                "fix_if_no_data" in self.experiment.parameters[parname]
+                and self.experiment.parameters[parname]["fix_if_no_data"]
+            ):
                 # check if this parameter is part of a Dataset that has data
                 if parname not in parstofitthathavedata:
-                    self.fixed_bc_no_data[parname] = self.experiment.parameters[parname]["value"]
+                    self.fixed_bc_no_data[parname] = self.experiment.parameters[
+                        parname
+                    ]["value"]
 
         # to set limits and fixed variables
         # this function will also fix those nuisance parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
-        
+
     def minuit_reset(
         self,
     ) -> None:

@@ -1,8 +1,11 @@
 import importlib
 import inspect
+import logging
 import warnings
 
 import yaml
+
+log = logging.getLogger(__name__)
 
 
 # takes a model function and returns a dict of its parameters with their default value
@@ -118,6 +121,7 @@ def grab_results(
 
     return toreturn
 
+
 # use this YAML loader to detect duplicate keys in a config file
 # https://stackoverflow.com/a/76090386
 class UniqueKeyLoader(yaml.SafeLoader):
@@ -126,7 +130,9 @@ class UniqueKeyLoader(yaml.SafeLoader):
         for key_node, value_node in node.value:
             each_key = self.construct_object(key_node, deep=deep)
             if each_key in mapping:
-                raise ValueError(f"Duplicate Key: {each_key!r} is found in YAML File.\n"
-                                 f"Error File location: {key_node.end_mark}")
+                raise ValueError(
+                    f"Duplicate Key: {each_key!r} is found in YAML File.\n"
+                    f"Error File location: {key_node.end_mark}"
+                )
             mapping.add(each_key)
         return super().construct_mapping(node, deep)
