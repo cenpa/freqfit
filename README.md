@@ -17,6 +17,7 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
+- get warnings to go both to stdout and log
 - do we need to label parameters as both nuisance and includeinfit?
 - double check that normalconstraint wants covariance matrix / what to put if only for a single variable?
 - compare parameter values and values in constraints to make sure they agree? put the value only in one place?

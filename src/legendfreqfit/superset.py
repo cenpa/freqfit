@@ -1,5 +1,5 @@
 """
-A class that holds a combination of datasets and NormalConstraints.
+A class that holds a combination of `Dataset` and `NormalConstraint`.
 """
 import logging
 import warnings
@@ -60,16 +60,6 @@ class Superset:
         # fitparameters of Superset are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
 
-        if constraints is not None:
-            for constraintname, constraint in constraints.items():
-                self.constraints |= {
-                    constraintname: self.add_normalconstraint(
-                        parameters=constraint["parameters"],
-                        values=constraint["values"],
-                        covariance=constraint["covariance"],
-                    )
-                }
-
         # check that parameters are actually used in the Datasets and remove them if not
         for parameter in list(self.parameters.keys()):
             is_used = False
@@ -78,9 +68,36 @@ class Superset:
                     is_used = True
                     break
             if not is_used:
-                msg = f"{parameter} was included as a parameter but was not used in a `Dataset` - removing {parameter} as a parameter"
+                msg = f"'{parameter}' was included as a parameter but was not used in a `Dataset` - removing '{parameter}' as a parameter"
                 warnings.warn(msg)
                 del self.parameters[parameter]
+
+        # add in the NormalConstraint        
+        if constraints is not None:
+            for constraintname, constraint in constraints.items():
+                is_used = True
+                # check that every parameter in this constraint is used in a Dataset
+                for par in constraint["parameters"]:
+                    if par not in self.parameters:
+                        is_used = False
+                        msg = (
+                            f"constraint '{constraintname}' includes parameter '{par}', which is not used in any `Dataset`; '{constraintname}' will not be added as a `NormalConstraint`."
+                        )
+                        warnings.warn(msg)       
+
+                if is_used:
+                    self.constraints |= {
+                        constraintname: self.add_normalconstraint(
+                            parameters=constraint["parameters"],
+                            values=constraint["values"],
+                            covariance=constraint["covariance"],
+                        )
+                    }
+                    msg = (
+                        f"added '{constraintname}' as `NormalConstraint`"
+                    )
+                    log.debug(msg=msg)
+                 
 
     def add_normalconstraint(
         self,
