@@ -21,13 +21,11 @@ per detector per partition
 - double check that normalconstraint wants covariance matrix / what to put if only for a single variable?
 - compare parameter values and values in constraints to make sure they agree? put the value only in one place?
 - check constraints to make sure that parameters are not duplicated across constraints?
-- add logging?
 - it's possible to pass in a config file where parameters are not labeled kind of correctly and iminuit will not use all of the parameters that the user might think it is using. This can be maybe problematic. The only way to be sure what parameters are being used right now is to look at the fitparameters of the Experiment/Superset or to go into each Dataset and look through their `model_parameters`. Some thinking needed...
 - add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?
 - need a way to run the analysis automatically for an experiment.
 - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
 - options for different test statistics (see Cowan)
-- can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)
 - right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
 - probably need to settle on some variable name conventions (Louis prefers more characters :) )
 - maybe we want to compute `np.log(2)` etc. and use values directly? not sure how much faster (a lot in testing, but IDK how many times these actually need to be computed)
@@ -44,6 +42,8 @@ per detector per partition
 - [x] for `gaussian_on_uniform`, check that `loglikelihood` and `likelihood` are implemented correctly - the analysis window needs to be removed if it is included. This will affect the calculation of the likelihood if the passed `Es` are treated as bins. the likelihood and loglikehood here should be zero. (For now, these are removed.)
 - ~~models shouldn't multiply a bunch of little numbers together when returning a `logpdf` and instead sum up logs of pdfs~~
 - ~~models should have a function `loglikelihood` to compute the -2LL by summation instead of multiplying a bunch of little numbers together to get the likelihood~~
+- [x] add logging?
+- [x] ~~can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)~~ NO
 
 ### development help
 You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `legendfreqfit/`.
