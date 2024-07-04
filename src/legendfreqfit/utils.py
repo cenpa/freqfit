@@ -63,14 +63,24 @@ def load_config(
         if "model" in dataset:
             models.add(dataset["model"])
         else:
-            msg = f"`{datasetname}` has no `model`"
+            msg = f"dataset `{datasetname}` has no `model`"
             raise KeyError(msg)
 
         if "costfunction" in dataset:
             costfunctions.add(dataset["costfunction"])
         else:
-            msg = f"`{datasetname}` has no `costfunction`"
+            msg = f"dataset `{datasetname}` has no `costfunction`"
             raise KeyError(msg)
+        
+    if "constraints" in config:
+        for constraintname, constraint in config["constraints"].items():
+            if "parameters" not in constraint:
+                msg = f"constraint `{constraintname}` has no `parameters`"
+                raise KeyError(msg)
+            else:
+                # this needs to be a list for other stuff
+                if not isinstance(constraint["parameters"], list):
+                    constraint["parameters"] = [constraint["parameters"]]
 
     # this is specific to set up of 0vbb model
     for model in models:
