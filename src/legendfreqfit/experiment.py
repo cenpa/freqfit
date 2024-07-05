@@ -2,7 +2,6 @@
 A class that controls an experiment and calls the `Superset` class.
 """
 import logging
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -41,7 +40,7 @@ class Experiment(Superset):
                 if "nuisance" in pardict and pardict["nuisance"]:
                     if "fixed" in pardict and pardict["fixed"]:
                         msg = f"{parname} has `fixed` as `True` and `nuisance` as `True`. {parname} will be treated as fixed."
-                        warnings.warn(msg)
+                        logging.warning(msg)
                     else:
                         self.nuisance.add(parname)
 

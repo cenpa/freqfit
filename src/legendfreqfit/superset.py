@@ -69,7 +69,7 @@ class Superset:
                     break
             if not is_used:
                 msg = f"'{parameter}' was included as a parameter but was not used in a `Dataset` - removing '{parameter}' as a parameter"
-                warnings.warn(msg)
+                logging.warning(msg)
                 del self.parameters[parameter]
 
         # add in the NormalConstraint        
@@ -83,7 +83,7 @@ class Superset:
                         msg = (
                             f"constraint '{constraintname}' includes parameter '{par}', which is not used in any `Dataset`; '{constraintname}' will not be added as a `NormalConstraint`."
                         )
-                        warnings.warn(msg)       
+                        logging.warning(msg)       
 
                 if is_used:
                     self.constraints |= {
