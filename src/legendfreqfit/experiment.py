@@ -181,7 +181,13 @@ class Experiment(Superset):
 
         self.minuit.migrad()
 
-        return grab_results(self.minuit)
+        results = grab_results(self.minuit)
+
+        # also include the fixed parameters
+        for parname, parvalue in parameters.items():
+            results[parname] = parvalue
+
+        return results
 
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters
     def ts(
