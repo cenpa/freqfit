@@ -2,7 +2,6 @@
 A class that holds a combination of `Dataset` and `NormalConstraint`.
 """
 import logging
-import warnings
 
 from iminuit import cost
 
