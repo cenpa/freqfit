@@ -26,11 +26,17 @@ class Experiment(Superset):
     ) -> None:
         constraints = config["constraints"] if "constraints" in config else None
 
+        # it greatly reduces the fit time to combine all constraints into a single constraint instead.
+        combine_constraints = None
+        if "options" in config and "combine_constraints" in config["options"]:
+            combine_constraints = config["options"]["combine_constraints"]
+
         super().__init__(
             datasets=config["datasets"],
             parameters=config["parameters"],
             constraints=constraints,
             name=name,
+            combine_constraints=combine_constraints
         )
 
         # collect which parameters are included as nuisance parameters
