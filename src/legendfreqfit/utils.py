@@ -77,9 +77,13 @@ def load_config(
                 msg = f"constraint `{constraintname}` has no `parameters`"
                 raise KeyError(msg)
             else:
-                # this needs to be a list for other stuff
+                # these need to be lists for other stuff
                 if not isinstance(constraint["parameters"], list):
                     constraint["parameters"] = [constraint["parameters"]]
+                if not isinstance(constraint["values"], list):
+                    constraint["values"] = [constraint["values"]]
+                if "uncertainty" in constraint and not isinstance(constraint["uncertainty"], list):
+                    constraint["uncertainty"] = [constraint["uncertainty"]]
 
     # this is specific to set up of 0vbb model
     for model in models:
