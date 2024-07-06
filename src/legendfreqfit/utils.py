@@ -72,7 +72,6 @@ def load_config(
             raise KeyError(msg)
         
     if "constraints" in config:
-        constraint_pars = set()
         for constraintname, constraint in config["constraints"].items():
             if "parameters" not in constraint:
                 msg = f"constraint `{constraintname}` has no `parameters`"
@@ -81,13 +80,6 @@ def load_config(
                 # this needs to be a list for other stuff
                 if not isinstance(constraint["parameters"], list):
                     constraint["parameters"] = [constraint["parameters"]]
-                # add the parameters to the set but checks whether they already exist in a constraint
-                for par in constraint["parameters"]:
-                    if par not in constraint_pars:
-                        constraint_pars.add(par)
-                    else:
-                        msg = f"parameter {par} is used in multiple constraints - not currently implemented"
-                        raise NotImplementedError(msg)  
 
     # this is specific to set up of 0vbb model
     for model in models:
