@@ -73,6 +73,7 @@ class Superset:
 
         # add in the NormalConstraint        
         if constraints is not None:
+            constraint_pars = set()
             for constraintname, constraint in constraints.items():
                 is_used = True
                 # check that every parameter in this constraint is used in a Dataset
@@ -82,9 +83,23 @@ class Superset:
                         msg = (
                             f"constraint '{constraintname}' includes parameter '{par}', which is not used in any `Dataset` - '{constraintname}' not added as a constraint."
                         )
-                        logging.warning(msg)       
+                        logging.warning(msg)    
+                    elif par not in self.fitparameters:
+                        is_used = False
+                        msg = (
+                            f"constraint '{constraintname}' includes parameter '{par}', which is not a parameter to be fit (probably used a fixed parameter) - '{constraintname}' not added as a constraint."
+                        )
+                        logging.warning(msg)    
 
                 if is_used:
+                    # add the parameters to the set but checks whether they already exist in a constraint
+                    for par in constraint["parameters"]:
+                        if par not in constraint_pars:
+                            constraint_pars.add(par)
+                        else:
+                            msg = f"parameter {par} is used in multiple constraints - not currently implemented"
+                            raise NotImplementedError(msg)  
+                        
                     self.constraints |= {
                         constraintname: self.add_normalconstraint(
                             parameters=constraint["parameters"],
