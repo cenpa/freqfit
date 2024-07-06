@@ -17,12 +17,8 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
-- get warnings to go both to stdout and log
+
 - do we need to label parameters as both nuisance and includeinfit?
-- double check that normalconstraint wants covariance matrix / what to put if only for a single variable?
-- compare parameter values and values in constraints to make sure they agree? put the value only in one place?
-- check constraints to make sure that parameters are not duplicated across constraints?
-- it's possible to pass in a config file where parameters are not labeled kind of correctly and iminuit will not use all of the parameters that the user might think it is using. This can be maybe problematic. The only way to be sure what parameters are being used right now is to look at the fitparameters of the Experiment/Superset or to go into each Dataset and look through their `model_parameters`. Some thinking needed...
 - add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?
 - need a way to run the analysis automatically for an experiment.
 - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
@@ -45,6 +41,11 @@ per detector per partition
 - ~~models should have a function `loglikelihood` to compute the -2LL by summation instead of multiplying a bunch of little numbers together to get the likelihood~~
 - [x] add logging?
 - [x] ~~can we switch to `numba-stats`? (https://pypi.org/project/numba-stats/)~~ NO
+- [x] get warnings to go both to stdout and log
+- [x] double check that normalconstraint wants covariance matrix / what to put if only for a single variable? - `NormalConstraint` has `error` parameter that takes a list of 1 sigma uncertainties or a 2D covariance matrix in the case of multiple parameters. For a single parameter, must use uncertainty.
+- [x] compare parameter values and values in constraints to make sure they agree? put the value only in one place?
+- [x] check constraints to make sure that parameters are not duplicated across constraints?
+- [x] it's possible to pass in a config file where parameters are not labeled kind of correctly and iminuit will not use all of the parameters that the user might think it is using. This can be maybe problematic. The only way to be sure what parameters are being used right now is to look at the fitparameters of the Experiment/Superset or to go into each Dataset and look through their `model_parameters`. Some thinking needed...
 
 ### development help
 You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `legendfreqfit/`.
