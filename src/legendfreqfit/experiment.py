@@ -175,6 +175,7 @@ class Experiment(Superset):
 
         self.minuit_reset()
 
+        # set fixed parameters
         for parname, parvalue in parameters.items():
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
