@@ -93,7 +93,7 @@ class Dataset:
         else:
             msg = f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as \
                 cost functions"
-            raise RuntimeError(msg)
+            raise NotImplementedError(msg)
 
         self.model_parameters = model_parameters
         self._parlist = []
