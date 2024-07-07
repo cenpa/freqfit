@@ -45,10 +45,9 @@ class Superset:
         self.parameters = parameters
         self.datasets = {}
         self.constraints = {}
-        self.constraint_index = {}
+        self.constraint_parameters = {} # parameter: index
         self.constraint_values = np.array([])
         self.constraint_covariance = None
-        self.constraint_parameters = set()
 
         # create the Datasets
         for datasetname in datasets:
@@ -132,9 +131,8 @@ class Superset:
                                             
                     # add the parameters to the set but checks whether they already exist in a constraint
                     for par, value in zip(constraint["parameters"], constraint["values"]):
-                        if par not in self.constraint_parameters:
-                            self.constraint_parameters.add(par)
-                            self.constraint_index[par] = len(self.constraint_index)
+                        if par not in list(self.constraint_parameters.keys()):
+                            self.constraint_parameters[par] = len(self.constraint_parameters)
                             self.constraint_values = np.append(self.constraint_values, value)
                             if self.constraint_covariance is None:
                                 self.constraint_covariance = np.identity(1)
@@ -154,7 +152,7 @@ class Superset:
                             )
                             logging.warning(msg)                         
 
-                        i = self.constraint_index[constraint["parameters"][0]]
+                        i = self.constraint_parameters[constraint["parameters"][0]]
                         self.constraint_covariance[i,i] = np.square(constraint["uncertainty"])
 
                         if combine_constraints:
@@ -191,7 +189,7 @@ class Superset:
                                 logging.error(msg) 
 
                             for par, uncertainty in zip(constraint["parameters"], constraint["uncertainty"]):
-                                i = self.constraint_index[par]
+                                i = self.constraint_parameters[par]
                                 self.constraint_covariance[i,i] = np.square(uncertainty)                               
 
                             if combine_constraints:
@@ -236,7 +234,7 @@ class Superset:
 
                             for i in range(len(constraint["parameters"])):
                                 for j in range(len(constraint["parameters"])):
-                                    self.constraint_covariance[self.constraint_index[constraint["parameters"][i]], self.constraint_index[constraint["parameters"][j]]] = (
+                                    self.constraint_covariance[self.constraint_parameters[constraint["parameters"][i]], self.constraint_parameters[constraint["parameters"][j]]] = (
                                         constraint["covariance"][i,j]
                                     )                                            
 
@@ -260,12 +258,8 @@ class Superset:
             
             # we've looped through all the individual constraints - now to combine them if desired
             if combine_constraints:
-                # just to make sure the order is correct
-                parsinorder = [None for i in range(len(self.constraint_parameters))]
-                for par in self.constraint_parameters:
-                    parsinorder[self.constraint_index[par]] = par
                 self.constraints["combined_constraints"] = self._add_normalconstraint(
-                                        parameters=parsinorder,
+                                        parameters=list(self.constraint_parameters.keys()),
                                         values=self.constraint_values,
                                         error=self.constraint_covariance,
                                     )
