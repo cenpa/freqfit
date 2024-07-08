@@ -85,7 +85,8 @@ def toy_ts_critical(
     threshold: float = 0.9,  # critical threshold for test statistic
     confidence: float = 0.68,  # width of confidence interval on the CDF
     plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
-    plot_name: str = "", # stem for plot names for saving (could include a directory)
+    plot_dir: str = "", # directory where to save plots
+    plot_title: str = "",
 ):
     """
     Returns the critical value of the test statistic for the specified threshold and the confidence interval on this 
@@ -169,10 +170,11 @@ def toy_ts_critical(
         axs[1].set_ylabel(r"$P(t)$")
         axs[1].legend()
         axs[1].set_yscale('log')
-        axs[1].set_ylim([None,1.0])
+        axs[1].set_ylim([1/(10*len(ts)),1.0])
         axs[1].set_xlim([0,None])
         axs[1].grid(zorder=0)
-
-        plt.savefig(plot_name + f"ts_critical_{int_thresh}.pdf", dpi=300)
+        
+        plt.suptitle(plot_title)
+        plt.savefig(plot_dir + f"ts_critical_{int_thresh}.pdf", dpi=300)
 
     return (critical, lo_ts, hi_ts), (threshold, lo, hi)
