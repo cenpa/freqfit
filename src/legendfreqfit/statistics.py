@@ -136,8 +136,8 @@ def toy_ts_critical(
         axs[0].axvspan(lo_ts, hi_ts, alpha=0.25, color="g")
         axs[0].axhline(threshold, color="orange", alpha=0.75, label=r"actual CL: ${:0.1f} \pm {:0.1f}$%".format(100*threshold, 100*(hi-lo)/2.0))
         axs[0].axhspan(lo, hi, color="orange", alpha=0.25)
-        axs[0].set_xlabel(r"$\tilde{t}$")
-        axs[0].set_ylabel(r"CDF$(\tilde{t})$")
+        axs[0].set_xlabel(r"$t$")
+        axs[0].set_ylabel(r"CDF$(t)$")
         axs[0].legend()
         axs[0].set_ylim([0,1])
         axs[0].set_xlim([0,None])
@@ -165,8 +165,8 @@ def toy_ts_critical(
         axs[1].axvspan(lo_ts, hi_ts, color="g", alpha=0.25)
 
 
-        axs[1].set_xlabel(r"$\tilde{t}$")
-        axs[1].set_ylabel(r"$P(\tilde{t})$")
+        axs[1].set_xlabel(r"t")
+        axs[1].set_ylabel(r"$P(t)$")
         axs[1].legend()
         axs[1].set_yscale('log')
         axs[1].set_ylim([None,1.0])
