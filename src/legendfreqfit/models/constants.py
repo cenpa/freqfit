@@ -22,7 +22,7 @@ SQRT2PI = 2.506628274631000241612355239340104162693023681640625
 # conversion function
 def s_prime_to_s(s_prime):
   # Given s_prime in decays/(kg*yr), find s in decays/yr
-  s = s_prime * (MA / (np.log(2) * NA) )
+  s = s_prime * (MA / (LOG2 * NA) )
   return s
 
 def new_fucntion(s_prime):
