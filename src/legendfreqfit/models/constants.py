@@ -18,3 +18,9 @@ WINDOW_SIG_REGION_0VBB = [[2014.0, 2064.0]]
 # could use these to go a little faster?
 LOG2 = 0.69314718055994528622676398299518041312694549560546875
 SQRT2PI = 2.506628274631000241612355239340104162693023681640625
+
+# conversion function
+def s_prime_to_s(s_prime):
+  # Given s_prime in counts, find s in counts*kg
+  s = s_prime * (MA / (np.log(2) * NA) )
+  return s
