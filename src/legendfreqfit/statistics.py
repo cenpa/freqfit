@@ -150,9 +150,6 @@ def toy_ts_critical(
         while ((len(ts) / (len(binedges)/factor)) < 10):
             factor *= 2
         
-        print(len(ts))
-        print(len(binedges))
-        print(factor)
         pdf = np.histogram(ts, bins=binedges[::factor])[0] / len(ts)
         
         axs[1].stairs(pdf, binedges[::factor], fill=False, zorder=3)
@@ -176,6 +173,6 @@ def toy_ts_critical(
         axs[1].set_xlim([0,None])
         axs[1].grid(zorder=0)
 
-        plt.savefig(plot_name + f"ts_critical_{int_thresh}.jpg")
+        plt.savefig(plot_name + f"ts_critical_{int_thresh}.pdf", dpi=300)
 
     return (critical, lo_ts, hi_ts), (threshold, lo, hi)
