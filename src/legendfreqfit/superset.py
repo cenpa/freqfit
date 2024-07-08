@@ -217,7 +217,7 @@ class Superset:
                                 )
                                 logging.error(msg)  
 
-                            if np.allclose(constraint["covariance"], np.asarray(constraint["covariance"]).T):
+                            if not np.allclose(constraint["covariance"], np.asarray(constraint["covariance"]).T):
                                 msg = (
                                     f"constraint '{constraintname}' has non-symmetric 'covariance' matrix - this is not allowed."
                                 )
