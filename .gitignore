@@ -5,6 +5,8 @@
 *.pdf
 *.csv
 *.ipynb
+*.jpg
+*.png
 
 src/legendfreqfit/_version.py
 

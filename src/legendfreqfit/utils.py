@@ -2,6 +2,7 @@ import importlib
 import inspect
 import logging
 
+import numpy as np
 import yaml
 
 log = logging.getLogger(__name__)
@@ -84,6 +85,8 @@ def load_config(
                     constraint["values"] = [constraint["values"]]
                 if "uncertainty" in constraint and not isinstance(constraint["uncertainty"], list):
                     constraint["uncertainty"] = [constraint["uncertainty"]]
+                if "covariance" in constraint and not isinstance(constraint["covariance"], np.ndarray):
+                    constraint["covariance"] = np.asarray(constraint["covariance"])
 
     # this is specific to set up of 0vbb model
     for model in models:
