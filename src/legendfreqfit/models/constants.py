@@ -25,7 +25,7 @@ def s_prime_to_s(s_prime):
   s = s_prime * (MA / (LOG2 * NA) )
   return s
 
-def new_fucntion(s_prime):
+def s_prime_to_halflife(s_prime):
   # Given s_prime in decays/(kg*yr), find t_half in yrs
   t_half = 1/(s_prime_to_s)
   return t_half
