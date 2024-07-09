@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
 
@@ -467,6 +466,8 @@ class gaussian_on_uniform_gen:
     ) -> None:
         y = nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
+        import matplotlib.pyplot as plt
+        
         plt.step(Es, y)
         plt.show()
 
