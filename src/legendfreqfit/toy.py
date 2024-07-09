@@ -4,7 +4,6 @@ A class that holds a collection of fake datasets and associated hardware
 import logging
 
 from iminuit import Minuit
-from matplotlib import pyplot as plt
 
 from legendfreqfit.utils import grab_results
 
@@ -211,7 +210,6 @@ class Toy:
                 raise KeyError(msg)
             args.append(parameters[par])
 
-        # n = sum(hasattr(comp, "visualize") for comp in self.costfunction)
         n = 0
         for comp in self.costfunction:
             if hasattr(comp, "visualize"):
