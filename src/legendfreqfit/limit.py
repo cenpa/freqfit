@@ -9,6 +9,7 @@ import numpy as np
 from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
+from legendfreqfit.statistics import toy_ts_critical
 
 NUM_CORES = 2  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
@@ -185,7 +186,6 @@ class SetLimit(Experiment):
         )
 
         # Now grab the critical test statistic
-        t_crit, t_crit_low, t_crit_high = self.toy_ts_critical(
-            toyts, threshold=threshold, confidence=confidence
-        )
+        tcrit, _ = toy_ts_critical(toyts, threshold=threshold, confidence=confidence)
+        t_crit, t_crit_low, t_crit_high = tcrit
         return toyts, t_crit, t_crit_low, t_crit_high
