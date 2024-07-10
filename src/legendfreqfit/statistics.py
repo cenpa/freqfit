@@ -154,7 +154,7 @@ def toy_ts_critical(
         pdf = np.histogram(ts, bins=binedges[::factor])[0] / len(ts)
         
         axs[1].stairs(pdf, binedges[::factor], fill=False, zorder=3)
-        axs[1].plot(bincenters, chi2.pdf(bincenters, df=1)*binsize, color="k", label=r"$\chi^2_{dof=1}$ PDF")
+        axs[1].plot(bincenters, chi2.pdf(bincenters, df=1)*binsize*factor, color="k", label=r"$\chi^2_{dof=1}$ PDF")
         axs[1].axvline(
             chi2.ppf(threshold, df=1),
             color="black",
