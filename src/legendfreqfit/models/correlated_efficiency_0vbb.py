@@ -445,9 +445,9 @@ class correlated_efficiency_0vbb_gen:
         delta: float,
         sigma: float,
         eff: float,
-        exp: float,
         effunc: float,
         effuncscale: float,
+        exp: float,
         seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(S, BI, delta, sigma, eff, effunc, effuncscale, exp, seed=seed)
