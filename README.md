@@ -17,7 +17,8 @@ per detector per partition
 - energy offset + unc.
 
 ### TODO
-
+- MJD: combine exposure and efficiency uncertainties
+- GERDA: figure out uncertainties
 - do we need to label parameters as both nuisance and includeinfit?
 - add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?
 - need a way to run the analysis automatically for an experiment.
