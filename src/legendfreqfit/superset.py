@@ -32,14 +32,10 @@ class Superset:
         constraints
             `dict`
         """
-
-        # default option
-        if combine_constraints == None:
-            combine_constraints = False
-        
+                
         if combine_constraints:
             msg = f"option 'combine_constraints' set to True - all constraints will be combined into a single `NormalConstraint`"
-            logging.debug(msg)
+            logging.info(msg)
         
         self.name = name
         self.parameters = parameters

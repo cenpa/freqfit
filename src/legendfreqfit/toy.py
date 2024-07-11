@@ -3,7 +3,8 @@ A class that holds a collection of fake datasets and associated hardware
 """
 import logging
 
-from iminuit import Minuit
+from iminuit import Minuit, cost
+import numpy as np
 
 from legendfreqfit.utils import grab_results
 
@@ -24,10 +25,22 @@ class Toy:
             `experiment` to base this `Toy` on
         parameters
             `dict` of parameters and their values to model with
+        vary_nuisance
+            whether to vary the nuisance parameters by their constraints. If True, draws a new value of the nuisance
+            parameter and sets the constraint to be centered at this new value.
         """
 
         self.experiment = experiment
 
+        # draw random nuisance parameters according to their constraints
+        if self.experiment._nuisance_to_vary_values is not None:
+            randnuisance = np.random.multivariate_normal(self.experiment._nuisance_to_vary_values, self.experiment._nuisance_to_vary_covar)
+
+            # now assign the random values to the passed parameters (or to not passed parameters?)
+            for i, nuipar in enumerate(self.experiment.nuisance_to_vary):
+                parameters[nuipar] = randnuisance[i]
+
+        print(parameters)
         # find which parameters are part of Datasets that have data
         parstofitthathavedata = set()
 
@@ -70,8 +83,16 @@ class Toy:
         # fitparameters of Toy are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
 
+        # we need to adjust the constraints for nuisance parameters if we varied them
+        # just the central values though, not the uncertainties
+        # so probably the easiest way to do this is to make new objects rather than reference the NormalConstraint
+        # from the parent Experiment
         for constraintname, constraint in experiment.constraints.items():
-            self.costfunction += constraint
+            conval = constraint.value
+            for i, par in enumerate(constraint._parameters):
+                if par in self.experiment.nuisance_to_vary:
+                    conval[i] = parameters[par]
+            self.costfunction += cost.NormalConstraint(constraint._parameters, conval, error=constraint.covariance)
 
         guess = {}
         for par in self.fitparameters:
