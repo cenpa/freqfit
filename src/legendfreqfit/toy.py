@@ -40,7 +40,6 @@ class Toy:
             for i, nuipar in enumerate(self.experiment.nuisance_to_vary):
                 parameters[nuipar] = randnuisance[i]
 
-        print(parameters)
         # find which parameters are part of Datasets that have data
         parstofitthathavedata = set()
 
