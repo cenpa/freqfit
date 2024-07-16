@@ -265,13 +265,13 @@ def nb_pdf(
     B_amp = exp * BI
     S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * sigma) * (1-frac)
 
-    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + delta, sigma, tau)
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB - delta, sigma, tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            ( exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))) + B_amp
+            ( exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))) + B_amp
         )
 
     if (check_window):
@@ -326,7 +326,10 @@ def nb_density(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
-
+    check_window
+        whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
+        all fall inside the window (for speed)
+        
     Notes
     -----
     This function computes the following, faster than without a numba wrapper:
@@ -394,9 +397,9 @@ def nb_rvs(
     # depending on whether the event should fall in the tail, subtract some energy from Qbb before Gaussian smearing
     for i in range(n_sig):
         if which[i] < frac:
-            Es[i] = QBB + delta - exp[i] + smear[i]
+            Es[i] = QBB - delta - exp[i] + smear[i]
         else:
-            Es[i] = QBB + delta + smear[i]
+            Es[i] = QBB - delta + smear[i]
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
