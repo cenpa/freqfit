@@ -3,6 +3,9 @@ This model follows the MJD analysis for the peak shape. The peak shape is modele
 component and an exponentially modified Gaussian tail to approximate the peak shape distortion due to incomplete charge 
 collection. See S. I. Alvis et al., Phys. Rev. C 100, 025501 (2019) for details. In addition, a slightly different
 analysis window is used, again following MJD.
+
+Also see J.M. Lopez-Castano and Ping-Han Chu. Energy systematic of majorana demonstrator. Technical report, 2022. 
+Internal Report, Feb. 9, 2022. for an explanation of the peak shape used.
 '''
 
 from math import erfc
@@ -210,9 +213,10 @@ def nb_pdf(
     S: float,
     BI: float,
     frac: float, 
-    delta: float, 
+    mu: float, 
     sigma: float,
     tau: float,
+    alpha: float,
     eff: float,
     effunc: float,
     effuncscale: float,
@@ -230,12 +234,14 @@ def nb_pdf(
         The background index rate, in counts/(kg*yr*keV)
     frac
         portion of the peak in the tail
-    delta
+    mu
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
     tau
         scale parameter of the tail in keV
+    alpha
+        scaling parameter for tau and sigma
     eff
         The global signal efficiency, unitless
     effunc
@@ -253,7 +259,7 @@ def nb_pdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + mu, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -263,15 +269,15 @@ def nb_pdf(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * sigma) * (1-frac)
+    S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1-frac)
 
-    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB - delta, sigma, tau)
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB - mu, alpha*sigma, alpha*tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            ( exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))) + B_amp
+            ( exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB - mu) ** 2) / (2 * (alpha*sigma)**2))) + B_amp
         )
 
     if (check_window):
@@ -292,9 +298,10 @@ def nb_density(
     S: float,
     BI: float,
     frac: float, 
-    delta: float, 
+    mu: float, 
     sigma: float,
     tau: float,
+    alpha: float,
     eff: float,
     effunc: float,
     effuncscale: float,
@@ -312,12 +319,14 @@ def nb_density(
         The background index rate, in counts/(kg*yr*keV)
     frac
         portion of the peak in the tail
-    delta
+    mu
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
     tau
         scale parameter of the tail in keV
+    alpha
+        scaling parameter for tau and sigma
     eff
         The global signal efficiency, unitless
     effunc
@@ -336,7 +345,7 @@ def nb_density(
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     CDF(E) = mu_S + mu_B
-    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) =[mu_S * norm(E_j, QBB + mu, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -344,7 +353,7 @@ def nb_density(
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
-    return mu_S + mu_B, nb_pdf(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, check_window)
+    return mu_S + mu_B, nb_pdf(Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window)
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -352,9 +361,10 @@ def nb_rvs(
     n_sig: int,
     n_bkg: int,
     frac: float,
-    delta: float,
+    mu: float,
     sigma: float,
     tau: float,
+    alpha: float,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -366,12 +376,14 @@ def nb_rvs(
         Number of background events to pull from
     frac
         portion of the peak in the tail
-    delta
+    mu
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
     tau
         scale parameter of the tail in keV
+    alpha
+        scaling parameter for tau and sigma
     seed
         specify a seed, otherwise uses default seed
 
@@ -388,18 +400,18 @@ def nb_rvs(
 
     # get signal events from Gaussian with tail
     # first, draw to determine whether from Gaussian or exgaus
-    which = np.random.uniform(0,1, n_sig)
+    which = np.random.uniform(0, 1, n_sig)
     # draw Gaussian smearing
-    smear = np.random.normal(0, sigma, size=n_sig)
+    smear = np.random.normal(0, alpha * sigma, size=n_sig)
     # draw exponential
-    exp = np.random.exponential(scale=tau, size=n_sig)
+    exp = np.random.exponential(scale=alpha * tau, size=n_sig)
 
     # depending on whether the event should fall in the tail, subtract some energy from Qbb before Gaussian smearing
     for i in range(n_sig):
         if which[i] < frac:
-            Es[i] = QBB - delta - exp[i] + smear[i]
+            Es[i] = QBB - mu - exp[i] + smear[i]
         else:
-            Es[i] = QBB - delta + smear[i]
+            Es[i] = QBB - mu + smear[i]
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
@@ -428,9 +440,10 @@ def nb_extendedrvs(
     S: float,
     BI: float,
     frac: float,
-    delta: float,
+    mu: float,
     sigma: float,
     tau: float,
+    alpha: float,
     eff: float,
     effunc: float,
     effuncscale: float,
@@ -444,10 +457,16 @@ def nb_extendedrvs(
         expected rate of signal events in events/(kg*yr)
     BI
         rate of background events in events/(kev*kg*yr)
-    delta
+    frac
+        portion of the peak in the tail
+    mu
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
+    tau
+        scale parameter of the tail in keV
+    alpha
+        scaling parameter for tau and sigma 
     eff
         The global signal efficiency, unitless
     effunc
@@ -470,7 +489,7 @@ def nb_extendedrvs(
     n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
-    return nb_rvs(n_sig, n_bkg, frac, delta, sigma, tau)
+    return nb_rvs(n_sig, n_bkg, frac, mu, sigma, tau, alpha)
 
 
 class mjd_0vbb_gen:
@@ -486,16 +505,17 @@ class mjd_0vbb_gen:
         S: float,
         BI: float,
         frac: float,
-        delta: float,
+        mu: float,
         sigma: float,
         tau: float,
+        alpha: float,
         eff: float,
         effunc: float,
         effuncscale: float,
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, check_window)
+        return nb_pdf(Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window)
     
     # for iminuit ExtendedUnbinnedNLL
     def density(
@@ -504,16 +524,17 @@ class mjd_0vbb_gen:
         S: float,
         BI: float,
         frac: float,
-        delta: float,
+        mu: float,
         sigma: float,
         tau: float,
+        alpha: float,
         eff: float,
         effunc: float,
         effuncscale: float,
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-        return nb_density(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, check_window)
+        return nb_density(Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window)
 
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
@@ -523,27 +544,29 @@ class mjd_0vbb_gen:
         n_sig: int,
         n_bkg: int,
         frac: float,
-        delta: float,
+        mu: float,
         sigma: float,
         tau: float,
+        alpha: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, frac, delta, sigma, tau, seed=seed)
+        return nb_rvs(n_sig, n_bkg, frac, mu, sigma, tau, alpha, seed=seed)
 
     def extendedrvs(
         self,
         S: float,
         BI: float,
         frac: float,
-        delta: float,
+        mu: float,
         sigma: float,
         tau: float,
+        alpha: float,
         eff: float,
         effunc: float,
         effuncscale: float,
         exp: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, seed=seed)
+        return nb_extendedrvs(S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, seed=seed)
 
 mjd_0vbb = mjd_0vbb_gen()
