@@ -85,7 +85,7 @@ def nb_pdf(
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
     return y
@@ -144,7 +144,7 @@ def nb_density(
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        y[i] = S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+        y[i] = S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
 
     return mu_S + mu_B, y
 
@@ -207,7 +207,7 @@ def nb_logpdf(
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         pdf = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
         if pdf <= 0:
