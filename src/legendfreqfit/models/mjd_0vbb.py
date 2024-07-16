@@ -42,31 +42,8 @@ SEED = 42  # set the default random seed
 
 limit = np.log(sys.float_info.max)/10
 
-# yoinked from https://github.com/SamuelBorden/pygama/blob/math_refactor/src/pygama/math/functions/error_function.py#L3
-@nb.vectorize([nb.float32(nb.float32),
-nb.float64(nb.float64)])
-def nb_erfc(x: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
-    r"""
-    Numba version of complementary error function
-    Vectorization is necessary here for the math.erfc
-    This runs faster than numpy vectorized and the
-    out-of-the-box math.erfc
-
-    Parameters
-    ----------
-    x
-        The input data
-
-    Returns
-    -------
-    math.erfc(x)
-        Complementary error function acting on the input
-    """
-    
-    return erfc(x)
-
-# yoinked from https://github.com/SamuelBorden/pygama/blob/math_refactor/src/pygama/math/functions/gauss.py#L71
-@nb.njit(**nb_kwd)
+# yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/gauss.py#L72
+@nb.jit(**nb_kwd)
 def nb_gauss_pdf(x: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     r"""
     Normalised Gaussian PDF, w/ args: mu, sigma. The support is :math:`(-\infty, \infty)`
@@ -87,18 +64,21 @@ def nb_gauss_pdf(x: np.ndarray, mu: float, sigma: float) -> np.ndarray:
         The standard deviation of the Gaussian
     """
 
-    if sigma ==0: invs=np.inf
-    else: invs = 1.0 / sigma
+    if sigma == 0:
+        invs = np.inf
+    else:
+        invs = 1.0 / sigma
     z = (x - mu) * invs
-    invnorm = invs/ np.sqrt(2 * np.pi)
-    return np.exp(-0.5 * z ** 2) * invnorm
+    invnorm = invs / np.sqrt(2 * np.pi)
+    return np.exp(-0.5 * z**2) * invnorm
 
-
-# yoinked from https://github.com/SamuelBorden/pygama/blob/math_refactor/src/pygama/math/functions/exgauss.py
-@nb.njit(**nb_kwd)
-def nb_gauss_tail_exact(x: float, mu: float, sigma: float, tau: float, tmp: float) -> float:
+# yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/exgauss.py
+@nb.jit(**nb_kwd)
+def nb_gauss_tail_exact(
+    x: float, mu: float, sigma: float, tau: float, tmp: float
+) -> float:
     r"""
-    Exact form of a normalized exponentially modified Gaussian PDF. 
+    Exact form of a normalized exponentially modified Gaussian PDF.
     It computes the following PDF:
 
 
@@ -127,21 +107,31 @@ def nb_gauss_tail_exact(x: float, mu: float, sigma: float, tau: float, tmp: floa
         The scaled version of the exponential argument
 
 
-    See Also 
+    See Also
     --------
     :func:`nb_exgauss_pdf`
     """
 
     abstau = np.absolute(tau)
-    if tmp < limit: tmp = tmp
-    else: tmp = limit
-    z = (x-mu)/sigma
-    tail_f = (1/(2*abstau)) * np.exp(tmp) * nb_erfc( (tau*z + sigma)/(np.sqrt(2)*abstau))
+    if tmp < limit:
+        tmp = tmp
+    else:
+        tmp = limit
+    if sigma == 0 or abstau == 0:
+        return x * 0
+    z = (x - mu) / sigma
+    tail_f = (
+        (1 / (2 * abstau))
+        * np.exp(tmp)
+        * erfc((tau * z + sigma) / (np.sqrt(2) * abstau))
+    )
     return tail_f
 
-# yoinked from https://github.com/SamuelBorden/pygama/blob/math_refactor/src/pygama/math/functions/exgauss.py
-@nb.njit(**nb_kwd)
-def nb_gauss_tail_approx(x: np.ndarray, mu: float, sigma: float, tau: float) -> np.ndarray:
+# yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/exgauss.py
+@nb.jit(**nb_kwd)
+def nb_gauss_tail_approx(
+    x: np.ndarray, mu: float, sigma: float, tau: float
+) -> np.ndarray:
     r"""
     Approximate form of a normalized exponentially modified Gaussian PDF
     As a Numba JIT function, it runs slightly faster than
@@ -159,17 +149,20 @@ def nb_gauss_tail_approx(x: np.ndarray, mu: float, sigma: float, tau: float) -> 
         The characteristic scale of the Gaussian tail
 
 
-    See Also 
+    See Also
     --------
     :func:`nb_exgauss_pdf`
     """
-
-    den = 1/(sigma + tau*(x-mu)/sigma)
-    tail_f = sigma * nb_gauss_pdf(x, mu, sigma) * den * (1.-tau*tau*den*den)
+    if sigma == 0:
+        return x * 0
+    elif (sigma + tau * (x - mu) / sigma) == 0:
+        return x * 0
+    den = 1 / (sigma + tau * (x - mu) / sigma)
+    tail_f = sigma * nb_gauss_pdf(x, mu, sigma) * den * (1.0 - tau * tau * den * den)
     return tail_f
 
-# yoinked from https://github.com/SamuelBorden/pygama/blob/math_refactor/src/pygama/math/functions/exgauss.py
-@nb.njit(**nb_kwd)
+# yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/exgauss.py
+@nb.jit(**nb_kwd)
 def nb_exgauss_pdf(x: np.ndarray, mu: float, sigma: float, tau: float) -> np.ndarray:
     r"""
     Normalized PDF of an exponentially modified Gaussian distribution. Its range of support is :math:`x\in(-\infty,\infty)`, :math:`\tau\in(-\infty,\infty)`
@@ -192,19 +185,23 @@ def nb_exgauss_pdf(x: np.ndarray, mu: float, sigma: float, tau: float) -> np.nda
         The characteristic scale of the Gaussian tail
 
 
-    See Also 
+    See Also
     --------
     :func:`nb_gauss_tail_exact`, :func:`nb_gauss_tail_approx`
     """
 
     x = np.asarray(x)
     tail_f = np.empty_like(x, dtype=np.float64)
+
     for i in nb.prange(x.shape[0]):
-        tmp = ((x[i]-mu)/tau) + ((sigma**2)/(2*tau**2))
-        if tmp < limit:
-            tail_f[i] = nb_gauss_tail_exact(x[i], mu, sigma, tau, tmp)
+        if tau == 0:
+            tail_f[i] = np.nan
         else:
-            tail_f[i] = nb_gauss_tail_approx(x[i], mu, sigma, tau)
+            tmp = ((x[i] - mu) / tau) + ((sigma**2) / (2 * tau**2))
+            if tmp < limit:
+                tail_f[i] = nb_gauss_tail_exact(x[i], mu, sigma, tau, tmp)
+            else:
+                tail_f[i] = nb_gauss_tail_approx(x[i], mu, sigma, tau)
     return tail_f
 
 @nb.jit(**nb_kwd)
@@ -220,6 +217,7 @@ def nb_pdf(
     effunc: float,
     effuncscale: float,
     exp: float,
+    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
@@ -246,6 +244,9 @@ def nb_pdf(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    check_window
+        whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
+        all fall inside the window (for speed)
 
     Notes
     -----
@@ -263,14 +264,24 @@ def nb_pdf(
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
     S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * sigma) * (1-frac)
-    S_amp_exgauss = mu_S * frac
+
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + delta, sigma, tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            (S_amp_exgauss * nb_exgauss_pdf(Es[i], delta, sigma, tau) + S_amp_gauss * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))) + B_amp
+            ( exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))) + B_amp
         )
+
+    if (check_window):
+        for i in nb.prange(Es.shape[0]):
+            inwindow = False
+            for j in range(len(WINDOW)):
+                if (WINDOW[j][0] <= Es[i] <= WINDOW[j][1]):
+                    inwindow = True
+            if not inwindow:
+                y[i] = 0.0
 
     return y
 
@@ -288,6 +299,7 @@ def nb_density(
     effunc: float,
     effuncscale: float,
     exp: float,
+    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
@@ -329,19 +341,7 @@ def nb_density(
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
-    # Precompute the prefactors so that way we save multiplications in the for loop
-    B_amp = exp * BI
-    S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * sigma) * (1-frac)
-    S_amp_exgauss = mu_S * frac
-
-    # Initialize and execute the for loop
-    y = np.empty_like(Es, dtype=np.float64)
-    for i in nb.prange(Es.shape[0]):
-        y[i] = (
-            (S_amp_exgauss * nb_exgauss_pdf(Es[i], delta, sigma, tau) + S_amp_gauss * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))) + B_amp
-        )
-
-    return mu_S + mu_B, y
+    return mu_S + mu_B, nb_pdf(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, check_window)
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -473,6 +473,8 @@ def nb_extendedrvs(
 class mjd_0vbb_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
+        del self.parameters["check_window"] # this should not be seen by iminuit
+
         pass
 
     def pdf(
@@ -488,8 +490,9 @@ class mjd_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp)
+        return nb_pdf(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, check_window)
     
     # for iminuit ExtendedUnbinnedNLL
     def density(
@@ -505,8 +508,9 @@ class mjd_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        check_window: bool = False,
     ) -> np.array:
-        return nb_density(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp)
+        return nb_density(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, check_window)
 
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
@@ -538,27 +542,5 @@ class mjd_0vbb_gen:
         seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp, seed=seed)
-
-    def plot(
-        self,
-        Es: np.array,
-        S: float,
-        BI: float,
-        frac: float,
-        delta: float,
-        sigma: float,
-        tau: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-    ) -> None:
-        y = nb_pdf(Es, S, BI, frac, delta, sigma, tau, eff, effunc, effuncscale, exp)
-
-        import matplotlib.pyplot as plt
-        
-        plt.step(Es, y)
-        plt.show()
-
 
 mjd_0vbb = mjd_0vbb_gen()
