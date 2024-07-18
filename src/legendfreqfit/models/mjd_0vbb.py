@@ -353,7 +353,27 @@ def nb_density(
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
-    return mu_S + mu_B, nb_pdf(Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window)
+    # Precompute the prefactors so that way we save multiplications in the for loop
+    B_amp = exp * BI
+    S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1.0 - frac)
+
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB - mu, alpha*sigma, alpha*tau)
+
+    # Initialize and execute the for loop
+    y = np.empty_like(Es, dtype=np.float64)
+    for i in nb.prange(Es.shape[0]):
+        y[i] = ((exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB - mu) ** 2) / (2 * (alpha*sigma)**2))) + B_amp)
+
+    if (check_window):
+        for i in nb.prange(Es.shape[0]):
+            inwindow = False
+            for j in range(len(WINDOW)):
+                if (WINDOW[j][0] <= Es[i] <= WINDOW[j][1]):
+                    inwindow = True
+            if not inwindow:
+                y[i] = 0.0
+
+    return mu_S + mu_B, y
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
