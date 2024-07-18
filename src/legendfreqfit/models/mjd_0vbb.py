@@ -271,7 +271,7 @@ def nb_pdf(
     B_amp = exp * BI
     S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1-frac)
 
-    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB - mu, alpha*sigma, alpha*tau)
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha*sigma, alpha*tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
@@ -357,7 +357,7 @@ def nb_density(
     B_amp = exp * BI
     S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1.0 - frac)
 
-    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB - mu, alpha*sigma, alpha*tau)
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha*sigma, alpha*tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
@@ -429,9 +429,9 @@ def nb_rvs(
     # depending on whether the event should fall in the tail, subtract some energy from Qbb before Gaussian smearing
     for i in range(n_sig):
         if which[i] < frac:
-            Es[i] = QBB - mu - exp[i] + smear[i]
+            Es[i] = QBB + mu - exp[i] + smear[i]
         else:
-            Es[i] = QBB - mu + smear[i]
+            Es[i] = QBB + mu + smear[i]
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
