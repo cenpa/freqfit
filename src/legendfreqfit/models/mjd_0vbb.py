@@ -504,12 +504,10 @@ def nb_extendedrvs(
     in the provided windows, which may be discontinuous.
     """
 
-    np.random.seed(seed)
-
     n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
-    return nb_rvs(n_sig, n_bkg, frac, mu, sigma, tau, alpha)
+    return nb_rvs(n_sig, n_bkg, frac, mu, sigma, tau, alpha, seed=seed)
 
 
 class mjd_0vbb_gen:
