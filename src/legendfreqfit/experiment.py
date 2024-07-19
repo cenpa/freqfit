@@ -28,14 +28,16 @@ class Experiment(Superset):
         self.options["combine_constraints"] = False
         if "options" in config:
             if "combine_constraints" in config["options"]:
-                self.options["combine_constraints"] = config["options"]["combine_constraints"]
+                self.options["combine_constraints"] = config["options"][
+                    "combine_constraints"
+                ]
 
         super().__init__(
             datasets=config["datasets"],
             parameters=config["parameters"],
             constraints=constraints,
             name=name,
-            combine_constraints=self.options["combine_constraints"]
+            combine_constraints=self.options["combine_constraints"],
         )
 
         # collect which parameters are included as nuisance parameters
@@ -50,10 +52,15 @@ class Experiment(Superset):
                     else:
                         self.nuisance.add(parname)
                         # whether to vary the nuisance parameters according to their NormalConstraints for toys
-                        if "vary_by_constraint" in pardict and pardict["vary_by_constraint"]:
+                        if (
+                            "vary_by_constraint" in pardict
+                            and pardict["vary_by_constraint"]
+                        ):
                             if parname in self.constraint_parameters:
                                 # record these particular parameters indices in the constraint matrix
-                                self.nuisance_to_vary[parname] = self.constraint_parameters[parname]
+                                self.nuisance_to_vary[
+                                    parname
+                                ] = self.constraint_parameters[parname]
                                 msg = f"nuisance parameter '{parname}' will be varied by its constraint for `Toy`"
                                 logging.info(msg)
                             else:
@@ -67,9 +74,13 @@ class Experiment(Superset):
         nuisance_to_vary_indices = np.array(list(self.nuisance_to_vary.values()))
         if nuisance_to_vary_indices.size > 0:
             # central values
-            self._nuisance_to_vary_values = self.constraint_values[nuisance_to_vary_indices]
+            self._nuisance_to_vary_values = self.constraint_values[
+                nuisance_to_vary_indices
+            ]
             # covariance sub-matrix
-            self._nuisance_to_vary_covar = self.constraint_covariance[nuisance_to_vary_indices[:,np.newaxis], nuisance_to_vary_indices]
+            self._nuisance_to_vary_covar = self.constraint_covariance[
+                nuisance_to_vary_indices[:, np.newaxis], nuisance_to_vary_indices
+            ]
 
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
@@ -248,15 +259,20 @@ class Experiment(Superset):
         parameters: dict,  # parameters and values needed to generate the toys
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
-        seed: int = SEED,
+        seed: np.array = None,
     ):
         """
         Makes a number of toys and returns their test statistics.
+        Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
         """
 
         ts = np.zeros(num)
         np.random.seed(SEED)
-        seed = np.random.randint(1000000, size=num)
+        if seed is None:
+            seed = np.random.randint(1000000, size=num)
+        else:
+            if len(seed) != num:
+                raise ValueError("Seeds must have same length as the number of toys!")
 
         for i in range(num):
             thistoy = self.maketoy(parameters=parameters, seed=seed[i])
@@ -267,9 +283,9 @@ class Experiment(Superset):
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
     def visualize(
-        self, 
+        self,
         parameters: dict,
-        component_kwargs = None,
+        component_kwargs=None,
     ) -> None:
         """
         Visualize data and model agreement (requires matplotlib).
