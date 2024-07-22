@@ -1,8 +1,11 @@
 import importlib
 import inspect
-import warnings
+import logging
 
+import numpy as np
 import yaml
+
+log = logging.getLogger(__name__)
 
 
 # takes a model function and returns a dict of its parameters with their default value
@@ -60,14 +63,30 @@ def load_config(
         if "model" in dataset:
             models.add(dataset["model"])
         else:
-            msg = f"`{datasetname}` has no `model`"
+            msg = f"dataset `{datasetname}` has no `model`"
             raise KeyError(msg)
 
         if "costfunction" in dataset:
             costfunctions.add(dataset["costfunction"])
         else:
-            msg = f"`{datasetname}` has no `costfunction`"
+            msg = f"dataset `{datasetname}` has no `costfunction`"
             raise KeyError(msg)
+        
+    if "constraints" in config:
+        for constraintname, constraint in config["constraints"].items():
+            if "parameters" not in constraint:
+                msg = f"constraint `{constraintname}` has no `parameters`"
+                raise KeyError(msg)
+            else:
+                # these need to be lists for other stuff
+                if not isinstance(constraint["parameters"], list):
+                    constraint["parameters"] = [constraint["parameters"]]
+                if not isinstance(constraint["values"], list):
+                    constraint["values"] = [constraint["values"]]
+                if "uncertainty" in constraint and not isinstance(constraint["uncertainty"], list):
+                    constraint["uncertainty"] = [constraint["uncertainty"]]
+                if "covariance" in constraint and not isinstance(constraint["covariance"], np.ndarray):
+                    constraint["covariance"] = np.asarray(constraint["covariance"])
 
     # this is specific to set up of 0vbb model
     for model in models:
@@ -95,7 +114,7 @@ def load_config(
         if "includeinfit" in pardict and not pardict["includeinfit"]:
             if "nuisance" in pardict and pardict["nuisance"]:
                 msg = f"{par} has `includeinfit` as `False` but `nuisance` as `True`. {par} will not be included in fit."
-                warnings.warn(msg)
+                logging.warning(msg)
 
     return config
 
@@ -118,6 +137,7 @@ def grab_results(
 
     return toreturn
 
+
 # use this YAML loader to detect duplicate keys in a config file
 # https://stackoverflow.com/a/76090386
 class UniqueKeyLoader(yaml.SafeLoader):
@@ -126,7 +146,9 @@ class UniqueKeyLoader(yaml.SafeLoader):
         for key_node, value_node in node.value:
             each_key = self.construct_object(key_node, deep=deep)
             if each_key in mapping:
-                raise ValueError(f"Duplicate Key: {each_key!r} is found in YAML File.\n"
-                                 f"Error File location: {key_node.end_mark}")
+                raise ValueError(
+                    f"Duplicate Key: {each_key!r} is found in YAML File.\n"
+                    f"Error File location: {key_node.end_mark}"
+                )
             mapping.add(each_key)
         return super().construct_mapping(node, deep)

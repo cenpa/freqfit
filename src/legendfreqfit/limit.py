@@ -2,22 +2,29 @@
 This class inherits from `Experiment`, and also holds the name of the variable to profile
 """
 
-
+import logging
 import multiprocessing as mp
 
+import h5py
 import numpy as np
 from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
+from legendfreqfit.statistics import toy_ts_critical
 
-NUM_CORES = 2  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class SetLimit(Experiment):
     def __init__(
         self,
         config: dict,
+        jobid: int = 0,
+        numtoy: int = 0,
+        out_path: str = None,
         name: str = None,
     ) -> None:
         """
@@ -29,6 +36,9 @@ class SetLimit(Experiment):
             None  # maybe we want to store the test statistics internally?
         )
         self.var_to_profile = None
+        self.jobid = jobid
+        self.numtoy = numtoy
+        self.out_path = out_path
 
     def set_var_to_profile(self, var_to_profile: str):
         self.var_to_profile = var_to_profile
@@ -132,9 +142,41 @@ class SetLimit(Experiment):
 
         return crossing_points
 
-    def create_fine_scan(self, var):
-        # TODO: write this function
-        return None
+    def create_fine_scan(self, s_crit, num_points):
+        """
+        Parameters
+        ----------
+        s_crit
+            The s-value at the critical value of the test statistic found by Wilks' approximation
+        num_points
+            The number of points to symmetrically create a grid from
+        """
+        ma = 0.0759214027
+        NA = 6.022e23
+
+        # Scan a whole order of magnitude quickly to see if we need to rescan in case Wilks' isn't good
+        T_est = 1 / (ma * s_crit / (np.log(2) * NA))
+        T_hi = 2 * T_est
+        T_lo = T_est / 2
+
+        S_lo = 1 / (ma * T_hi / (np.log(2) * NA))
+        S_hi = 1 / (ma * T_lo / (np.log(2) * NA))
+
+        #         lo_range = np.linspace(S_lo, s_crit, num_points//2 + num_points%2, endpoint=False)
+        #         hi_range = np.linspace(s_crit, S_hi, num_points//2)
+
+        #         fine = np.append(lo_range, hi_range)
+
+        # Actually, assume we are within 20% of the correct limit and rescan based on this. Linear in S-space, 1/T...
+        # This is good for setting a limit but not for making a plot with
+        lo_range = np.linspace(
+            s_crit * 0.8, s_crit, num_points // 2 + num_points % 2, endpoint=False
+        )
+        hi_range = np.linspace(s_crit, s_crit * 1.2, num_points // 2)
+
+        fine = np.append(lo_range, hi_range)
+
+        return fine
 
     def toy_ts_mp(
         self,
@@ -148,8 +190,19 @@ class SetLimit(Experiment):
         x = np.arange(0, num)
         toys_per_core = np.full(NUM_CORES, num // NUM_CORES)
         toys_per_core = np.insert(toys_per_core, len(toys_per_core), num % NUM_CORES)
+
+        # Pick the random seeds that we will pass to toys
+        seeds = np.arange(self.jobid * self.numtoy, (self.jobid + 1) * self.numtoy)
+        seeds_per_toy = []
+
+        j = 0
+        for i, num in enumerate(toys_per_core):
+            seeds_per_toy.append(seeds[j : j + num])
+            j = j + num
+
         args = [
-            [parameters, profile_parameters, num_toy] for num_toy in toys_per_core
+            [parameters, profile_parameters, num_toy, seeds_per_toy[i]]
+            for i, num_toy in enumerate(toys_per_core)
         ]  # give each core multiple MCs
 
         with mp.Pool(NUM_CORES) as pool:
@@ -183,7 +236,42 @@ class SetLimit(Experiment):
         )
 
         # Now grab the critical test statistic
-        t_crit, t_crit_low, t_crit_high = self.toy_ts_critical(
+        tcrit_tuple, _ = toy_ts_critical(
             toyts, threshold=threshold, confidence=confidence
         )
+        t_crit, t_crit_low, t_crit_high = tcrit_tuple
         return toyts, t_crit, t_crit_low, t_crit_high
+
+    def run_and_save_toys(
+        self,
+        scan_point,
+        threshold: float = 0.9,
+        confidence: float = 0.68,
+        scan_point_override=None,
+    ) -> list[np.array, np.array]:
+        """
+        Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
+        """
+        # First we need to profile out the variable we are scanning
+        toypars = self.profile({f"{self.var_to_profile}": scan_point})["values"]
+        if scan_point_override is not None:
+            toypars[f"{self.var_to_profile}"] = scan_point_override
+        else:
+            toypars[
+                f"{self.var_to_profile}"
+            ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
+
+        # Now we can run the toys
+        toyts = self.toy_ts_mp(
+            toypars, {f"{self.var_to_profile}": scan_point}, num=self.numtoy
+        )
+
+        # Now, save the toys to a file
+        file_name = self.out_path + f"/{scan_point}_{self.jobid}.h5"
+        f = h5py.File(file_name, "a")
+        dset = f.create_dataset("ts", data=toyts)
+        dset = f.create_dataset("s", data=scan_point)
+
+        f.close()
+
+        return None

@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
 
@@ -19,6 +18,10 @@ N_A = constants.NA
 M_A = constants.MA
 
 # default analysis window and width
+# window
+#     uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
+#     where edges of window are monotonically increasing (this is not checked), in keV.
+#     Default is typical analysis window.
 WINDOW = np.array(constants.WINDOW)
 
 WINDOWSIZE = 0.0
@@ -36,6 +39,8 @@ def nb_pdf(
     delta: float,
     sigma: float,
     eff: float,
+    effunc: float,
+    effuncscale: float,
     exp: float,
 ) -> np.array:
     """
@@ -53,24 +58,24 @@ def nb_pdf(
         The energy resolution at QBB, in keV
     eff
         The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
-        where edges of window are monotonically increasing (this is not checked), in keV.
-        Default is typical analysis window.
 
     Notes
     -----
     This function computes the following:
-    mu_S = eff * exp * S
+    mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
-    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    mu_S = S * eff * exp
+    # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
+    mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
@@ -95,6 +100,8 @@ def nb_density(
     delta: float,
     sigma: float,
     eff: float,
+    effunc: float,
+    effuncscale: float,
     exp: float,
 ) -> np.array:
     """
@@ -112,25 +119,25 @@ def nb_density(
         The energy resolution at QBB, in keV
     eff
         The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
-        where edges of window are monotonically increasing (this is not checked), in keV.
-        Default is typical analysis window.
 
     Notes
     -----
     This function computes the following, faster than without a numba wrapper:
-    mu_S = eff * exp * S
+    mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     CDF(E) = mu_S + mu_B
     pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
-    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    mu_S = S * eff * exp
+    # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
+    mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
@@ -153,6 +160,8 @@ def nb_logpdf(
     delta: float,
     sigma: float,
     eff: float,
+    effunc: float,
+    effuncscale: float,
     exp: float,
 ) -> np.array:
     """
@@ -170,24 +179,24 @@ def nb_logpdf(
         The energy resolution at QBB, in keV
     eff
         The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
-        where edges of window are monotonically increasing (this is not checked), in keV.
-        Default is typical analysis window.
 
     Notes
     -----
     This function computes the following:
-    mu_S = eff * exp * S
+    mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize])
     """
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    mu_S = S * eff * exp
+    mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
     if sigma == 0:  # need this check for fitting
@@ -235,10 +244,6 @@ def nb_rvs(
         The energy resolution at QBB, in keV
     seed
         specify a seed, otherwise uses default seed
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
-        where edges of window are monotonically increasing (this is not checked), in keV.
-        Default is typical analysis window.
 
     Notes
     -----
@@ -281,6 +286,8 @@ def nb_extendedrvs(
     delta: float,
     sigma: float,
     eff: float,
+    effunc: float,
+    effuncscale: float,
     exp: float,
     seed: int = SEED,
 ) -> np.array:
@@ -295,12 +302,16 @@ def nb_extendedrvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
+    eff
+        The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
+    exp
+        The exposure, in kg*yr
     seed
         specify a seed, otherwise uses default seed
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
-        where edges of window are monotonically increasing (this is not checked), in keV.
-        Default is typical analysis window.
 
     Notes
     -----
@@ -310,7 +321,7 @@ def nb_extendedrvs(
 
     np.random.seed(seed)
 
-    n_sig = np.random.poisson(S * eff * exp)
+    n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
     # Get energy of signal events from a Gaussian distribution
@@ -339,95 +350,7 @@ def nb_extendedrvs(
     return Es
 
 
-@nb.jit(**nb_kwd)
-def nb_density_gradient(
-    Es: np.array,
-    S: float,
-    BI: float,
-    delta: float,
-    sigma: float,
-    eff: float,
-    exp: float,
-) -> np.array:
-    """
-    Parameters
-    ----------
-    Es
-        Energies at which this function is evaluated, in keV
-    S
-        The signal rate, in units of counts/(kg*yr)
-    BI
-        The background index rate, in counts/(kg*yr*keV)
-    delta
-        Systematic energy offset from QBB, in keV
-    sigma
-        The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    exp
-        The exposure, in kg*yr
-    window
-        uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
-        where edges of window are monotonically increasing (this is not checked), in keV.
-        Default is typical analysis window.
-
-    Notes
-    -----
-    This function computes the gradient of the density function and returns a tuple where the first element is the gradient of the CDF, and the second element is the gradient of the PDF.
-    The first element has shape (K,) where K is the number of parameters, and the second element has shape (K,N) where N is the length of Es.
-    mu_S = eff * exp * S
-    mu_B = exp * BI * windowsize
-    pdf(E) = [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
-    cdf(E) = mu_S + mu_B
-    """
-
-    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    mu_S = S * eff * exp
-
-    grad_CDF = np.array([eff * exp, exp * WINDOWSIZE, 0, 0, S * exp, S * eff])
-
-    grad_PDF = np.zeros(shape=(6, len(Es)))
-    for i in nb.prange(Es.shape[0]):
-        # For readability, don't precompute anything and see how performance is impacted
-        grad_PDF[0][i] = (
-            eff
-            * exp
-            * (1 / (np.sqrt(2 * np.pi) * sigma))
-            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
-        )
-        grad_PDF[1][i] = exp
-        grad_PDF[2][i] = (
-            ((Es[i] - QBB - delta) / sigma**2)
-            * mu_S
-            * (1 / (np.sqrt(2 * np.pi) * sigma))
-            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
-        )
-        grad_PDF[3][i] = (
-            (
-                ((Es[i] - QBB - delta) ** 2 - sigma**2)
-                / (np.sqrt(2 * np.pi) * sigma**4)
-            )
-            * mu_S
-            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
-        )
-        grad_PDF[4][i] = (
-            S
-            * exp
-            * (1 / (np.sqrt(2 * np.pi) * sigma))
-            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
-        )
-        grad_PDF[5][i] = (
-            S
-            * eff
-            * (1 / (np.sqrt(2 * np.pi) * sigma))
-            * np.exp(-1 * (Es[i] - QBB - delta) ** 2 / (2 * sigma**2))
-            + BI
-        )
-
-    return grad_CDF, grad_PDF
-
-
-class gaussian_on_uniform_gen:
+class correlated_efficiency_0vbb_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
         pass
@@ -440,9 +363,11 @@ class gaussian_on_uniform_gen:
         delta: float,
         sigma: float,
         eff: float,
+        effunc: float,
+        effuncscale: float,
         exp: float,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, delta, sigma, eff, exp)
+        return nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
     def logpdf(
         self,
@@ -452,9 +377,11 @@ class gaussian_on_uniform_gen:
         delta: float,
         sigma: float,
         eff: float,
+        effunc: float,
+        effuncscale: float,
         exp: float,
     ) -> np.array:
-        return nb_logpdf(Es, S, BI, delta, sigma, eff, exp)
+        return nb_logpdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
     # for iminuit ExtendedUnbinnedNLL
     def density(
@@ -465,21 +392,11 @@ class gaussian_on_uniform_gen:
         delta: float,
         sigma: float,
         eff: float,
+        effunc: float,
+        effuncscale: float,
         exp: float,
     ) -> np.array:
-        return nb_density(Es, S, BI, delta, sigma, eff, exp)
-
-    def density_gradient(
-        self,
-        Es: np.array,
-        S: float,
-        BI: float,
-        delta: float,
-        sigma: float,
-        eff: float,
-        exp: float,
-    ) -> tuple:
-        return nb_density_gradient(Es, S, BI, delta, sigma, eff, exp)
+        return nb_density(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
     # for iminuit ExtendedUnbinnedNLL
     def log_density(
@@ -490,10 +407,12 @@ class gaussian_on_uniform_gen:
         delta: float,
         sigma: float,
         eff: float,
+        effunc: float,
+        effuncscale: float,
         exp: float,
     ) -> np.array:
 
-        mu_S = S * eff * exp
+        mu_S = S * (eff + effuncscale * effunc) * exp
         mu_B = exp * BI * WINDOWSIZE
 
         # Do a quick check and return -inf if log args are negative
@@ -503,7 +422,7 @@ class gaussian_on_uniform_gen:
             return (
                 mu_S + mu_B,
                 np.log(mu_S + mu_B)
-                + nb_logpdf(Es, S, BI, delta, sigma, eff, exp),
+                + nb_logpdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp),
             )
 
     # should we have an rvs method for drawing a random number of events?
@@ -526,10 +445,12 @@ class gaussian_on_uniform_gen:
         delta: float,
         sigma: float,
         eff: float,
+        effunc: float,
+        effuncscale: float,
         exp: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, BI, delta, sigma, eff, exp, seed=seed)
+        return nb_extendedrvs(S, BI, delta, sigma, eff, effunc, effuncscale, exp, seed=seed)
 
     def plot(
         self,
@@ -539,12 +460,16 @@ class gaussian_on_uniform_gen:
         delta: float,
         sigma: float,
         eff: float,
+        effunc: float,
+        effuncscale: float,
         exp: float,
     ) -> None:
-        y = nb_pdf(Es, S, BI, delta, sigma, eff, exp)
+        y = nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
+        import matplotlib.pyplot as plt
+        
         plt.step(Es, y)
         plt.show()
 
 
-gaussian_on_uniform = gaussian_on_uniform_gen()
+correlated_efficiency_0vbb = correlated_efficiency_0vbb_gen()
