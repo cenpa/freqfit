@@ -10,14 +10,12 @@ def emp_cdf(
     Create a binned empirical CDF given a dataset
     """
 
-    if isinstance(bins, int):
-        x = np.linspace(np.nanmin(data), np.nanmax(data), bins)
-    elif isinstance(bins, np.ndarray) or isinstance(bins, list):
-        x = np.array(bins)
-    else:
+    if not (isinstance(bins, int) or isinstance(bins, np.ndarray) or isinstance(bins, list)):
         raise TypeError(f"bins must be array-like or int, instead is {type(bins)}")
+    
+    h, b = np.histogram(data, bins)
 
-    return np.array([len(np.where(data <= b)[0]) / len(data) for b in x[1:]]), x
+    return np.cumsum(h)/np.sum(h), b
 
 
 def dkw_band(
