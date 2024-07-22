@@ -1,20 +1,18 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
+import logging
 
-import warnings
-
-import matplotlib.pyplot as plt
 import numpy as np
 from iminuit import Minuit
-from scipy.stats import chi2
 
-from legendfreqfit.statistics import dkw_band, emp_cdf
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
 from legendfreqfit.utils import grab_results, load_config
 
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class Experiment(Superset):
@@ -23,28 +21,66 @@ class Experiment(Superset):
         config: dict,
         name: str = None,
     ) -> None:
+        constraints = config["constraints"] if "constraints" in config else None
 
-        constraints = (
-            config["constraints"] if "constraints" in config else None
-        )
+        self.options = {}
+        # it greatly reduces the fit time to combine all constraints into a single constraint instead.
+        self.options["combine_constraints"] = False
+        if "options" in config:
+            if "combine_constraints" in config["options"]:
+                self.options["combine_constraints"] = config["options"][
+                    "combine_constraints"
+                ]
 
         super().__init__(
             datasets=config["datasets"],
             parameters=config["parameters"],
             constraints=constraints,
             name=name,
+            combine_constraints=self.options["combine_constraints"],
         )
 
         # collect which parameters are included as nuisance parameters
         self.nuisance = set()
+        self.nuisance_to_vary = {}
         for parname, pardict in self.parameters.items():
             if "includeinfit" in pardict and pardict["includeinfit"]:
                 if "nuisance" in pardict and pardict["nuisance"]:
                     if "fixed" in pardict and pardict["fixed"]:
-                        msg = f"{parname} has `fixed` as `True` and `nuisance` as `True`. {parname} will be treated as fixed."
-                        warnings.warn(msg)
+                        msg = f"parameter '{parname}' has `fixed` as `True` and `nuisance` as `True`. '{parname}' will be treated as fixed."
+                        logging.warning(msg)
                     else:
                         self.nuisance.add(parname)
+                        # whether to vary the nuisance parameters according to their NormalConstraints for toys
+                        if (
+                            "vary_by_constraint" in pardict
+                            and pardict["vary_by_constraint"]
+                        ):
+                            if parname in self.constraint_parameters:
+                                # record these particular parameters indices in the constraint matrix
+                                self.nuisance_to_vary[
+                                    parname
+                                ] = self.constraint_parameters[parname]
+                                msg = f"nuisance parameter '{parname}' will be varied by its constraint for `Toy`"
+                                logging.info(msg)
+                            else:
+                                msg = f"nuisance parameter '{parname}' should be varied by its constraint for `Toy` but no constraint was found!"
+                                logging.error(msg)
+
+        # so that I don't have to do this in Toy millions of times
+        # get the indices of the nuisance parameters to vary for the constraint matrix
+        self._nuisance_to_vary_values = None
+        self._nuisance_to_vary_covar = None
+        nuisance_to_vary_indices = np.array(list(self.nuisance_to_vary.values()))
+        if nuisance_to_vary_indices.size > 0:
+            # central values
+            self._nuisance_to_vary_values = self.constraint_values[
+                nuisance_to_vary_indices
+            ]
+            # covariance sub-matrix
+            self._nuisance_to_vary_covar = self.constraint_covariance[
+                nuisance_to_vary_indices[:, np.newaxis], nuisance_to_vary_indices
+            ]
 
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
@@ -67,7 +103,10 @@ class Experiment(Superset):
 
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.nuisance:
-            if "fix_if_no_data" in self.parameters[parname] and self.parameters[parname]["fix_if_no_data"]:
+            if (
+                "fix_if_no_data" in self.parameters[parname]
+                and self.parameters[parname]["fix_if_no_data"]
+            ):
                 # check if this parameter is part of a Dataset that has data
                 if parname not in parstofitthathavedata:
                     self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]
@@ -174,13 +213,20 @@ class Experiment(Superset):
 
         self.minuit_reset()
 
+        # set fixed parameters
         for parname, parvalue in parameters.items():
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
         self.minuit.migrad()
 
-        return grab_results(self.minuit)
+        results = grab_results(self.minuit)
+
+        # also include the fixed parameters
+        for parname, parvalue in parameters.items():
+            results[parname] = parvalue
+
+        return results
 
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters
     def ts(
@@ -213,15 +259,20 @@ class Experiment(Superset):
         parameters: dict,  # parameters and values needed to generate the toys
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
-        seed: int = SEED,
+        seed: np.array = None,
     ):
         """
         Makes a number of toys and returns their test statistics.
+        Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
         """
 
         ts = np.zeros(num)
         np.random.seed(SEED)
-        seed = np.random.randint(1000000, size=num)
+        if seed is None:
+            seed = np.random.randint(1000000, size=num)
+        else:
+            if len(seed) != num:
+                raise ValueError("Seeds must have same length as the number of toys!")
 
         for i in range(num):
             thistoy = self.maketoy(parameters=parameters, seed=seed[i])
@@ -229,71 +280,66 @@ class Experiment(Superset):
 
         return ts
 
-    def toy_ts_critical(
+    # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
+    # plots slightly differently
+    def visualize(
         self,
-        ts_dist: np.array,  # output of toy_ts
-        bins=100,  # int or array, numbins or list of bin edges for CDF
-        threshold: float = 0.9,  # critical threshold for test statistic
-        confidence: float = 0.68,  # width of confidence interval
-        plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
-    ):
+        parameters: dict,
+        component_kwargs=None,
+    ) -> None:
         """
-        Returns the critical value of the test statistic and confidence interval
+        Visualize data and model agreement (requires matplotlib).
+
+        The visualization is drawn with matplotlib.pyplot into the current figure.
+        Subplots are created to visualize each part of the cost function, the figure
+        height is increased accordingly. Parts without a visualize method are silently
+        ignored.
+
+        Does not draw Datasets that are empty (have no events).
+
+        Parameters
+        ----------
+        args : array-like
+            Parameter values.
+        component_kwargs : dict of dicts, optional
+            Dict that maps an index to dict of keyword arguments. This can be
+            used to pass keyword arguments to a visualize method of a component with
+            that index.
+        **kwargs :
+            Other keyword arguments are forwarded to all components.
         """
-        cdf, bins = emp_cdf(ts_dist, bins)
+        from matplotlib import pyplot as plt
 
-        lo_band, hi_band = dkw_band(cdf, nevts=len(ts_dist), CL=confidence)
+        args = []
+        for par in self.fitparameters:
+            if par not in parameters:
+                msg = f"parameter {par} was not provided"
+                raise KeyError(msg)
+            args.append(parameters[par])
 
-        idx_crit = np.where(cdf >= threshold)[0][0]
-        critical = bins[idx_crit]
+        n = 0
+        for comp in self.costfunction:
+            if hasattr(comp, "visualize"):
+                if hasattr(comp, "data"):
+                    if len(comp.data) > 0:
+                        n += 1
+                else:
+                    n += 1
 
-        lo = lo_band[idx_crit]
-        hi = hi_band[idx_crit]
+        fig = plt.gcf()
+        fig.set_figwidth(n * fig.get_figwidth() / 1.5)
+        _, ax = plt.subplots(1, n, num=fig.number)
 
-        lo_idx = np.where(cdf >= lo)[0][0]
-        hi_idx = np.where(cdf >= hi)[0][0]
+        if component_kwargs is None:
+            component_kwargs = {}
 
-        lo_ts = bins[lo_idx]
-        hi_ts = bins[hi_idx]
-
-        if plot:
-            int_thresh = int(100 * threshold)
-            int_conf = int(100 * confidence)
-            fig, axs = plt.subplots(1, 2, layout="constrained", figsize=(11, 5))
-            axs[0].plot(bins, cdf, color="red", label="data cdf")
-            axs[0].plot(
-                bins, lo_band, color="orange", label=f"cdf {int_conf}% interval"
-            )
-            axs[0].plot(bins, hi_band, color="orange")
-            axs[0].plot(
-                bins, chi2.cdf(bins, df=1), color="black", label="chi2 df=1 cdf"
-            )
-
-            axs[0].axvline(critical, color="blue", label=f"{int_thresh}% ts")
-            axs[0].axvspan(lo_ts, hi_ts, alpha=0.5, color="blue")
-            axs[0].axhline(threshold, color="green")
-            axs[0].axhspan(lo, hi, color="green", alpha=0.5)
-            axs[0].set_xlabel(r"$\tilde{t}_S$")
-            axs[0].set_ylabel(r"$cdf(\tilde{t}_S)$")
-            axs[0].legend()
-
-            bincenters = (bins[1:] + bins[:-1]) / 2
-            axs[1].hist(ts_dist, bins=bins, density=True)
-            axs[1].plot(bincenters, chi2.pdf(bincenters, df=1), "k", label="chi2 df=1")
-
-            axs[1].axvline(critical, color="red", label="ts_crit")
-            axs[1].axvspan(lo_ts, hi_ts, color="blue", alpha=0.5)
-            axs[1].axvline(
-                chi2.ppf(threshold, df=1),
-                color="black",
-                linestyle="dashed",
-                label="chi2 critical",
-            )
-
-            axs[1].set_xlabel(r"$\tilde{t}_S$")
-            axs[1].set_ylabel(r"$pdf(\tilde{t}_S)$")
-            axs[1].legend()
-
-            plt.savefig(f"ts_critical_{int_thresh}.jpg")
-
-        return critical, lo_ts, hi_ts
+        i = 0
+        for k, (comp, cargs) in enumerate(self.costfunction._split(args)):
+            if not hasattr(comp, "visualize"):
+                continue
+            if hasattr(comp, "data") and len(comp.data) == 0:
+                continue
+            kwargs = component_kwargs.get(k, {})
+            plt.sca(ax[i])
+            comp.visualize(cargs, **kwargs)
+            i += 1

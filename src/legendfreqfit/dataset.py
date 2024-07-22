@@ -1,12 +1,14 @@
 """
 A class that holds a dataset and its associated model and cost function,
 """
-
+import logging
 
 import numpy as np
 from iminuit import cost
 
 SEED = 42
+
+log = logging.getLogger(__name__)
 
 
 class Dataset:
@@ -91,7 +93,7 @@ class Dataset:
         else:
             msg = f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as \
                 cost functions"
-            raise RuntimeError(msg)
+            raise NotImplementedError(msg)
 
         self.model_parameters = model_parameters
         self._parlist = []
