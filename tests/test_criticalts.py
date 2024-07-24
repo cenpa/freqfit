@@ -127,11 +127,11 @@ def test_criticalts():
     toyts = p.toy_ts(toypars, {"global_S": true_S}, num=numtoys)
     nbins = 500
 
-    (crit95, lo95, hi95), _ = toy_ts_critical(toyts, bins=nbins, threshold=0.95)
+    (crit95, lo95, hi95), _ = toy_ts_critical(toyts, bins=nbins, confidence=0.99, threshold=0.95)
     assert lo95 < chi2.ppf(0.95, df=1) and chi2.ppf(0.95, df=1) < hi95
 
-    (crit90, lo90, hi90), _ = toy_ts_critical(toyts, bins=nbins, threshold=0.9)
+    (crit90, lo90, hi90), _ = toy_ts_critical(toyts, bins=nbins, confidence=0.99, threshold=0.9)
     assert lo90 < chi2.ppf(0.9, df=1) and chi2.ppf(0.9, df=1) < hi90
 
-    (crit68, lo68, hi68), _ = toy_ts_critical(toyts, bins=nbins, threshold=0.68)
+    (crit68, lo68, hi68), _ = toy_ts_critical(toyts, bins=nbins, confidence=0.99, threshold=0.68)
     assert lo68 < chi2.ppf(0.68, df=1) and chi2.ppf(0.68, df=1) < hi68
