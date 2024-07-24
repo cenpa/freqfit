@@ -4,6 +4,7 @@ from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import chi2
+from scipy.stats import binom
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +36,20 @@ def emp_cdf(
 
     return np.cumsum(h)/np.sum(h), b
 
+def binomial_unc_band(
+    cdf: np.array, # binned CDF
+    nevts: int,  # number of events the CDF is based off of
+    CL: float = 0.68,  # confidence level for band
+):
+    """
+    Returns the confidence band for a given CDF by taking the confidence interval of a 
+    binomial distribution with N=nevts and P=the value of the CDF at each point
+    """
+    interval = binom.interval(CL, nevts, cdf)
+    lo_binom_band = interval[0]/nevts
+    hi_binom_band = interval[1]/nevts
+
+    return lo_binom_band, hi_binom_band
 
 def dkw_band(
     cdf: np.array,  # binned CDF
@@ -100,7 +115,7 @@ def toy_ts_critical(
 
     cdf, binedges = emp_cdf(ts, bins) # note that the CDF is evaluated at the right bin edge
 
-    lo_band, hi_band = dkw_band(cdf, nevts=len(ts), CL=confidence)
+    lo_band, hi_band = binomial_unc_band(cdf, nevts=len(ts), CL=confidence)
 
     # TODO: would like to use interpolation so that result is independent of number of bins, etc.
     # but this is a little tricky because need inverse of function and this is not necessarily strictly
@@ -145,6 +160,8 @@ def toy_ts_critical(
         axs[0].set_ylim([0,1])
         axs[0].set_xlim([0,None])
         axs[0].grid()
+
+        print("axs[0]")
 
         # bin the PDF with slightly larger bins if the step size is too small (just for viewing)
         bincenters = (binedges[1:] + binedges[:-1]) / 2.0
