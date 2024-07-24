@@ -161,8 +161,6 @@ def toy_ts_critical(
         axs[0].set_xlim([0,None])
         axs[0].grid()
 
-        print("axs[0]")
-
         # bin the PDF with slightly larger bins if the step size is too small (just for viewing)
         bincenters = (binedges[1:] + binedges[:-1]) / 2.0
         binsize = bincenters[1] - bincenters[0] # assume uniformly spaced bins
