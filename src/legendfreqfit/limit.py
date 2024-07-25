@@ -12,7 +12,7 @@ from scipy.special import erfcinv
 from legendfreqfit.experiment import Experiment
 from legendfreqfit.statistics import toy_ts_critical
 
-NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = 15  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
 
 log = logging.getLogger(__name__)
@@ -191,6 +191,10 @@ class SetLimit(Experiment):
         toys_per_core = np.full(NUM_CORES, num // NUM_CORES)
         toys_per_core = np.insert(toys_per_core, len(toys_per_core), num % NUM_CORES)
 
+        # remove any cores with 0 toys
+        index = np.argwhere(toys_per_core == 0)
+        toys_per_core = np.delete(toys_per_core, index)
+
         # Pick the random seeds that we will pass to toys
         seeds = np.arange(self.jobid * self.numtoy, (self.jobid + 1) * self.numtoy)
         seeds_per_toy = []
@@ -201,12 +205,16 @@ class SetLimit(Experiment):
             j = j + num
 
         args = [
-            [parameters, profile_parameters, num_toy, seeds_per_toy[i], True]
+            [parameters, profile_parameters, num_toy, seeds_per_toy[i]]
             for i, num_toy in enumerate(toys_per_core)
         ]  # give each core multiple MCs
 
         with mp.Pool(NUM_CORES) as pool:
-            ts, data_to_return, nuisance_to_return = pool.starmap(self.toy_ts, args)
+            return_args = pool.starmap(self.toy_ts, args)
+
+        ts = [arr[0] for arr in return_args]
+        data_to_return = [arr[1] for arr in return_args]
+        nuisance_to_return = [arr[2] for arr in return_args]
 
         # data_to_return is a jagged list, each element is a 2d-array filled it nans
         # First, find the maximum length of array we will need to pad to

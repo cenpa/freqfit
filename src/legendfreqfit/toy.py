@@ -40,6 +40,7 @@ class Toy:
 
         # draw random nuisance parameters according to their constraints
         if self.experiment._nuisance_to_vary_values is not None:
+            np.random.seed(seed=seed)
             randnuisance = np.random.multivariate_normal(
                 self.experiment._nuisance_to_vary_values,
                 self.experiment._nuisance_to_vary_covar,
