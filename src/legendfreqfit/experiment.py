@@ -260,6 +260,7 @@ class Experiment(Superset):
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seed: np.array = None,
+        return_data: bool = False,  # if true, return the rvs for the toys as well as any varied nuisance parameters
     ):
         """
         Makes a number of toys and returns their test statistics.
@@ -274,11 +275,28 @@ class Experiment(Superset):
             if len(seed) != num:
                 raise ValueError("Seeds must have same length as the number of toys!")
 
+        data_to_return = []
+        nuisance_to_return = []
         for i in range(num):
             thistoy = self.maketoy(parameters=parameters, seed=seed[i])
             ts[i] = thistoy.ts(profile_parameters=profile_parameters)
+            data_to_return.append(thistoy.toydata_to_save)
+            nuisance_to_return.append(thistoy.varied_nuisance_to_save)
 
-        return ts
+        if return_data:
+            # Need to flatten the data_to_return in order to save it in h5py
+            data_to_return_flat = (
+                np.ones(
+                    (len(data_to_return), np.max([len(arr) for arr in data_to_return]))
+                )
+                * np.nan
+            )
+            for i, arr in enumerate(data_to_return):
+                data_to_return_flat[i, : len(arr)] = arr
+
+            return ts, data_to_return_flat, nuisance_to_return
+        else:
+            return ts
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently

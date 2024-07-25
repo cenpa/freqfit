@@ -3,8 +3,8 @@ A class that holds a collection of fake datasets and associated hardware
 """
 import logging
 
-from iminuit import Minuit, cost
 import numpy as np
+from iminuit import Minuit, cost
 
 from legendfreqfit.utils import grab_results
 
@@ -31,14 +31,26 @@ class Toy:
         """
 
         self.experiment = experiment
+        self.toydata_to_save = (
+            []
+        )  # list to store the data drawn for this toy. A flat array, consists of all data from all datasets
+        self.varied_nuisance_to_save = (
+            []
+        )  # 2d array of randomly varied nuisance parameters, per dataset
 
         # draw random nuisance parameters according to their constraints
         if self.experiment._nuisance_to_vary_values is not None:
-            randnuisance = np.random.multivariate_normal(self.experiment._nuisance_to_vary_values, self.experiment._nuisance_to_vary_covar)
+            randnuisance = np.random.multivariate_normal(
+                self.experiment._nuisance_to_vary_values,
+                self.experiment._nuisance_to_vary_covar,
+            )
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, nuipar in enumerate(self.experiment.nuisance_to_vary):
                 parameters[nuipar] = randnuisance[i]
+
+            # Save the values of these randomized nuisance parameters
+            self.varied_nuisance_to_save.append(randnuisance)
 
         # find which parameters are part of Datasets that have data
         parstofitthathavedata = set()
@@ -61,6 +73,7 @@ class Toy:
 
             # make the fake data for this particular dataset
             toydata = dataset.rvs(*par, seed=thisseed)
+            self.toydata_to_save.extend(toydata)  # store the data as list of lists
 
             # make the cost function for this particular dataset
             thiscostfunction = dataset._costfunctioncall(toydata, dataset.density)
@@ -91,7 +104,9 @@ class Toy:
             for i, par in enumerate(constraint._parameters):
                 if par in self.experiment.nuisance_to_vary:
                     conval[i] = parameters[par]
-            self.costfunction += cost.NormalConstraint(constraint._parameters, conval, error=constraint.covariance)
+            self.costfunction += cost.NormalConstraint(
+                constraint._parameters, conval, error=constraint.covariance
+            )
 
         guess = {}
         for par in self.fitparameters:
@@ -196,9 +211,9 @@ class Toy:
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
     def visualize(
-        self, 
+        self,
         parameters: dict,
-        component_kwargs = None,
+        component_kwargs=None,
     ) -> None:
         """
         Visualize data and model agreement (requires matplotlib).

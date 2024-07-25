@@ -201,14 +201,24 @@ class SetLimit(Experiment):
             j = j + num
 
         args = [
-            [parameters, profile_parameters, num_toy, seeds_per_toy[i]]
+            [parameters, profile_parameters, num_toy, seeds_per_toy[i], True]
             for i, num_toy in enumerate(toys_per_core)
         ]  # give each core multiple MCs
 
         with mp.Pool(NUM_CORES) as pool:
-            ts = pool.starmap(self.toy_ts, args)
+            ts, data_to_return, nuisance_to_return = pool.starmap(self.toy_ts, args)
 
-        return np.hstack(ts)
+        # data_to_return is a jagged list, each element is a 2d-array filled it nans
+        # First, find the maximum length of array we will need to pad to
+        maxlen = np.amax([len(arr[0]) for arr in data_to_return])
+        data_flattened = [e for arr in data_to_return for e in arr]
+
+        # Need to flatten the data_to_return in order to save it in h5py
+        data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
+        for i, arr in enumerate(data_flattened):
+            data_to_return_flat[i, : len(arr)] = arr
+
+        return np.hstack(ts), data_to_return_flat, np.vstack(nuisance_to_return)
 
     def run_toys(
         self,
@@ -262,7 +272,7 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts = self.toy_ts_mp(
+        toyts, data, nuisance = self.toy_ts_mp(
             toypars, {f"{self.var_to_profile}": scan_point}, num=self.numtoy
         )
 
@@ -271,6 +281,8 @@ class SetLimit(Experiment):
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_point)
+        dset = f.create_dataset("Es", data=data)
+        dset = f.create_dataset("nuisance", data=nuisance)
 
         f.close()
 
