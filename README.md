@@ -5,7 +5,7 @@ LEGEND 0v2b frequentist analysis
 
 ### config format
 
-Config files are `.yaml` files that contain several different dictionaries, described below. There are 4 primary dictionaries at the top level: `datasets`, `parameters`, `constraints`, and `options`.
+Config files are `.yaml` files that contain several different dictionaries, described below. There are 4 primary dictionaries at the top level: `datasets`, `parameters`, `constraints`, and `options`. Note that the default value for options not explicitly provided is `False`.
 
 ```yaml
 datasets: # the collection of datasets
