@@ -63,14 +63,14 @@ constraints:
     values: [0, 10, 5]
 ```
 
-or you can apply a single uncertainty and value to several parameters
+or you can apply a single uncertainty to several parameters (note that each needs a separate value currently)
 
 ```yaml
 constraints:
   myconstraint:
     parameters: [a, b, c]
     uncertainty: 1.0
-    values: 0.0
+    values: [0, 10, 5]
 ```
 
 or you can provide a covariance matrix (which must be positive semi-definite, i.e. a proper covariance matrix). Note that the syntax changes from `uncertainty` to `covariance` in this case. (Using both will generate an error.)
