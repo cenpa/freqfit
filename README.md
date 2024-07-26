@@ -5,7 +5,9 @@ LEGEND 0v2b frequentist analysis
 
 ### config format
 
-Config files are `.yaml` files that contain several different dictionaries, described below. There are 4 primary dictionaries at the top level: `datasets`, `parameters`, `constraints`, and `options`. Note that the default value for options not explicitly provided is `False`.
+Config files are `.yaml` files that contain several different dictionaries, described below. There are 4 primary dictionaries at the top level: `datasets`, `parameters`, `constraints`, and `options`. 
+
+Note that the default value for options not explicitly provided is usually `False`.
 
 ```yaml
 datasets: # the collection of datasets
@@ -28,13 +30,14 @@ datasets: # the collection of datasets
 
 parameters: # the collection of parameters
   a_ds1: # parameter name
-    value: 0.0 # parameter value (note it will be a fixed parameter)
+    value: 0.0 # parameter value (note it will be a fixed parameter by default)
   a_ds2:
     value: 0.0 # initial guess for the parameter (since it is a fitted parameter)
     includeinfit: true  # whether to include in the fit
     nuisance: true  # whether this is a nuisance parameter
     fix_if_no_data: true  # if the dataset has no data, then we will skip trying to fit this parameter
     vary_by_constraint: true  # if we run toys, we will vary the true value of this parameter by the provided constraint
+    fixed: false # you can fix parameters that are included in the fit (the only time this option is used)
   global_b:
     value: 0.0 
     includeinfit: true 
