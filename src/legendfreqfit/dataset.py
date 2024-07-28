@@ -69,6 +69,7 @@ class Dataset:
         self.data = np.asarray(data)
         self.name = name
         self.model = model
+        self.model_parameters = model_parameters
 
         # check that all passed parameters are valid
         for parameter in model_parameters:
@@ -95,7 +96,6 @@ class Dataset:
                 cost functions"
             raise NotImplementedError(msg)
 
-        self.model_parameters = model_parameters
         self._parlist = []
         self._parlist_indices = (
             []
@@ -132,6 +132,10 @@ class Dataset:
                         model `{self.model}` parameter `{par}`"
                     raise KeyError(msg)
                 self._parlist.append(parameters[model_parameters[par]]["value"])
+
+                if "nuisance" in parameters[model_parameters[par]] and parameters[model_parameters[par]]["nuisance"]:
+                    msg = f"parameter `{par}` has `includeinfit` as `False` but `nuisance` as `True`. `{par}` will not be included in fit."
+                    logging.warning(msg)
 
         return
 
@@ -181,3 +185,7 @@ class Dataset:
             self._parlist[self._parlist_indices[i]] = par[i]
 
         return self.model.extendedrvs(*self._parlist, seed=seed)
+
+# method to combine datasets
+def combine_datasets():
+    return
