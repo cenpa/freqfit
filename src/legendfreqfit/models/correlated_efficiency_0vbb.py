@@ -471,11 +471,9 @@ class correlated_efficiency_0vbb_gen:
         plt.step(Es, y)
         plt.show()
     
-    # needs to return 1) a bool indicating whether the combine is allowed/successful
-    # and 2) the resultant parameters and data from the combination OR None if the combination is not allowed
-    #
     # function call needs to take the same parameters as the other function calls, in the same order repeated twice
     # this is intended only for empty datasets
+    # returns `None` if we couldn't combine the datasets (a dataset was not empty)
     def combine(
         self,
         a_Es: np.array,
