@@ -470,6 +470,55 @@ class correlated_efficiency_0vbb_gen:
         
         plt.step(Es, y)
         plt.show()
+    
+    # needs to return 1) a bool indicating whether the combine is allowed/successful
+    # and 2) the resultant parameters and data from the combination OR None if the combination is not allowed
+    #
+    # function call needs to take the same parameters as the other function calls, in the same order repeated twice
+    # this is intended only for empty datasets
+    def combine(
+        self,
+        a_Es: np.array,
+        a_S: float,
+        a_BI: float,
+        a_delta: float,
+        a_sigma: float,
+        a_eff: float,
+        a_effunc: float,
+        a_effuncscale: float,
+        a_exp: float,
+        b_Es: np.array,
+        b_S: float,
+        b_BI: float,
+        b_delta: float,
+        b_sigma: float,
+        b_eff: float,
+        b_effunc: float,
+        b_effuncscale: float,
+        b_exp: float,        
+    ) -> list | None:
+
+        # datasets must be empty to be combined
+        if len(a_Es) != 0 or len(b_Es) != 0:
+            return None
+
+        Es = np.array([]) # both of these datasets are empty
+        S = 0.0 # this should be overwritten in the fit later
+        BI = 0.0 # this should be overwritten in the fit later
+        delta = 0.0 # for empty datasets, this nuisance parameter doesn't matter
+
+        exp = a_exp + b_exp # total exposure
+        
+        # exposure weighted fixed parameters (important to calculate correctly)
+        sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
+        eff = (a_exp * a_eff + b_exp * b_eff) / exp
+
+        # these are fully correlated in this model so the direct sum is appropriate
+        effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+
+        effuncscale = 0.0 # this should be overwritten in the fit later
+
+        return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
 
 
 correlated_efficiency_0vbb = correlated_efficiency_0vbb_gen()

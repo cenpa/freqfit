@@ -88,6 +88,20 @@ def load_config(
                 if "covariance" in constraint and not isinstance(constraint["covariance"], np.ndarray):
                     constraint["covariance"] = np.asarray(constraint["covariance"])
 
+    if "combined_groups" in config:
+        for groupname, group in config["combined_groups"].items():
+            if "model" in group:
+                models.add(group["model"])
+            else:
+                msg = f"combined_groups `{groupname}` has no `model`"
+                raise KeyError(msg)
+
+        if "costfunction" in group:
+            costfunctions.add(group["costfunction"])
+        else:
+            msg = f"combined_groups `{groupname}` has no `costfunction`"
+            raise KeyError(msg)
+
     # this is specific to set up of 0vbb model
     for model in models:
         modelclassname = model.split(".")[-1]
@@ -96,6 +110,10 @@ def load_config(
         for datasetname, dataset in config["datasets"].items():
             if dataset["model"] == model:
                 dataset["model"] = modelclass
+
+        for groupname, group in config["combined_groups"].items():
+            if group["model"] == model:
+                group["model"] = modelclass
 
     # specific to iminuit
     for costfunctionname in costfunctions:
@@ -106,6 +124,10 @@ def load_config(
         for datasetname, dataset in config["datasets"].items():
             if dataset["costfunction"] == costfunctionname:
                 dataset["costfunction"] = costfunction
+
+        for groupname, group in config["combined_groups"].items():
+            if group["costfunction"] == costfunctionname:
+                group["costfunction"] = costfunction
 
     # convert any limits from string to python object
     for par, pardict in config["parameters"].items():
