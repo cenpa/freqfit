@@ -7,7 +7,7 @@ LEGEND 0v2b frequentist analysis
 
 Config files are `.yaml` files that contain several different dictionaries, described below. There are 4 primary dictionaries at the top level: `datasets`, `parameters`, `constraints`, and `options`. 
 
-Note that the default value for options not explicitly provided is usually `False`.
+Note that the default value for options not explicitly provided is (usually) `False`.
 
 ```yaml
 datasets: # the collection of datasets
@@ -20,13 +20,32 @@ datasets: # the collection of datasets
       b: global_b # shared parameter names indicate the same parameter across different datasets
 
   ds2:
+    combine: True # whether to attempt to combine this dataset with others (see further details below)
+    combined_group: empty_ds # name of the group to attempt to join
     costfunction: ExtendedUnbinnedNLL
-    data: [...] 
+    data: [] # this dataset has no data
     model: legendfreqfit.models.mymodel
     model_parameters:
       a: a_ds2
-      b: global_par2 # shared parameter names indicate the same parameter across different datasets
-  
+      b: global_b 
+ 
+  ds3:
+    combine: True
+    combined_group: empty_ds
+    costfunction: ExtendedUnbinnedNLL
+    data: [] 
+    model: legendfreqfit.models.mymodel
+    model_parameters:
+      a: a_ds3
+      b: global_b
+      
+combined_groups: # details of how we should attempt to combine datasets
+  empty_ds: # name of the combined datasets
+    costfunction: ExtendedUnbinnedNLL
+    model: legendfreqfit.models.mymodel # model for the combined group (must match the datasets being added for now)
+    model_parameters:
+      a: a_empty_ds
+      b: global_b
 
 parameters: # the collection of parameters
   a_ds1: # parameter name
@@ -37,7 +56,12 @@ parameters: # the collection of parameters
     nuisance: true  # whether this is a nuisance parameter
     fix_if_no_data: true  # if the dataset has no data, then we will skip trying to fit this parameter
     vary_by_constraint: true  # if we run toys, we will vary the true value of this parameter by the provided constraint
-    fixed: false # you can fix parameters that are included in the fit (the only time this option is used)
+    fixed: false # you can fix parameters that are included in the fit (the only time this option is used, default is false)
+  a_ds3:
+    value: 0.0
+  a_empty_ds: # parameters from combined_groups also need to appear (nuisance parameters are varied at the level of datasets, not combined datasets)
+    value_from_combine: true # will use the value from the combined datasets here, which is particularly important for fixed parameters
+    includeinfit: false # in this case, we want to fix the value of this parameter after combining the datasets
   global_b:
     value: 0.0 
     includeinfit: true 
@@ -51,6 +75,7 @@ constraints: # the collection of constraints (a Gaussian constraint term in the 
 
 options: # a collection of global options (only one option so far)
   combine_constraints: true # whether to combine constraints into a single `NormalConstraint` to reduce computation time
+  combine_datasets: true # whether to attempt to combine datasets
 ```
 
 For `constraints`, there are some additional options for how to specify these constraints. You can provide a list of parameters, values, and uncertainties:
@@ -82,6 +107,8 @@ constraints:
     covariance: [[1, -0.5], [-0.5, 1]]
     values: [2, 3]
 ```
+
+You can specify independent datasets that should later be combined `combined_groups`. This is useful for LEGEND where we have many, independent datasets with their own nuisance parameters. For our fit, it is much faster to simply combine all datasets that have no events (are empty). However, in generating our toys, we would like to vary the nuisance parameters and draw events randomly for all datasets. We therefore would like to combine datasets during our toys on the fly. Since, for each toy, we do no a prior know which datasets are empty and can be combined, we have written the code in such a way as to attempt to combine datasets. This is a very niche use case and probably only relevant for the 0vbb fit.
 
 ---
 

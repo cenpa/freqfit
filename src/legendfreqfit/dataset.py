@@ -97,9 +97,8 @@ class Dataset:
             raise NotImplementedError(msg)
 
         self._parlist = []
-        self._parlist_indices = (
-            []
-        )  # indices in self._parlist of the the parameters to be fit
+        # indices in self._parlist of the the parameters to be fit
+        self._parlist_indices = ([])  
         # dict of those parameters for fit, keys are parameter names, values are indices in self._parlist (same as in
         # self._parlist_indices)
         self.fitparameters = {}
@@ -120,7 +119,11 @@ class Dataset:
                     if "limits" in parameters[model_parameters[par]]
                     else None
                 }
-                self._parlist.append(None)
+                if ("value" not in parameters[model_parameters[par]]):
+                    msg = (f"`Dataset` `{self.name}`: value for parameter `{par}` is required for" 
+                        + f" model `{model}` parameter `{par}`")
+                    raise KeyError(msg)                    
+                self._parlist.append(parameters[model_parameters[par]]["value"])
                 self._parlist_indices.append(i)
                 self.fitparameters |= {model_parameters[par]: i}
 
@@ -128,8 +131,8 @@ class Dataset:
                 if ("value" not in parameters[model_parameters[par]]) and (
                     defaultvalue == "nodefaultvalue"
                 ):
-                    msg = f"`Dataset` `{self.name}`: value for parameter `{par}` is required for \
-                        model `{self.model}` parameter `{par}`"
+                    msg = (f"`Dataset` `{self.name}`: value for parameter `{par}` is required for" 
+                        + f"model `{model}` parameter `{par}`")
                     raise KeyError(msg)
                 self._parlist.append(parameters[model_parameters[par]]["value"])
 
@@ -187,5 +190,77 @@ class Dataset:
         return self.model.extendedrvs(*self._parlist, seed=seed)
 
 # method to combine datasets
-def combine_datasets():
-    return
+def combine_datasets(
+    datasets: list[Dataset, ...],
+    model,
+    model_parameters: dict[str, str],
+    parameters: dict,
+    costfunction: cost.Cost,
+    name: str = "", 
+) -> Dataset:
+    """
+    Parameters
+    ----------
+    datasets
+        tuple of the `Dataset` to combine
+    model
+        model of the combined `Dataset` (see `Dataset`)
+    model_parameters
+        see `Dataset`
+    parameters
+        see `Dataset`
+    costfunction
+        see `Dataset`
+    name
+        name of the combined `Dataset`
+    """
+            
+    if not isinstance(datasets, list) or not all(isinstance(ds, Dataset) for ds in datasets):
+        msg = "must be `list` of `Datasets` to be combined"
+        raise TypeError(msg)
+
+    # if len(datasets) == 1:
+    #     msg = f"only one `Dataset` named `{datasets[0].name}` was provided to combine in group `{name}`"
+    #     logging.warning(msg)
+
+    included_datasets = []
+    combination = None
+
+    for i, ds in enumerate(datasets):
+        if ds.model != model:
+            msg = f"`Dataset` {ds.name} has model `{ds.model}` != `{model}` - must be the same to combine"
+            raise NotImplementedError(msg)
+
+        if ds._costfunctioncall != costfunction:
+            msg = f"`Dataset` {ds.name} has costfunction `{ds._costfunctioncall}` != `{costfunction}` - must be the same to combine"
+            raise NotImplementedError(msg)
+
+        # if first dataset, the combination is just the stuff needed to recreate it
+        if i == 0:
+            combination = [ds.data, *ds._parlist]
+            included_datasets.append(ds.name)
+        else:
+            result = model.combine(*combination, ds.data, *ds._parlist)
+            if result is not None: # if None, we cannot combine them
+                combination = result
+                included_datasets.append(ds.name)
+
+    # now to set the parameters based on the combined results
+    simplified_parameters = {}
+    # model.parameters contains all parameters, including default valued ones
+    for i, par in enumerate(model.parameters.keys()):
+        # let Dataset handle errors if parameters are missing
+        if par in model_parameters:
+            parname = model_parameters[par]
+            # I think this is a reference not a copy!
+            simplified_parameters[parname] = parameters[parname]
+            # hence why it is important to check whether we should overwrite the value
+            if "value_from_combine" in parameters[parname] and parameters[parname]["value_from_combine"]:
+                # i+1 because data occupies index 0
+                simplified_parameters[parname]["value"] = combination[i+1]
+
+    data = combination[0]
+
+    combined_dataset = Dataset(data, model, model_parameters, simplified_parameters, costfunction, name)
+
+    return combined_dataset, included_datasets
