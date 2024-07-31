@@ -88,18 +88,18 @@ def load_config(
                 if "covariance" in constraint and not isinstance(constraint["covariance"], np.ndarray):
                     constraint["covariance"] = np.asarray(constraint["covariance"])
 
-    if "combined_groups" in config:
-        for groupname, group in config["combined_groups"].items():
+    if "combined_datasets" in config:
+        for groupname, group in config["combined_datasets"].items():
             if "model" in group:
                 models.add(group["model"])
             else:
-                msg = f"combined_groups `{groupname}` has no `model`"
+                msg = f"combined_datasets `{groupname}` has no `model`"
                 raise KeyError(msg)
 
         if "costfunction" in group:
             costfunctions.add(group["costfunction"])
         else:
-            msg = f"combined_groups `{groupname}` has no `costfunction`"
+            msg = f"combined_datasets `{groupname}` has no `costfunction`"
             raise KeyError(msg)
 
     # this is specific to set up of 0vbb model
@@ -111,7 +111,7 @@ def load_config(
             if dataset["model"] == model:
                 dataset["model"] = modelclass
 
-        for groupname, group in config["combined_groups"].items():
+        for groupname, group in config["combined_datasets"].items():
             if group["model"] == model:
                 group["model"] = modelclass
 
@@ -125,7 +125,7 @@ def load_config(
             if dataset["costfunction"] == costfunctionname:
                 dataset["costfunction"] = costfunction
 
-        for groupname, group in config["combined_groups"].items():
+        for groupname, group in config["combined_datasets"].items():
             if group["costfunction"] == costfunctionname:
                 group["costfunction"] = costfunction
 

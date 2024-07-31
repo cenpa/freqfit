@@ -39,15 +39,15 @@ class Toy:
         )  # 2d array of randomly varied nuisance parameters, per dataset
 
         # draw random nuisance parameters according to their constraints
-        if self.experiment._nuisance_to_vary_values is not None:
+        if self.experiment.toypars_to_vary_values is not None:
             np.random.seed(seed=seed)
             randnuisance = np.random.multivariate_normal(
-                self.experiment._nuisance_to_vary_values,
-                self.experiment._nuisance_to_vary_covar,
+                self.experiment.toypars_to_vary_values,
+                self.experiment.toypars_to_vary_covariance,
             )
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
-            for i, nuipar in enumerate(self.experiment.nuisance_to_vary):
+            for i, nuipar in enumerate(self.experiment.toypars_to_vary):
                 parameters[nuipar] = randnuisance[i]
 
             # Save the values of these randomized nuisance parameters
@@ -103,7 +103,7 @@ class Toy:
         for constraintname, constraint in experiment.constraints.items():
             conval = constraint.value
             for i, par in enumerate(constraint._parameters):
-                if par in self.experiment.nuisance_to_vary:
+                if par in self.experiment.toypars_to_vary:
                     conval[i] = parameters[par]
             self.costfunction += cost.NormalConstraint(
                 constraint._parameters, conval, error=constraint.covariance

@@ -20,6 +20,8 @@ class Dataset:
         parameters: dict,
         costfunction: cost.Cost,
         name: str = "",
+        try_combine: bool = False,
+        combined_dataset: str = None,
     ) -> None:
         """
         Parameters
@@ -66,10 +68,28 @@ class Dataset:
         Currently, only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as cost functions.
         """
 
-        self.data = np.asarray(data)
-        self.name = name
-        self.model = model
-        self.model_parameters = model_parameters
+        self.data = np.asarray(data) # the data of this Dataset
+        self.name = name # name of this Dataset
+        self.model = model # model object for this Dataset
+        self.model_parameters = model_parameters # model parameter name : parameter name 
+
+        self._costfunctioncall = None # function call for the costfunction
+        self.costfunction = None # iminuit cost function object
+
+        self._parlist = [] # list that contains all of the parameters of the model for this Dataset in the correct order
+        self._parlist_indices = ([]) # indices in self._parlist of the the parameters to be fit 
+        self.fitparameters = {} # fit parameter names : indices in self._parlist (same as in self._parlist_indices)
+
+        self.try_combine = try_combine # whether to attempt to combine this Dataset into a combined_dataset
+        self.is_combined = False # whether this Dataset is combined into a combined_dataset
+        self.combined_dataset = None # name of the combined_dataset that this Dataset is part of
+
+        if self.try_combine:
+            if combined_dataset is None:
+                msg = f"`Dataset` `{self.name}` has `try_combine` `{self.try_combine}` but `combined_dataset` is {combined_dataset}"
+                raise ValueError(msg)   
+            else:             
+                self.combined_dataset = combined_dataset
 
         # check that all passed parameters are valid
         for parameter in model_parameters:
@@ -95,13 +115,6 @@ class Dataset:
             msg = f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as \
                 cost functions"
             raise NotImplementedError(msg)
-
-        self._parlist = []
-        # indices in self._parlist of the the parameters to be fit
-        self._parlist_indices = ([])  
-        # dict of those parameters for fit, keys are parameter names, values are indices in self._parlist (same as in
-        # self._parlist_indices)
-        self.fitparameters = {}
 
         # now we make the parameters of the cost function
         # need to go in order of the model
@@ -202,7 +215,8 @@ def combine_datasets(
     Parameters
     ----------
     datasets
-        tuple of the `Dataset` to combine
+        tuple of the `Dataset` to combine. The `model` must have a `combine` method that specifies whether and how the 
+        datasets are to be combined.
     model
         model of the combined `Dataset` (see `Dataset`)
     model_parameters
@@ -245,22 +259,26 @@ def combine_datasets(
                 combination = result
                 included_datasets.append(ds.name)
 
-    # now to set the parameters based on the combined results
-    simplified_parameters = {}
-    # model.parameters contains all parameters, including default valued ones
-    for i, par in enumerate(model.parameters.keys()):
-        # let Dataset handle errors if parameters are missing
-        if par in model_parameters:
-            parname = model_parameters[par]
-            # I think this is a reference not a copy!
-            simplified_parameters[parname] = parameters[parname]
-            # hence why it is important to check whether we should overwrite the value
-            if "value_from_combine" in parameters[parname] and parameters[parname]["value_from_combine"]:
-                # i+1 because data occupies index 0
-                simplified_parameters[parname]["value"] = combination[i+1]
+    # return the combined dataset if we combined some datasets
+    combined_dataset = None
+    if len(included_datasets) > 0:
+            
+        # now to set the parameters based on the combined results
+        simplified_parameters = {}
+        # model.parameters contains all parameters, including default valued ones
+        for i, par in enumerate(model.parameters.keys()):
+            # let Dataset handle errors if parameters are missing
+            if par in model_parameters:
+                parname = model_parameters[par]
+                # I think this is a reference not a copy!
+                simplified_parameters[parname] = parameters[parname]
+                # hence why it is important to check whether we should overwrite the value
+                if "value_from_combine" in parameters[parname] and parameters[parname]["value_from_combine"]:
+                    # i+1 because data occupies index 0
+                    simplified_parameters[parname]["value"] = combination[i+1]
 
-    data = combination[0]
+        data = combination[0]
 
-    combined_dataset = Dataset(data, model, model_parameters, simplified_parameters, costfunction, name)
+        combined_dataset = Dataset(data, model, model_parameters, simplified_parameters, costfunction, name)
 
     return combined_dataset, included_datasets
