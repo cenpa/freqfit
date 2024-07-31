@@ -38,20 +38,20 @@ class Toy:
             []
         )  # 2d array of randomly varied nuisance parameters, per dataset
 
-        # draw random nuisance parameters according to their constraints
+        # vary the toy parameters as indicated
         if self.experiment.toypars_to_vary_values is not None:
             np.random.seed(seed=seed)
-            randnuisance = np.random.multivariate_normal(
+            varied_toypars = np.random.multivariate_normal(
                 self.experiment.toypars_to_vary_values,
                 self.experiment.toypars_to_vary_covariance,
             )
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
-            for i, nuipar in enumerate(self.experiment.toypars_to_vary):
-                parameters[nuipar] = randnuisance[i]
+            for i, par in enumerate(self.experiment.toypars_to_vary):
+                parameters[par] = varied_toypars[i]
 
             # Save the values of these randomized nuisance parameters
-            self.varied_nuisance_to_save.append(randnuisance)
+            self.varied_nuisance_to_save.append(varied_toypars)
 
         # find which parameters are part of Datasets that have data
         parstofitthathavedata = set()
@@ -63,18 +63,20 @@ class Toy:
             thisseed = seed + i
 
             # allocate length in case `parameters` is passed out of order
-            par = [None for j in range(len(dataset.fitparameters))]
+            pars = [None for j in range(len(dataset.fitparameters))]
 
             for j, (fitpar, fitparindex) in enumerate(dataset.fitparameters.items()):
                 if fitpar not in parameters:
                     msg = f"`Toy`: for `Dataset` {datasetname}, parameter `{fitpar}` not found in passed `parameters`"
                     raise KeyError(msg)
 
-                par[j] = parameters[fitpar]
+                pars[j] = parameters[fitpar]
 
             # make the fake data for this particular dataset
-            toydata = dataset.rvs(*par, seed=thisseed)
+            toydata = dataset.rvs(*pars, seed=thisseed)
             self.toydata_to_save.extend(toydata)  # store the data as list of lists
+
+            # COMBINE DATASETS HERE?
 
             # make the cost function for this particular dataset
             thiscostfunction = dataset._costfunctioncall(toydata, dataset.density)

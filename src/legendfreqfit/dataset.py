@@ -78,7 +78,9 @@ class Dataset:
 
         self._parlist = [] # list that contains all of the parameters of the model for this Dataset in the correct order
         self._parlist_indices = ([]) # indices in self._parlist of the the parameters to be fit 
-        self.fitparameters = {} # fit parameter names : indices in self._parlist (same as in self._parlist_indices)
+        
+        self.fitparameters = {} # fit parameter names : index in self._parlist (same as in self._parlist_indices)
+        self.toypars_to_vary = {} # parameter to vary for toys : index in self._parlist
 
         self.try_combine = try_combine # whether to attempt to combine this Dataset into a combined_dataset
         self.is_combined = False # whether this Dataset is combined into a combined_dataset
@@ -132,6 +134,7 @@ class Dataset:
                     if "limits" in parameters[model_parameters[par]]
                     else None
                 }
+
                 if ("value" not in parameters[model_parameters[par]]):
                     msg = (f"`Dataset` `{self.name}`: value for parameter `{par}` is required for" 
                         + f" model `{model}` parameter `{par}`")
@@ -144,14 +147,17 @@ class Dataset:
                 if ("value" not in parameters[model_parameters[par]]) and (
                     defaultvalue == "nodefaultvalue"
                 ):
-                    msg = (f"`Dataset` `{self.name}`: value for parameter `{par}` is required for" 
-                        + f"model `{model}` parameter `{par}`")
+                    msg = (f"`Dataset` '{self.name}': value for parameter '{par}' is required for" 
+                        + f"model '{model}' parameter '{par}'")
                     raise KeyError(msg)
                 self._parlist.append(parameters[model_parameters[par]]["value"])
 
-                if "nuisance" in parameters[model_parameters[par]] and parameters[model_parameters[par]]["nuisance"]:
-                    msg = f"parameter `{par}` has `includeinfit` as `False` but `nuisance` as `True`. `{par}` will not be included in fit."
-                    logging.warning(msg)
+            if ("vary_by_constraint" in parameters[model_parameters[par]]) and (
+                parameters[model_parameters[par]]["vary_by_constraint"]
+            ):
+                self.toypars_to_vary[model_parameters[par]] = i
+                msg = f"`Dataset` '{self.name}': adding parameter '{model_parameters[par]}' as parameter to vary for toys"
+                logging.info(msg)
 
         return
 
@@ -253,11 +259,18 @@ def combine_datasets(
         if i == 0:
             combination = [ds.data, *ds._parlist]
             included_datasets.append(ds.name)
+            msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
+            logging.info(msg)
         else:
             result = model.combine(*combination, ds.data, *ds._parlist)
             if result is not None: # if None, we cannot combine them
                 combination = result
                 included_datasets.append(ds.name)
+                msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
+                logging.info(msg)
+            else:
+                msg = f"not able to combine `Dataset` '{ds.name}' with combined dataset '{name}', will be kept separate"
+                logging.info(msg)
 
     # return the combined dataset if we combined some datasets
     combined_dataset = None

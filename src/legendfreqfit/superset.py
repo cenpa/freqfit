@@ -159,11 +159,12 @@ class Superset:
                 del self.parameters[parameter]
         
         # collect which parameters are included as parameters to vary for the toys
-        for parname, pardict in self.parameters.items():
-            if "vary_by_constraint" in pardict and pardict["vary_by_constraint"]:
-                self.toypars_to_vary[parname] = len(self.toypars_to_vary) 
-                msg = f"added parameter '{parname}' as a parameter to vary for toys"
-                logging.info(msg)
+        for dsname, ds in self.datasets.items():
+            for parname in ds.toypars_to_vary.keys():
+                if parname not in self.toypars_to_vary.keys():
+                    self.toypars_to_vary[parname] = len(self.toypars_to_vary) 
+                    msg = f"`Superset`: added parameter '{parname}' as a parameter to vary for toys"
+                    logging.info(msg)
         
         # if no constraints and nothing needs constraints, we're done
         if len(self.toypars_to_vary) == 0 and constraints is None:
@@ -283,7 +284,7 @@ class Superset:
                 if inpars and par not in self.fitparameters:
                     all_used_for_constraints = False
                     msg = (
-                        f"constraint '{constraintname}' includes parameter '{par}', which is not a parameter to be fit"
+                        f"constraint '{constraintname}' includes parameter '{par}', which is not a parameter to be fit "
                         + f"(probably used a fixed parameter or part of a combined_dataset) - '{constraintname}' not added as a constraint."
                     )
                     logging.warning(msg)    
