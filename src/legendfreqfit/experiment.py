@@ -21,66 +21,49 @@ class Experiment(Superset):
         config: dict,
         name: str = None,
     ) -> None:
-        constraints = config["constraints"] if "constraints" in config else None
 
         self.options = {}
-        # it greatly reduces the fit time to combine all constraints into a single constraint instead.
-        self.options["combine_constraints"] = False
+
         if "options" in config:
-            if "combine_constraints" in config["options"]:
-                self.options["combine_constraints"] = config["options"][
-                    "combine_constraints"
+            if "try_to_combine_datasets" in config["options"]:
+                self.options["try_to_combine_datasets"] = config["options"][
+                    "try_to_combine_datasets"
                 ]
+            else:
+                self.options["try_to_combine_datasets"] = False
+
+        constraints = None
+        if "constraints" in config:
+            constraints = config["constraints"]
+            msg = f"found 'constraints' in config"
+            logging.info(msg)
+        else:
+            msg = f"did not find 'constraints' in config"
+            logging.info(msg)
 
         super().__init__(
             datasets=config["datasets"],
             parameters=config["parameters"],
             constraints=constraints,
+            combined_datasets=config["combined_datasets"],
             name=name,
-            combine_constraints=self.options["combine_constraints"],
+            try_to_combine_datasets=self.options["try_to_combine_datasets"],
         )
 
-        # collect which parameters are included as nuisance parameters
-        self.nuisance = set()
-        self.nuisance_to_vary = {}
-        for parname, pardict in self.parameters.items():
-            if "includeinfit" in pardict and pardict["includeinfit"]:
-                if "nuisance" in pardict and pardict["nuisance"]:
-                    if "fixed" in pardict and pardict["fixed"]:
-                        msg = f"parameter '{parname}' has `fixed` as `True` and `nuisance` as `True`. '{parname}' will be treated as fixed."
-                        logging.warning(msg)
-                    else:
-                        self.nuisance.add(parname)
-                        # whether to vary the nuisance parameters according to their NormalConstraints for toys
-                        if (
-                            "vary_by_constraint" in pardict
-                            and pardict["vary_by_constraint"]
-                        ):
-                            if parname in self.constraint_parameters:
-                                # record these particular parameters indices in the constraint matrix
-                                self.nuisance_to_vary[
-                                    parname
-                                ] = self.constraint_parameters[parname]
-                                msg = f"nuisance parameter '{parname}' will be varied by its constraint for `Toy`"
-                                logging.info(msg)
-                            else:
-                                msg = f"nuisance parameter '{parname}' should be varied by its constraint for `Toy` but no constraint was found!"
-                                logging.error(msg)
-
-        # so that I don't have to do this in Toy millions of times
-        # get the indices of the nuisance parameters to vary for the constraint matrix
-        self._nuisance_to_vary_values = None
-        self._nuisance_to_vary_covar = None
-        nuisance_to_vary_indices = np.array(list(self.nuisance_to_vary.values()))
-        if nuisance_to_vary_indices.size > 0:
-            # central values
-            self._nuisance_to_vary_values = self.constraint_values[
-                nuisance_to_vary_indices
-            ]
-            # covariance sub-matrix
-            self._nuisance_to_vary_covar = self.constraint_covariance[
-                nuisance_to_vary_indices[:, np.newaxis], nuisance_to_vary_indices
-            ]
+        # # so that I don't have to do this in Toy millions of times
+        # # get the indices of the nuisance parameters to vary for the constraint matrix
+        # self._nuisance_to_vary_values = None
+        # self._nuisance_to_vary_covar = None
+        # nuisance_to_vary_indices = np.array(list(self.nuisance_to_vary.values()))
+        # if nuisance_to_vary_indices.size > 0:
+        #     # central values
+        #     self._nuisance_to_vary_values = self.constraint_values[
+        #         nuisance_to_vary_indices
+        #     ]
+        #     # covariance sub-matrix
+        #     self._nuisance_to_vary_covar = self.constraint_covariance[
+        #         nuisance_to_vary_indices[:, np.newaxis], nuisance_to_vary_indices
+        #     ]
 
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
@@ -101,8 +84,8 @@ class Experiment(Superset):
                 for fitpar in self.datasets[datasetname].fitparameters:
                     parstofitthathavedata.add(fitpar)
 
-        # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
-        for parname in self.nuisance:
+        # now check which fit parameters can be fixed if no data and are not part of a Dataset that has data
+        for parname in self.fitparameters:
             if (
                 "fix_if_no_data" in self.parameters[parname]
                 and self.parameters[parname]["fix_if_no_data"]
@@ -112,7 +95,7 @@ class Experiment(Superset):
                     self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]
 
         # to set limits and fixed variables
-        # this function will also fix those nuisance parameters which can be fixed because they are not part of a
+        # this function will also fix those fit parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
 

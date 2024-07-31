@@ -20,8 +20,8 @@ datasets: # the collection of datasets
       b: global_b # shared parameter names indicate the same parameter across different datasets
 
   ds2:
-    combine: True # whether to attempt to combine this dataset with others (see further details below)
-    combined_group: empty_ds # name of the group to attempt to join
+    try_to_combine: True # whether to attempt to combine this dataset with others (see further details below)
+    combined_dataset: empty_ds # name of the group to attempt to join
     costfunction: ExtendedUnbinnedNLL
     data: [] # this dataset has no data
     model: legendfreqfit.models.mymodel
@@ -30,8 +30,8 @@ datasets: # the collection of datasets
       b: global_b 
  
   ds3:
-    combine: True
-    combined_group: empty_ds
+    try_to_combine: True
+    combined_dataset: empty_ds
     costfunction: ExtendedUnbinnedNLL
     data: [] 
     model: legendfreqfit.models.mymodel
@@ -39,7 +39,7 @@ datasets: # the collection of datasets
       a: a_ds3
       b: global_b
       
-combined_groups: # details of how we should attempt to combine datasets
+combined_datasets: # details of how we should attempt to combine datasets
   empty_ds: # name of the combined datasets
     costfunction: ExtendedUnbinnedNLL
     model: legendfreqfit.models.mymodel # model for the combined group (must match the datasets being added for now)
@@ -59,7 +59,7 @@ parameters: # the collection of parameters
     fixed: false # you can fix parameters that are included in the fit (the only time this option is used, default is false)
   a_ds3:
     value: 0.0
-  a_empty_ds: # parameters from combined_groups also need to appear (nuisance parameters are varied at the level of datasets, not combined datasets)
+  a_empty_ds: # parameters from combined_datasets also need to appear (nuisance parameters are varied at the level of datasets, not combined datasets)
     value_from_combine: true # will use the value from the combined datasets here, which is particularly important for fixed parameters
     includeinfit: false # in this case, we want to fix the value of this parameter after combining the datasets
   global_b:
@@ -74,8 +74,7 @@ constraints: # the collection of constraints (a Gaussian constraint term in the 
     values: 0.0 # should be the same value(s) as in `parameters`
 
 options: # a collection of global options (only one option so far)
-  combine_constraints: true # whether to combine constraints into a single `NormalConstraint` to reduce computation time
-  combine_datasets: true # whether to attempt to combine datasets
+  try_to_combine_datasets: true # whether to attempt to combine datasets
 ```
 
 For `constraints`, there are some additional options for how to specify these constraints. You can provide a list of parameters, values, and uncertainties:
@@ -108,7 +107,11 @@ constraints:
     values: [2, 3]
 ```
 
-You can specify independent datasets that should later be combined `combined_groups`. This is useful for LEGEND where we have many, independent datasets with their own nuisance parameters. For our fit, it is much faster to simply combine all datasets that have no events (are empty). However, in generating our toys, we would like to vary the nuisance parameters and draw events randomly for all datasets. We therefore would like to combine datasets during our toys on the fly. Since, for each toy, we do no a prior know which datasets are empty and can be combined, we have written the code in such a way as to attempt to combine datasets. This is a very niche use case and probably only relevant for the 0vbb fit.
+Constraints will be combined into a single `NormalConstraint` as this dramatically improves computation time. This takes the form of a multivariate Gaussian with central values and covariance matrix calculated from the supplied constraints. Only constraints that refer to fit parameters are used. (Parameters in a single provided constraint must all be fit parameters.)
+
+Constraints are also used to specificy how nuisance parameters should be varied for toys. All parameters in a single constraint must be included as a parameter of a dataset, but do not necessarily need to be parameters in the fit.
+
+You can specify independent datasets that should later be combined `combined_datasets`. This is useful for LEGEND where we have many, independent datasets with their own nuisance parameters. For our fit, it is much faster to simply combine all datasets that have no events (are empty). However, in generating our toys, we would like to vary the nuisance parameters and draw events randomly for all datasets. We therefore would like to combine datasets during our toys on the fly. Since, for each toy, we do no a prior know which datasets are empty and can be combined, we have written the code in such a way as to attempt to combine datasets. This is a very niche use case and probably only relevant for the 0vbb fit.
 
 ---
 
@@ -130,6 +133,8 @@ per detector per partition
 ---
 
 ### TODO
+- maybe we need some way to sanitize the inputs before sending them to the classes so we can do less error checking in the classes? to speed up a little?
+- set up logger like this? https://stackoverflow.com/questions/56532106/how-to-use-python-logging-for-a-single-package
 - GERDA: figure out uncertainties
 - do we need to label parameters as both nuisance and includeinfit?
 - add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?
