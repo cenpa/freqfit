@@ -111,9 +111,10 @@ def load_config(
             if dataset["model"] == model:
                 dataset["model"] = modelclass
 
-        for groupname, group in config["combined_datasets"].items():
-            if group["model"] == model:
-                group["model"] = modelclass
+        if "combined_datasets" in config:
+            for groupname, group in config["combined_datasets"].items():
+                if group["model"] == model:
+                    group["model"] = modelclass
 
     # specific to iminuit
     for costfunctionname in costfunctions:
@@ -125,9 +126,10 @@ def load_config(
             if dataset["costfunction"] == costfunctionname:
                 dataset["costfunction"] = costfunction
 
-        for groupname, group in config["combined_datasets"].items():
-            if group["costfunction"] == costfunctionname:
-                group["costfunction"] = costfunction
+        if "combined_datasets" in config:
+            for groupname, group in config["combined_datasets"].items():
+                if group["costfunction"] == costfunctionname:
+                    group["costfunction"] = costfunction
 
     # convert any limits from string to python object
     for par, pardict in config["parameters"].items():

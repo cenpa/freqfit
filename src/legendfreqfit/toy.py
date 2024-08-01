@@ -48,7 +48,12 @@ class Toy:
 
             pars, vals, covar = self.experiment.get_constraints(self.experiment._toy_pars_to_vary)
 
-            varied_toy_pars = np.random.multivariate_normal(vals, covar)
+            varied_toy_pars = []
+            # check if parameters are all independent, draw from simpler distribution if so
+            if np.all(covar == np.diag(np.diagonal(covar))):
+                varied_toy_pars = np.random.normal(vals, np.sqrt(np.diagonal(covar)))
+            else:
+                varied_toy_pars = np.random.multivariate_normal(vals, covar) # sooooooooo SLOW
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
