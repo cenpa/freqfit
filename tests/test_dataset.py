@@ -40,7 +40,7 @@ def test_dataset():
         1,
     ]  # We are fitting both S and BI, which are the first 2 parameters of the gaussian_on_uniform density
     assert np.array_equal(
-        dset._parlist[:], [None, None, 1e-1, 1e-2, 1e-3, 1e-4]
+        dset._parlist[:], [1e-9, 1e-3, 1e-1, 1e-2, 1e-3, 1e-4]
     )  # Check that the initial values are set correctly, exclude the window
 
     # Test the density function handling
