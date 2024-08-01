@@ -50,21 +50,6 @@ class Experiment(Superset):
             try_to_combine_datasets=self.options["try_to_combine_datasets"],
         )
 
-        # # so that I don't have to do this in Toy millions of times
-        # # get the indices of the nuisance parameters to vary for the constraint matrix
-        # self._nuisance_to_vary_values = None
-        # self._nuisance_to_vary_covar = None
-        # nuisance_to_vary_indices = np.array(list(self.nuisance_to_vary.values()))
-        # if nuisance_to_vary_indices.size > 0:
-        #     # central values
-        #     self._nuisance_to_vary_values = self.constraint_values[
-        #         nuisance_to_vary_indices
-        #     ]
-        #     # covariance sub-matrix
-        #     self._nuisance_to_vary_covar = self.constraint_covariance[
-        #         nuisance_to_vary_indices[:, np.newaxis], nuisance_to_vary_indices
-        #     ]
-
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.guess)
