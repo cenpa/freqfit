@@ -80,7 +80,7 @@ class Dataset:
         self._parlist_indices = ([]) # indices in self._parlist of the the parameters to be fit 
         
         self.fitparameters = {} # fit parameter names : index in self._parlist (same as in self._parlist_indices)
-        self._toypars_to_vary = {} # parameter to vary for toys : index in self._parlist
+        self._toy_pars_to_vary = {} # parameter to vary for toys : index in self._parlist
 
         self.try_combine = try_combine # whether to attempt to combine this Dataset into a combined_dataset
         self.is_combined = False # whether this Dataset is combined into a combined_dataset
@@ -158,7 +158,7 @@ class Dataset:
             if ("vary_by_constraint" in parameters[model_parameters[par]]) and (
                 parameters[model_parameters[par]]["vary_by_constraint"]
             ):
-                self._toypars_to_vary[model_parameters[par]] = i
+                self._toy_pars_to_vary[model_parameters[par]] = i
                 msg = f"`Dataset` '{self.name}': adding parameter '{model_parameters[par]}' as parameter to vary for toys"
                 logging.info(msg)
 
@@ -202,7 +202,7 @@ class Dataset:
     def rvs(
         self,
         par,
-        seed: int = SEED, # must use keyword
+        seed: int = SEED,
     ) -> np.array:
 
         # par should be 1D array like
