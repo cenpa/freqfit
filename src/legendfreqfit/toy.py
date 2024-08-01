@@ -43,25 +43,17 @@ class Toy:
         self.included_in_combined_datasets = {}
 
         # vary the toy parameters as indicated
-        if len(self.experiment.toypars_to_vary) > 0:
+        if len(self.experiment._toypars_to_vary) > 0:
             np.random.seed(seed=seed)
 
-            pars, vals, covar = self.experiment.get_constraints(self.experiment.toypars_to_vary.keys())
-
-            # varied_toypars = np.random.multivariate_normal(
-            #     self.experiment.toypars_to_vary_values,
-            #     self.experiment.toypars_to_vary_covariance,
-            # )
-
-            # # now assign the random values to the passed parameters (or to not passed parameters?)
-            # for par, ind in self.experiment.toypars_to_vary.items():
-            #     parameters[par] = varied_toypars[ind]
+            pars, vals, covar = self.experiment.get_constraints(self.experiment._toypars_to_vary)
 
             varied_toypars = np.random.multivariate_normal(vals, covar)
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
                 parameters[par] = varied_toypars[i]
+                self.experiment._toy_parameters[par]["value"] = varied_toypars[i]
 
             # Save the values of these randomized nuisance parameters
             self.varied_nuisance_to_save.append(varied_toypars)
@@ -100,7 +92,7 @@ class Toy:
                     datasets=ds_tocombine, 
                     model=self.experiment._combined_datasets_config[cdsname]["model"],
                     model_parameters=self.experiment._combined_datasets_config[cdsname]["model_parameters"],
-                    parameters=self.experiment.parameters,
+                    parameters=self.experiment._toy_parameters,
                     costfunction=self.experiment._combined_datasets_config[cdsname]["costfunction"],
                     name=self.experiment._combined_datasets_config[cdsname]["name"] if "name" in self.experiment._combined_datasets_config[cdsname] else "",
                     use_toy_data=True,
@@ -165,13 +157,14 @@ class Toy:
 
         pars, values, covariance = self.experiment.get_constraints(self.fitparameters)
 
-        for i, par in enumerate(pars):
-            if par in self.experiment.toypars_to_vary:
-                values[i] = parameters[par]
-    
-        self.constraints = cost.NormalConstraint(pars, values, error=covariance)
+        if pars is not None:
+            for i, par in enumerate(pars):
+                if par in self.experiment._toypars_to_vary:
+                    values[i] = parameters[par]
+        
+            self.constraints = cost.NormalConstraint(pars, values, error=covariance)
 
-        self.costfunction = self.costfunction + self.constraints
+            self.costfunction = self.costfunction + self.constraints
 
         guess = {}
         for par in self.fitparameters:
@@ -182,12 +175,12 @@ class Toy:
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.fitparameters:
             if (
-                "fix_if_no_data" in self.experiment.parameters[parname]
-                and self.experiment.parameters[parname]["fix_if_no_data"]
+                "fix_if_no_data" in self.experiment._toy_parameters[parname]
+                and self.experiment._toy_parameters[parname]["fix_if_no_data"]
             ):
                 # check if this parameter is part of a Dataset that has data
                 if parname not in parstofitthathavedata:
-                    self.fixed_bc_no_data[parname] = self.experiment.parameters[
+                    self.fixed_bc_no_data[parname] = self.experiment._toy_parameters[
                         parname
                     ]["value"]
 
@@ -208,7 +201,7 @@ class Toy:
         # and is overwritten here
 
         # also set which parameters are fixed
-        for parname, pardict in self.experiment.parameters.items():
+        for parname, pardict in self.experiment._toy_parameters.items():
             if parname in self.minuit.parameters:
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]

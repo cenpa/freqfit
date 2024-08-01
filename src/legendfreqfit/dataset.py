@@ -80,7 +80,7 @@ class Dataset:
         self._parlist_indices = ([]) # indices in self._parlist of the the parameters to be fit 
         
         self.fitparameters = {} # fit parameter names : index in self._parlist (same as in self._parlist_indices)
-        self.toypars_to_vary = {} # parameter to vary for toys : index in self._parlist
+        self._toypars_to_vary = {} # parameter to vary for toys : index in self._parlist
 
         self.try_combine = try_combine # whether to attempt to combine this Dataset into a combined_dataset
         self.is_combined = False # whether this Dataset is combined into a combined_dataset
@@ -158,7 +158,7 @@ class Dataset:
             if ("vary_by_constraint" in parameters[model_parameters[par]]) and (
                 parameters[model_parameters[par]]["vary_by_constraint"]
             ):
-                self.toypars_to_vary[model_parameters[par]] = i
+                self._toypars_to_vary[model_parameters[par]] = i
                 msg = f"`Dataset` '{self.name}': adding parameter '{model_parameters[par]}' as parameter to vary for toys"
                 logging.info(msg)
 
@@ -328,7 +328,7 @@ def combine_datasets(
             # let Dataset handle errors if parameters are missing
             if par in model_parameters:
                 parname = model_parameters[par]
-                # I think this is a reference not a copy!
+                # this is a reference not a copy!
                 simplified_parameters[parname] = parameters[parname]
                 # hence why it is important to check whether we should overwrite the value
                 if "value_from_combine" in parameters[parname] and parameters[parname]["value_from_combine"]:

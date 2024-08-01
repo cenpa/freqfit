@@ -3,6 +3,7 @@ A class that holds a combination of `Dataset` and `NormalConstraint`.
 """
 import logging
 
+from copy import deepcopy
 from iminuit import cost
 import numpy as np
 
@@ -47,19 +48,13 @@ class Superset:
         self.costfunction = None # iminuit costfunction object that will contain the Dataset costfunctions and NormalConstraint
         self.fitparameters = None # reference to self.costfunction._parameters, parameters of the fit
 
-        self.constraints = None
-        # self._constraints_config = None # config for constraints for use in Toy
-        # self.constraint_parameters = {} # parameter : index in constraint_values and constraint_covariance
-        # self.constraint_values = np.array([]) # central values of constraints
-        # self.constraint_covariance = None # covariance matrix of constraints
+        self.constraints = None # the constraint costfunction
+        self.constraints_parameters = {} # parameter : index in values and covariance
+        self.constraints_values = None
+        self.constraints_covariance = None
 
-        self.toypars_to_vary = {} # parameter : index in toypars_to_vary_values and toypars_to_vary_covariance
-        # self.toypars_to_vary_values = np.array([]) # central values of toypars_to_vary parameters
-        # self.toypars_to_vary_covariance = None # covariance matrix of toypars_to_vary parameters
-
-        self.new_constraints_parameters = {}
-        self.new_constraints_covariance = np.array([])
-        self.new_constraints_values = np.array([])
+        self._toypars_to_vary = [] # list of parameters to vary
+        self._toy_parameters = {} # a copy of self.parameters that we can mutate without care
 
         msg = f"all constraints will be combined into a single `NormalConstraint`"
         logging.info(msg)
@@ -163,31 +158,21 @@ class Superset:
         
         # collect which parameters are included as parameters to vary for the toys
         for dsname, ds in self.datasets.items():
-            for parname in ds.toypars_to_vary.keys():
-                if parname not in self.toypars_to_vary.keys():
-                    self.toypars_to_vary[parname] = len(self.toypars_to_vary) 
+            for parname in ds._toypars_to_vary:
+                if parname not in self._toypars_to_vary:
+                    self._toypars_to_vary.append(parname) 
                     msg = f"`Superset`: added parameter '{parname}' as a parameter to vary for toys"
                     logging.info(msg)
         
         # if no constraints and nothing needs constraints, we're done
-        if len(self.toypars_to_vary) == 0 and constraints is None:
+        if len(self._toypars_to_vary) == 0 and constraints is None:
             return
         
-        if len(self.toypars_to_vary) > 0 and constraints is None:
+        if len(self._toypars_to_vary) > 0 and constraints is None:
             msg = f"have parameters to vary but no constraints found!"
             logging.error(msg)
             raise ValueError(msg)
 
-        # we want to run through the constraints to 1) get the constraints for the fit paramterts and 
-        # 2) get the values and covariance for the parameters to vary for the toys
-
-        # let's get lists of the constraints for (1) and (2)
-        # and also track which parameters are in the constraints to look for duplicates
-        # constraints_for_constraints = []
-        # constraints_for_toypars_to_vary = []
-        # constraints_to_delete = []
-        # pars_in_constraints = set()
-        
         # shove all the constraints in one big matrix
         for constraintname, constraint in constraints.items():  
             # would love to move this somewhere else, maybe sanitize the config before doing anything
@@ -274,156 +259,35 @@ class Superset:
                     raise ValueError(msg)  
 
             for par in constraint["parameters"]:
-                if par in self.new_constraints_parameters:
+                if par in self.constraints_parameters:
                     msg = f"parameter {par} is used in multiple constraints - not allowed"
                     logging.error(msg)
                     raise KeyError(msg) 
                                     
-                self.new_constraints_parameters[par] = len(self.new_constraints_parameters)
+                self.constraints_parameters[par] = len(self.constraints_parameters)
         
         # initialize now that we know how large to make them
-        self.new_constraints_values = np.full(len(self.new_constraints_parameters), np.nan)
-        self.new_constraints_covariance = np.identity(len(self.new_constraints_parameters))
+        self.constraints_values = np.full(len(self.constraints_parameters), np.nan)
+        self.constraints_covariance = np.identity(len(self.constraints_parameters))
 
         for constraintname, constraint in constraints.items():
             # now put the values in  
             for par, value in zip(constraint["parameters"], constraint["values"]):
-                self.new_constraints_values[self.new_constraints_parameters[par]] = value
+                self.constraints_values[self.constraints_parameters[par]] = value
             
             # now put the covariance matrix in
             for i in range(len(constraint["parameters"])):
                 for j in range(len(constraint["parameters"])):
-                    self.new_constraints_covariance[
-                        self.new_constraints_parameters[constraint["parameters"][i]], 
-                        self.new_constraints_parameters[constraint["parameters"][j]]] = (
+                    self.constraints_covariance[
+                        self.constraints_parameters[constraint["parameters"][i]], 
+                        self.constraints_parameters[constraint["parameters"][j]]] = (
                         constraint["covariance"][i,j]
                     )         
 
-        #     all_used_for_constraints = True
-        #     all_used_for_toypars_to_vary = True
-
-        #     # check that every parameter in this constraint is used in a Dataset
-        #     for par in constraint["parameters"]:
-        #         if par not in pars_in_constraints:
-        #             pars_in_constraints.add(par)
-        #         else:
-        #             msg = f"parameter {par} is used in multiple constraints - not allowed"
-        #             logging.error(msg)
-        #             raise KeyError(msg) 
-
-        #         inpars = True
-        #         if par not in self.parameters:
-        #             inpars = False
-        #             all_used_for_constraints = False
-        #             all_used_for_toypars_to_vary = False
-        #             constraints_to_delete.append(constraintname)
-        #             msg = (
-        #                 f"constraint '{constraintname}' includes parameter '{par}', which is not used in any `Dataset` - constraint '{constraintname}' not included."
-        #             )
-        #             logging.warning(msg) 
-                    
-        #         # constraints added to the costfunction have to be fit parameters 
-        #         if inpars and par not in self.fitparameters:
-        #             all_used_for_constraints = False
-        #             msg = (
-        #                 f"constraint '{constraintname}' includes parameter '{par}', which is not a parameter to be fit "
-        #                 + f"(probably used a fixed parameter or part of a combined_dataset) - '{constraintname}' not added as a constraint."
-        #             )
-        #             logging.info(msg)    
-                
-        #         if inpars and par not in self.toypars_to_vary:
-        #             all_used_for_toypars_to_vary = False
-            
-        #     if all_used_for_constraints:
-        #         constraints_for_constraints.append(constraintname)
-
-        #     if all_used_for_toypars_to_vary:
-        #         constraints_for_toypars_to_vary.append(constraintname)
-
-        # # more clean up and then assign
-        # for name in constraints_to_delete:
-        #     del constraints[constraintname]
-        #     msg = f"deleted constraint '{constraintname}'"
-        #     logging.warning(msg)
-
-        # self._constraints_config = constraints
-        
-        # for constraintname in constraints_for_constraints:
-        #     constraint = constraints[constraintname]
-                                    
-        #     # add the parameters to the set
-        #     for par, value in zip(constraint["parameters"], constraint["values"]):
-        #         self.constraint_parameters[par] = len(self.constraint_parameters)
-        #         self.constraint_values = np.append(self.constraint_values, value)
-                
-        #         if self.constraint_covariance is None:
-        #             self.constraint_covariance = np.identity(1)
-        #         elif len(self.constraint_covariance) < len(self.constraint_parameters):
-        #             self.constraint_covariance = np.pad(self.constraint_covariance, ((0,1),(0,1)))
-
-        #     # now we need to check whether the constraint includes the covariance matrix or the uncertainty
-        #     if "uncertainty" in constraint:
-        #         for par, uncertainty in zip(constraint["parameters"], constraint["uncertainty"]):
-        #             i = self.constraint_parameters[par]
-        #             self.constraint_covariance[i,i] = np.square(uncertainty)                                                           
-                
-        #     else: # we have the covariance matrix for this constraint                            
-        #         for i in range(len(constraint["parameters"])):
-        #             for j in range(len(constraint["parameters"])):
-        #                 self.constraint_covariance[self.constraint_parameters[constraint["parameters"][i]], self.constraint_parameters[constraint["parameters"][j]]] = (
-        #                     constraint["covariance"][i,j]
-        #                 )                                              
-                
-        #     msg = f"including '{constraintname}' in the combined constraint"
-        #     log.info(msg=msg)                               
-    
-        # we've looped through all the individual constraints - now to add the combined constraint to the costfunction
-        # self.constraints["combined_constraints"] = self._add_normalconstraint(
-        #                         parameters=list(self.constraint_parameters.keys()),
-        #                         values=self.constraint_values,
-        #                         error=self.constraint_covariance,
-        #                     )
-        # msg = f"added 'combined_constraints' as `NormalConstraint`"
-        # log.info(msg=msg)
-
         self._add_constraints_to_costfunction() # stored in self.constraints
 
-        # now to do similar for the constraints_for_toypars_to_vary
-
-        # preallocate if we have some parameters to vary for the toys
-        # if len(self.toypars_to_vary) > 0:
-        #     self.toypars_to_vary_values = np.full(len(self.toypars_to_vary), np.nan)
-        #     self.toypars_to_vary_covariance = np.identity(len(self.toypars_to_vary))
-
-        # for constraintname in constraints_for_toypars_to_vary:
-        #     constraint = constraints[constraintname]
-                                    
-        #     # add the parameters to the set
-        #     for par, value in zip(constraint["parameters"], constraint["values"]):
-        #         self.toypars_to_vary_values[self.toypars_to_vary[par]] = value
-
-        #     # now we need to check whether the constraint includes the covariance matrix or the uncertainty
-        #     if "uncertainty" in constraint:
-        #         for par, uncertainty in zip(constraint["parameters"], constraint["uncertainty"]):
-        #             i = self.toypars_to_vary[par]
-        #             self.toypars_to_vary_covariance[i,i] = np.square(uncertainty)                                                           
-                
-        #     else: # we have the covariance matrix for this constraint                            
-        #         for i, par_i in enumerate(constraint["parameters"]):
-        #             for j, par_j in enumerate(constraint["parameters"]):
-        #                 self.toypars_to_vary_covariance[
-        #                     self.toypars_to_vary[par_i], 
-        #                     self.toypars_to_vary[par_j]] = (
-        #                         constraint["covariance"][i,j]
-        #                 )                                              
-                
-        #     msg = f"including constraint '{constraintname}' parameters as parameters to vary for the toys"
-        #     log.info(msg=msg)   
-
-        # # check that all parameters that need to be varied for toys have a constraint                          
-        # for parname, parind in self.toypars_to_vary.items():
-        #     if parind is None:
-        #         msg = f"no constraint was found for parameter '{parname}' which has 'vary_by_constraint' True"
+        # so we can mutate self._toy_parameters later without it being a problem?
+        self._toy_parameters = deepcopy(self.parameters)
 
         # that's all, folks!
                     
@@ -451,20 +315,23 @@ class Superset:
         parameters: list,
     ) -> tuple:
 
+        if len(self.constraints_parameters) == 0:
+            return (None, None, None)
+
         pars = []
         for par in parameters:
-            if par in self.new_constraints_parameters:
+            if par in self.constraints_parameters:
                 pars.append(par)
 
         values = np.full(len(pars), np.nan)
         covar = np.identity(len(pars))
         for i, par_i in enumerate(pars):
-            values[i] = self.new_constraints_values[self.new_constraints_parameters[par_i]]
+            values[i] = self.constraints_values[self.constraints_parameters[par_i]]
             
             for j, par_j in enumerate(pars):
-                covar[i,j] = self.new_constraints_covariance[
-                    self.new_constraints_parameters[par_i],
-                    self.new_constraints_parameters[par_j]
+                covar[i,j] = self.constraints_covariance[
+                    self.constraints_parameters[par_i],
+                    self.constraints_parameters[par_j]
                 ]
         
         return (pars, values, covar)
