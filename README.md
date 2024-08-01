@@ -131,6 +131,28 @@ per detector per partition
 
 ---
 
+### development help
+You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `legendfreqfit/`.
+
+### running on cenpa-rocks
+1. Make sure you have a user directory in the LEGEND location on `eliza1`: `mkdir /data/eliza1/LEGEND/users/$USER`
+2. Add the PYTHONUSERBASE to your `~/.bashrc`: `export PYTHONUSERBASE=/data/eliza1/LEGEND/users/$USER/pythonuserbase`
+3. The code is located at `/data/eliza1/LEGEND/sw/legendfreqfit`. In order to pip3 install it, run the following
+4. Activate the singularity shell `singularity shell --bind /data/eliza1/LEGEND/:/data/eliza1/LEGEND/ /data/eliza1/LEGEND/sw/containers/python3-10.sif`
+5. Pip3 install as an editable file. When located inside the `/data/eliza1/LEGEND/sw/legendfreqfit` directory, run `pip install -e .` (NOTE: you may need to run the command `python3 -m pip install --upgrade pip` in order for this pip install to succeed)
+6. Exit the singularity shell and run the code
+
+
+### logging help
+Just add these lines to your script.
+
+```python
+import logging
+logging.basicConfig(level=logging.INFO) # or some other level
+```
+
+---
+
 ### TODO
 - maybe we need some way to sanitize the inputs before sending them to the classes so we can do less error checking in the classes? to speed up a little?
 - set up logger like this? https://stackoverflow.com/questions/56532106/how-to-use-python-logging-for-a-single-package
@@ -165,27 +187,5 @@ per detector per partition
 - [x] ~~add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?~~ Grace showed we should just add test statistics
 - [x] ~~need a way to run the analysis automatically for an experiment.~~ basically there?
 
-
----
-
-### development help
-You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `legendfreqfit/`.
-
-### running on cenpa-rocks
-1. Make sure you have a user directory in the LEGEND location on `eliza1`: `mkdir /data/eliza1/LEGEND/users/$USER`
-2. Add the PYTHONUSERBASE to your `~/.bashrc`: `export PYTHONUSERBASE=/data/eliza1/LEGEND/users/$USER/pythonuserbase`
-3. The code is located at `/data/eliza1/LEGEND/sw/legendfreqfit`. In order to pip3 install it, run the following
-4. Activate the singularity shell `singularity shell --bind /data/eliza1/LEGEND/:/data/eliza1/LEGEND/ /data/eliza1/LEGEND/sw/containers/python3-10.sif`
-5. Pip3 install as an editable file. When located inside the `/data/eliza1/LEGEND/sw/legendfreqfit` directory, run `pip install -e .` (NOTE: you may need to run the command `python3 -m pip install --upgrade pip` in order for this pip install to succeed)
-6. Exit the singularity shell and run the code
-
-
-### logging help
-Just add these lines to your script.
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
 
 
