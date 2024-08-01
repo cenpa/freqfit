@@ -24,11 +24,16 @@ class Experiment(Superset):
 
         self.options = {}
 
+        combined_datasets = None
         if "options" in config:
             if "try_to_combine_datasets" in config["options"]:
                 self.options["try_to_combine_datasets"] = config["options"][
                     "try_to_combine_datasets"
                 ]
+                if "combined_datasets" in config:
+                    combined_datasets = config["combined_datasets"]
+                    msg = f"found 'combined_datasets' in config"
+                    logging.info(msg)
             else:
                 self.options["try_to_combine_datasets"] = False
             
@@ -44,11 +49,13 @@ class Experiment(Superset):
             msg = f"did not find 'constraints' in config"
             logging.info(msg)
 
+
+
         super().__init__(
             datasets=config["datasets"],
             parameters=config["parameters"],
             constraints=constraints,
-            combined_datasets=config["combined_datasets"],
+            combined_datasets=combined_datasets,
             name=name,
             try_to_combine_datasets=self.options["try_to_combine_datasets"],
         )

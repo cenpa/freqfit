@@ -312,19 +312,13 @@ class Superset:
             return (None, None, None)
 
         pars = []
+        inds = []
         for par in parameters:
             if par in self.constraints_parameters:
                 pars.append(par)
+                inds.append(self.constraints_parameters[par])
 
-        values = np.full(len(pars), np.nan)
-        covar = np.identity(len(pars))
-        for i, par_i in enumerate(pars):
-            values[i] = self.constraints_values[self.constraints_parameters[par_i]]
-            
-            for j, par_j in enumerate(pars):
-                covar[i,j] = self.constraints_covariance[
-                    self.constraints_parameters[par_i],
-                    self.constraints_parameters[par_j]
-                ]
-        
+        values = self.constraints_values[inds]
+        covar = self.constraints_covariance[np.ix_(inds, inds)]
+
         return (pars, values, covar)
