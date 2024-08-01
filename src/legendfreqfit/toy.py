@@ -94,7 +94,7 @@ class Toy:
                     model_parameters=self.experiment._combined_datasets_config[cdsname]["model_parameters"],
                     parameters=self.experiment._toy_parameters,
                     costfunction=self.experiment._combined_datasets_config[cdsname]["costfunction"],
-                    name=self.experiment._combined_datasets_config[cdsname]["name"] if "name" in self.experiment._combined_datasets_config[cdsname] else "",
+                    name=cdsname,
                     use_toy_data=True,
                 )
 

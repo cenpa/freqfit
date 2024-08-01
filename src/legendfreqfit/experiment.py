@@ -19,7 +19,7 @@ class Experiment(Superset):
     def __init__(
         self,
         config: dict,
-        name: str = None,
+        name: str = "",
     ) -> None:
 
         self.options = {}
@@ -31,6 +31,9 @@ class Experiment(Superset):
                 ]
             else:
                 self.options["try_to_combine_datasets"] = False
+            
+            if "name" in config["options"]:
+                name = config["options"]["name"]
 
         constraints = None
         if "constraints" in config:

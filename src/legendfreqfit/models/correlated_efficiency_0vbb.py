@@ -512,6 +512,7 @@ class correlated_efficiency_0vbb_gen:
         eff = (a_exp * a_eff + b_exp * b_eff) / exp
 
         # these are fully correlated in this model so the direct sum is appropriate
+        # (maybe still appropriate even if not fully correlated?)
         effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
 
         effuncscale = 0.0 # this should be overwritten in the fit later
