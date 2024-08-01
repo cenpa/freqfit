@@ -86,6 +86,9 @@ class Dataset:
         self.is_combined = False # whether this Dataset is combined into a combined_dataset
         self.combined_dataset = None # name of the combined_dataset that this Dataset is part of
 
+        self._toy_data = None # place to hold Toy data for this Dataset
+        self._toy_is_combined = False # if this Dataset is combined into a combined_dataset in the Toy
+
         if self.try_combine:
             if combined_dataset is None:
                 msg = f"`Dataset` `{self.name}` has `try_combine` `{self.try_combine}` but `combined_dataset` is {combined_dataset}"
@@ -164,7 +167,7 @@ class Dataset:
     def density(
         self,
         data,
-        *par,
+        *par, # DO NOT DELETE THE * - NEEDED FOR IMINUIT
     ) -> np.array:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
@@ -176,7 +179,7 @@ class Dataset:
     def density_gradient(
         self,
         data,
-        *par,
+        *par, # DO NOT DELETE THE * - NEEDED FOR IMINUIT
     ) -> np.array:
         """
         Parameters
@@ -198,15 +201,37 @@ class Dataset:
 
     def rvs(
         self,
-        *par,
-        seed: int = SEED,  # must be passed as keyword
+        par,
+        seed: int = SEED, # must use keyword
     ) -> np.array:
+
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
             self._parlist[self._parlist_indices[i]] = par[i]
 
-        return self.model.extendedrvs(*self._parlist, seed=seed)
+        rvs = self.model.extendedrvs(*self._parlist, seed=seed)
+        return rvs
+    
+    # generates toy data and sets some attributes
+    def toy(
+        self,
+        par,
+        seed: int = SEED,
+    ) -> None:
+
+        self.toy_reset()
+        self._toy_data = self.rvs(par, seed=seed)
+        return
+
+    # resets some toy attributes
+    def toy_reset(
+        self,
+    ) -> None:
+
+        self._toy_data = None
+        self._toy_is_combined = False
+        return
 
 # method to combine datasets
 def combine_datasets(
@@ -216,6 +241,7 @@ def combine_datasets(
     parameters: dict,
     costfunction: cost.Cost,
     name: str = "", 
+    use_toy_data: bool = False,
 ) -> Dataset:
     """
     Parameters
@@ -245,8 +271,9 @@ def combine_datasets(
 
     included_datasets = []
     combination = None
+    first = True
+    for ds in datasets:
 
-    for i, ds in enumerate(datasets):
         if ds.model != model:
             msg = f"`Dataset` {ds.name} has model `{ds.model}` != `{model}` - must be the same to combine"
             raise NotImplementedError(msg)
@@ -254,20 +281,38 @@ def combine_datasets(
         if ds._costfunctioncall != costfunction:
             msg = f"`Dataset` {ds.name} has costfunction `{ds._costfunctioncall}` != `{costfunction}` - must be the same to combine"
             raise NotImplementedError(msg)
+        
+        # whether to use the real data or the toy data
+        thisdata = ds.data
+        if use_toy_data:
+            if ds._toy_data is None:
+                msg = f"`Dataset` '{ds.name}' has no toy data - you need to call `Dataset.rvs()` to make this."
+                logging.error(msg)
+                raise ValueError(msg)
+            thisdata = ds._toy_data
 
         # if first dataset, the combination is just the stuff needed to recreate it
-        if i == 0:
-            combination = [ds.data, *ds._parlist]
+        if first:
+            combination = [thisdata, *ds._parlist]
             included_datasets.append(ds.name)
             msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
             logging.info(msg)
+            first = False
+            if use_toy_data:
+                ds._toy_is_combined = True
+            else:
+                ds.is_combined = True
         else:
-            result = model.combine(*combination, ds.data, *ds._parlist)
+            result = model.combine(*combination, thisdata, *ds._parlist)
             if result is not None: # if None, we cannot combine them
                 combination = result
                 included_datasets.append(ds.name)
                 msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
                 logging.info(msg)
+                if use_toy_data:
+                    ds._toy_is_combined = True
+                else:
+                    ds.is_combined = True
             else:
                 msg = f"not able to combine `Dataset` '{ds.name}' with combined dataset '{name}', will be kept separate"
                 logging.info(msg)
