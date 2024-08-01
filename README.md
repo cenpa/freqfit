@@ -53,7 +53,6 @@ parameters: # the collection of parameters
   a_ds2:
     value: 0.0 # initial guess for the parameter (since it is a fitted parameter)
     includeinfit: true  # whether to include in the fit
-    nuisance: true  # whether this is a nuisance parameter
     fix_if_no_data: true  # if the dataset has no data, then we will skip trying to fit this parameter
     vary_by_constraint: true  # if we run toys, we will vary the true value of this parameter by the provided constraint
     fixed: false # you can fix parameters that are included in the fit (the only time this option is used, default is false)
@@ -65,7 +64,6 @@ parameters: # the collection of parameters
   global_b:
     value: 0.0 
     includeinfit: true 
-    nuisance: false
 
 constraints: # the collection of constraints (a Gaussian constraint term in the likelihood)
   constraint_a_ds2: # name of the constraint

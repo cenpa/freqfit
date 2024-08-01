@@ -53,7 +53,7 @@ class Superset:
         self.constraints_values = None
         self.constraints_covariance = None
 
-        self._toypars_to_vary = [] # list of parameters to vary
+        self._toy_pars_to_vary = [] # list of parameters to vary
         self._toy_parameters = {} # a copy of self.parameters that we can mutate without care
 
         msg = f"all constraints will be combined into a single `NormalConstraint`"
@@ -158,17 +158,17 @@ class Superset:
         
         # collect which parameters are included as parameters to vary for the toys
         for dsname, ds in self.datasets.items():
-            for parname in ds._toypars_to_vary:
-                if parname not in self._toypars_to_vary:
-                    self._toypars_to_vary.append(parname) 
+            for parname in ds._toy_pars_to_vary:
+                if parname not in self._toy_pars_to_vary:
+                    self._toy_pars_to_vary.append(parname) 
                     msg = f"`Superset`: added parameter '{parname}' as a parameter to vary for toys"
                     logging.info(msg)
         
         # if no constraints and nothing needs constraints, we're done
-        if len(self._toypars_to_vary) == 0 and constraints is None:
+        if len(self._toy_pars_to_vary) == 0 and constraints is None:
             return
         
-        if len(self._toypars_to_vary) > 0 and constraints is None:
+        if len(self._toy_pars_to_vary) > 0 and constraints is None:
             msg = f"have parameters to vary but no constraints found!"
             logging.error(msg)
             raise ValueError(msg)

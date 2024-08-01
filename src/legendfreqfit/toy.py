@@ -43,20 +43,20 @@ class Toy:
         self.included_in_combined_datasets = {}
 
         # vary the toy parameters as indicated
-        if len(self.experiment._toypars_to_vary) > 0:
+        if len(self.experiment._toy_pars_to_vary) > 0:
             np.random.seed(seed=seed)
 
-            pars, vals, covar = self.experiment.get_constraints(self.experiment._toypars_to_vary)
+            pars, vals, covar = self.experiment.get_constraints(self.experiment._toy_pars_to_vary)
 
-            varied_toypars = np.random.multivariate_normal(vals, covar)
+            varied_toy_pars = np.random.multivariate_normal(vals, covar)
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
-                parameters[par] = varied_toypars[i]
-                self.experiment._toy_parameters[par]["value"] = varied_toypars[i]
+                parameters[par] = varied_toy_pars[i]
+                self.experiment._toy_parameters[par]["value"] = varied_toy_pars[i]
 
             # Save the values of these randomized nuisance parameters
-            self.varied_nuisance_to_save.append(varied_toypars)
+            self.varied_nuisance_to_save.append(varied_toy_pars)
 
         # draw the toy data
         for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
@@ -159,7 +159,7 @@ class Toy:
 
         if pars is not None:
             for i, par in enumerate(pars):
-                if par in self.experiment._toypars_to_vary:
+                if par in self.experiment._toy_pars_to_vary:
                     values[i] = parameters[par]
         
             self.constraints = cost.NormalConstraint(pars, values, error=covariance)
