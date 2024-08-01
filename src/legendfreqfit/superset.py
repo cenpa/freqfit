@@ -67,6 +67,7 @@ class Superset:
                 msg = f"option 'try_to_combine_datasets' set to True but `combined_datasets` is missing or empty!"
                 logging.error(msg)
         
+        alldspars = set()
         # create the Datasets
         for dsname in datasets.keys():
             try_combine = False
@@ -86,6 +87,9 @@ class Superset:
                 try_combine=try_combine,
                 combined_dataset=combined_dataset,
             )
+
+            for par in datasets[dsname]["model_parameters"].values():
+                alldspars.add(par)
 
         # here is where we should try to combine datasets (or maybe just above?)
         # I *think* we want to keep the datasets as is and maybe add a new holder for
@@ -114,6 +118,9 @@ class Superset:
                     self.combined_datasets[cdsname] = combined_dataset
                     self.included_in_combined_datasets[cdsname] = included_datasets
 
+                for par in combined_datasets[cdsname]["model_parameters"].values():
+                    alldspars.add(par)
+
         # add the costfunctions together
         first = True
         for dsname in self.datasets.keys():
@@ -137,21 +144,7 @@ class Superset:
 
         # check that parameters are actually used in the Datasets or combined_datasets and remove them if not
         for parameter in list(self.parameters.keys()):
-            used = False
-
-            # probably fewer of these so they go first
-            for cdsname, cds in self.combined_datasets.items():
-                if parameter in cds.model_parameters.values():
-                    used = True
-                    break
-                
-            if not used:
-                for dsname in datasets:
-                    if parameter in self.datasets[dsname].model_parameters.values():
-                        used = True
-                        break
-
-            if not used:
+            if parameter not in alldspars:
                 msg = f"'{parameter}' included as a parameter but not used in a `Dataset` - removing '{parameter}' as a parameter"
                 logging.warning(msg)
                 del self.parameters[parameter]
