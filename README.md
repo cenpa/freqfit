@@ -112,6 +112,14 @@ Constraints are also used to specificy how nuisance parameters should be varied 
 
 You can specify independent datasets that should later be combined `combined_datasets`. This is useful for LEGEND where we have many, independent datasets with their own nuisance parameters. For our fit, it is much faster to simply combine all datasets that have no events (are empty). However, in generating our toys, we would like to vary the nuisance parameters and draw events randomly for all datasets. We therefore would like to combine datasets during our toys on the fly. Since, for each toy, we do no a prior know which datasets are empty and can be combined, we have written the code in such a way as to attempt to combine datasets. This is a very niche use case and probably only relevant for the 0vbb fit.
 
+Once you have a config file made, you can load it by doing
+
+```python
+from legendfreqfit import Experiment
+
+myexperiment = Experiment.file("myconfig.yaml")
+```
+
 ---
 
 ### inputs needed
