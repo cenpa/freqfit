@@ -21,7 +21,7 @@ class Superset:
         parameters: dict,
         constraints: dict = None,
         combined_datasets: dict = None,
-        name: str = None,
+        name: str = "",
         try_to_combine_datasets: bool = False,
     ) -> None:
         """
@@ -107,7 +107,7 @@ class Superset:
                     model_parameters=combined_datasets[cdsname]["model_parameters"],
                     parameters=self.parameters,
                     costfunction=combined_datasets[cdsname]["costfunction"],
-                    name=combined_datasets[cdsname]["name"] if "name" in combined_datasets[cdsname] else "",
+                    name=cdsname,
                 )
 
                 if len(included_datasets) > 0:
@@ -161,7 +161,7 @@ class Superset:
             for parname in ds._toy_pars_to_vary:
                 if parname not in self._toy_pars_to_vary:
                     self._toy_pars_to_vary.append(parname) 
-                    msg = f"`Superset`: added parameter '{parname}' as a parameter to vary for toys"
+                    msg = f"`Superset` '{self.name}' added parameter '{parname}' as a parameter to vary for toys"
                     logging.info(msg)
         
         # if no constraints and nothing needs constraints, we're done
@@ -206,7 +206,7 @@ class Superset:
 
             # do some cleaning up of the config here
             if "uncertainty" in constraint:
-                if len(constraint["uncertainty"]) == 1:
+                if len(constraint["uncertainty"]) > 1:
                     constraint["uncertainty"] = np.full(len(constraint["parameters"]), constraint["uncertainty"])
                     msg = (
                         f"constraint '{constraintname}' has {len(constraint['parameters'])} parameters but only 1 uncertainty - assuming this is constant uncertainty for each parameter"

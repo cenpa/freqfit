@@ -5,7 +5,7 @@ LEGEND 0v2b frequentist analysis
 
 ### config format
 
-Config files are `.yaml` files that contain several different dictionaries, described below. There are 4 primary dictionaries at the top level: `datasets`, `parameters`, `constraints`, and `options`. 
+Config files are `.yaml` files that contain several different dictionaries, described below. There are 5 primary dictionaries at the top level: `datasets`, `combined_datasets`, `parameters`, `constraints`, and `options`. 
 
 Note that the default value for options not explicitly provided is (usually) `False`.
 
@@ -73,6 +73,7 @@ constraints: # the collection of constraints (a Gaussian constraint term in the 
 
 options: # a collection of global options (only one option so far)
   try_to_combine_datasets: true # whether to attempt to combine datasets
+  name: experiment name
 ```
 
 For `constraints`, there are some additional options for how to specify these constraints. You can provide a list of parameters, values, and uncertainties:
