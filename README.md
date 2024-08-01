@@ -135,14 +135,11 @@ per detector per partition
 - maybe we need some way to sanitize the inputs before sending them to the classes so we can do less error checking in the classes? to speed up a little?
 - set up logger like this? https://stackoverflow.com/questions/56532106/how-to-use-python-logging-for-a-single-package
 - GERDA: figure out uncertainties
-- do we need to label parameters as both nuisance and includeinfit?
-- add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?
-- need a way to run the analysis automatically for an experiment.
 - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
 - options for different test statistics (see Cowan)
-- right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.
-- probably need to settle on some variable name conventions (Louis prefers more characters :) )
-- maybe we want to compute `np.log(2)` etc. and use values directly? not sure how much faster (a lot in testing, but IDK how many times these actually need to be computed)
+- [x] ~~right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.~~ it's fine
+- [x] probably need to settle on some variable name conventions (Louis prefers more characters :) )
+- [x] ~~maybe we want to compute `np.log(2)` etc. and use values directly? not sure how much faster (a lot in testing, but IDK how many times these actually need to be computed)~~ doesn't matter
 - [x] I think probably we need to rename the models to something more specific to 0vbb
 - [x] separate event energies into two types: 1. those close to Qbb and 2. those not close to Qbb. Can fit those close to Qbb using Gaussian + uniform w/ nuisance parameters and those not close with just a uniform. Should improve computation speed but requires two different models and then separate the data based on the two different models. The separation of the events into these two different categories should be done in the config file. Just need to write a model for the purely uniform case!
 
@@ -164,6 +161,10 @@ per detector per partition
 - [x] check constraints to make sure that parameters are not duplicated across constraints?
 - [x] it's possible to pass in a config file where parameters are not labeled kind of correctly and iminuit will not use all of the parameters that the user might think it is using. This can be maybe problematic. The only way to be sure what parameters are being used right now is to look at the fitparameters of the Experiment/Superset or to go into each Dataset and look through their `model_parameters`. Some thinking needed...
 - [x] MJD: combine exposure and efficiency uncertainties
+- [x] ~~do we need to label parameters as both nuisance and includeinfit? ~~ removed "nuisance" label
+- [x] ~~add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?~~ Grace showed we should just add test statistics
+- [x] ~~need a way to run the analysis automatically for an experiment.~~ basically there?
+
 
 ---
 
@@ -177,5 +178,14 @@ You can install the repository using `pip` as an editable file. Just do `pip ins
 4. Activate the singularity shell `singularity shell --bind /data/eliza1/LEGEND/:/data/eliza1/LEGEND/ /data/eliza1/LEGEND/sw/containers/python3-10.sif`
 5. Pip3 install as an editable file. When located inside the `/data/eliza1/LEGEND/sw/legendfreqfit` directory, run `pip install -e .` (NOTE: you may need to run the command `python3 -m pip install --upgrade pip` in order for this pip install to succeed)
 6. Exit the singularity shell and run the code
+
+
+### logging help
+Just add these lines to your script.
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
 
 
