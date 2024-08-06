@@ -411,7 +411,6 @@ class correlated_efficiency_0vbb_gen:
         effuncscale: float,
         exp: float,
     ) -> np.array:
-
         mu_S = S * (eff + effuncscale * effunc) * exp
         mu_B = exp * BI * WINDOWSIZE
 
@@ -450,7 +449,9 @@ class correlated_efficiency_0vbb_gen:
         exp: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, BI, delta, sigma, eff, effunc, effuncscale, exp, seed=seed)
+        return nb_extendedrvs(
+            S, BI, delta, sigma, eff, effunc, effuncscale, exp, seed=seed
+        )
 
     def plot(
         self,
@@ -467,10 +468,10 @@ class correlated_efficiency_0vbb_gen:
         y = nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
         import matplotlib.pyplot as plt
-        
+
         plt.step(Es, y)
         plt.show()
-    
+
     # function call needs to take the same parameters as the other function calls, in the same order repeated twice
     # this is intended only for empty datasets
     # returns `None` if we couldn't combine the datasets (a dataset was not empty)
@@ -493,29 +494,28 @@ class correlated_efficiency_0vbb_gen:
         b_eff: float,
         b_effunc: float,
         b_effuncscale: float,
-        b_exp: float,        
+        b_exp: float,
     ) -> list | None:
-
         # datasets must be empty to be combined
         if len(a_Es) != 0 or len(b_Es) != 0:
             return None
 
-        Es = np.array([]) # both of these datasets are empty
-        S = 0.0 # this should be overwritten in the fit later
-        BI = 0.0 # this should be overwritten in the fit later
-        delta = 0.0 # for empty datasets, this nuisance parameter doesn't matter
+        Es = np.array([])  # both of these datasets are empty
+        S = 0.0  # this should be overwritten in the fit later
+        BI = 0.0  # this should be overwritten in the fit later
 
-        exp = a_exp + b_exp # total exposure
-        
+        exp = a_exp + b_exp  # total exposure
+
         # exposure weighted fixed parameters (important to calculate correctly)
         sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
         eff = (a_exp * a_eff + b_exp * b_eff) / exp
+        delta = (a_exp * a_delta + b_exp * b_delta) / exp
 
         # these are fully correlated in this model so the direct sum is appropriate
         # (maybe still appropriate even if not fully correlated?)
         effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
 
-        effuncscale = 0.0 # this should be overwritten in the fit later
+        effuncscale = 0.0  # this should be overwritten in the fit later
 
         return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
 
