@@ -1,18 +1,18 @@
-'''
-This model follows the MJD analysis for the peak shape. The peak shape is modeled as the sum of a full-energy Gaussian 
-component and an exponentially modified Gaussian tail to approximate the peak shape distortion due to incomplete charge 
+"""
+This model follows the MJD analysis for the peak shape. The peak shape is modeled as the sum of a full-energy Gaussian
+component and an exponentially modified Gaussian tail to approximate the peak shape distortion due to incomplete charge
 collection. See S. I. Alvis et al., Phys. Rev. C 100, 025501 (2019) for details. In addition, a slightly different
 analysis window is used, again following MJD.
 
-Also see J.M. Lopez-Castano and Ping-Han Chu. Energy systematic of majorana demonstrator. Technical report, 2022. 
+Also see J.M. Lopez-Castano and Ping-Han Chu. Energy systematic of majorana demonstrator. Technical report, 2022.
 Internal Report, Feb. 9, 2022. for an explanation of the peak shape used.
-'''
+"""
 
+import sys
 from math import erfc
+
 import numba as nb
 import numpy as np
-import sys
-from typing import Union
 
 import legendfreqfit.models.constants as constants
 from legendfreqfit.utils import inspectparameters
@@ -43,7 +43,8 @@ for i in range(len(WINDOW)):
 
 SEED = 42  # set the default random seed
 
-limit = np.log(sys.float_info.max)/10
+limit = np.log(sys.float_info.max) / 10
+
 
 # yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/gauss.py#L72
 @nb.jit(**nb_kwd)
@@ -74,6 +75,7 @@ def nb_gauss_pdf(x: np.ndarray, mu: float, sigma: float) -> np.ndarray:
     z = (x - mu) * invs
     invnorm = invs / np.sqrt(2 * np.pi)
     return np.exp(-0.5 * z**2) * invnorm
+
 
 # yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/exgauss.py
 @nb.jit(**nb_kwd)
@@ -130,6 +132,7 @@ def nb_gauss_tail_exact(
     )
     return tail_f
 
+
 # yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/exgauss.py
 @nb.jit(**nb_kwd)
 def nb_gauss_tail_approx(
@@ -163,6 +166,7 @@ def nb_gauss_tail_approx(
     den = 1 / (sigma + tau * (x - mu) / sigma)
     tail_f = sigma * nb_gauss_pdf(x, mu, sigma) * den * (1.0 - tau * tau * den * den)
     return tail_f
+
 
 # yoinked from https://github.com/legend-exp/pygama/blob/main/src/pygama/math/functions/exgauss.py
 @nb.jit(**nb_kwd)
@@ -207,13 +211,14 @@ def nb_exgauss_pdf(x: np.ndarray, mu: float, sigma: float, tau: float) -> np.nda
                 tail_f[i] = nb_gauss_tail_approx(x[i], mu, sigma, tau)
     return tail_f
 
+
 @nb.jit(**nb_kwd)
 def nb_pdf(
     Es: np.array,
     S: float,
     BI: float,
-    frac: float, 
-    mu: float, 
+    frac: float,
+    mu: float,
     sigma: float,
     tau: float,
     alpha: float,
@@ -269,22 +274,27 @@ def nb_pdf(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1-frac)
+    S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1 - frac)
 
-    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha*sigma, alpha*tau)
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha * sigma, alpha * tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            ( exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB - mu) ** 2) / (2 * (alpha*sigma)**2))) + B_amp
+            (
+                exgaus[i]
+                + S_amp_gauss
+                * np.exp(-((Es[i] - QBB - mu) ** 2) / (2 * (alpha * sigma) ** 2))
+            )
+            + B_amp
         )
 
-    if (check_window):
+    if check_window:
         for i in nb.prange(Es.shape[0]):
             inwindow = False
             for j in range(len(WINDOW)):
-                if (WINDOW[j][0] <= Es[i] <= WINDOW[j][1]):
+                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
                     inwindow = True
             if not inwindow:
                 y[i] = 0.0
@@ -297,8 +307,8 @@ def nb_density(
     Es: np.array,
     S: float,
     BI: float,
-    frac: float, 
-    mu: float, 
+    frac: float,
+    mu: float,
     sigma: float,
     tau: float,
     alpha: float,
@@ -338,7 +348,7 @@ def nb_density(
     check_window
         whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
         all fall inside the window (for speed)
-        
+
     Notes
     -----
     This function computes the following, faster than without a numba wrapper:
@@ -357,18 +367,22 @@ def nb_density(
     B_amp = exp * BI
     S_amp_gauss = mu_S / (np.sqrt(2 * np.pi) * alpha * sigma) * (1.0 - frac)
 
-    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha*sigma, alpha*tau)
+    exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha * sigma, alpha * tau)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        y[i] = ((exgaus[i] + S_amp_gauss * np.exp(-((Es[i] - QBB - mu) ** 2) / (2 * (alpha*sigma)**2))) + B_amp)
+        y[i] = (
+            exgaus[i]
+            + S_amp_gauss
+            * np.exp(-((Es[i] - QBB - mu) ** 2) / (2 * (alpha * sigma) ** 2))
+        ) + B_amp
 
-    if (check_window):
+    if check_window:
         for i in nb.prange(Es.shape[0]):
             inwindow = False
             for j in range(len(WINDOW)):
-                if (WINDOW[j][0] <= Es[i] <= WINDOW[j][1]):
+                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
                     inwindow = True
             if not inwindow:
                 y[i] = 0.0
@@ -486,7 +500,7 @@ def nb_extendedrvs(
     tau
         scale parameter of the tail in keV
     alpha
-        scaling parameter for tau and sigma 
+        scaling parameter for tau and sigma
     eff
         The global signal efficiency, unitless
     effunc
@@ -513,9 +527,7 @@ def nb_extendedrvs(
 class mjd_0vbb_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
-        del self.parameters["check_window"] # this should not be seen by iminuit
-
-        pass
+        del self.parameters["check_window"]  # this should not be seen by iminuit
 
     def pdf(
         self,
@@ -533,8 +545,22 @@ class mjd_0vbb_gen:
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window)
-    
+        return nb_pdf(
+            Es,
+            S,
+            BI,
+            frac,
+            mu,
+            sigma,
+            tau,
+            alpha,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            check_window,
+        )
+
     # for iminuit ExtendedUnbinnedNLL
     def density(
         self,
@@ -552,7 +578,21 @@ class mjd_0vbb_gen:
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-        return nb_density(Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window)
+        return nb_density(
+            Es,
+            S,
+            BI,
+            frac,
+            mu,
+            sigma,
+            tau,
+            alpha,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            check_window,
+        )
 
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
@@ -585,6 +625,66 @@ class mjd_0vbb_gen:
         exp: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, seed=seed)
+        return nb_extendedrvs(
+            S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, seed=seed
+        )
+
+    # function call needs to take the same parameters as the other function calls, in the same order repeated twice
+    # order is Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp, check_window
+    # this is intended only for empty datasets
+    # returns `None` if we couldn't combine the datasets (a dataset was not empty)
+    def combine(
+        self,
+        a_Es: np.array,
+        a_S: float,
+        a_BI: float,
+        a_frac: float,
+        a_mu: float,
+        a_sigma: float,
+        a_tau: float,
+        a_alpha: float,
+        a_eff: float,
+        a_effunc: float,
+        a_effuncscale: float,
+        a_exp: float,
+        b_Es: np.array,
+        b_S: float,
+        b_BI: float,
+        b_frac: float,
+        b_mu: float,
+        b_sigma: float,
+        b_tau: float,
+        b_alpha: float,
+        b_eff: float,
+        b_effunc: float,
+        b_effuncscale: float,
+        b_exp: float,
+    ) -> list | None:
+        # datasets must be empty to be combined
+        if len(a_Es) != 0 or len(b_Es) != 0:
+            return None
+
+        Es = np.array([])  # both of these datasets are empty
+        S = 0.0  # this should be overwritten in the fit later
+        BI = 0.0  # this should be overwritten in the fit later
+
+        exp = a_exp + b_exp  # total exposure
+
+        # exposure weighted fixed parameters (important to calculate correctly)
+        sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
+        eff = (a_exp * a_eff + b_exp * b_eff) / exp
+        mu = (a_exp * a_mu + b_exp * b_mu) / exp
+        tau = (a_exp * a_tau + b_exp * b_tau) / exp
+        alpha = (a_exp * a_alpha + b_exp * b_alpha) / exp
+        frac = (a_exp * a_frac + b_exp * b_frac) / exp
+
+        # these are fully correlated in this model so the direct sum is appropriate
+        # (maybe still appropriate even if not fully correlated?)
+        effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+
+        effuncscale = 0.0  # this should be overwritten in the fit later
+
+        return [Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp]
+
 
 mjd_0vbb = mjd_0vbb_gen()
