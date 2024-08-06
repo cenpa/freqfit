@@ -21,7 +21,6 @@ class Experiment(Superset):
         config: dict,
         name: str = "",
     ) -> None:
-
         self.options = {}
         self.options["try_to_combine_datasets"] = False
 
@@ -33,22 +32,20 @@ class Experiment(Superset):
                 ]
                 if "combined_datasets" in config:
                     combined_datasets = config["combined_datasets"]
-                    msg = f"found 'combined_datasets' in config"
+                    msg = "found 'combined_datasets' in config"
                     logging.info(msg)
-            
+
             if "name" in config["options"]:
                 name = config["options"]["name"]
 
         constraints = None
         if "constraints" in config:
             constraints = config["constraints"]
-            msg = f"found 'constraints' in config"
+            msg = "found 'constraints' in config"
             logging.info(msg)
         else:
-            msg = f"did not find 'constraints' in config"
+            msg = "did not find 'constraints' in config"
             logging.info(msg)
-
-
 
         super().__init__(
             datasets=config["datasets"],
@@ -256,7 +253,7 @@ class Experiment(Superset):
         for i in range(num):
             thistoy = self.maketoy(parameters=parameters, seed=seed[i])
             ts[i] = thistoy.ts(profile_parameters=profile_parameters)
-            data_to_return.append(thistoy.toydata_to_save)
+            data_to_return.append(thistoy.toy_data_to_save)
             nuisance_to_return.append(thistoy.varied_nuisance_to_save)
 
         # Need to flatten the data_to_return in order to save it in h5py
