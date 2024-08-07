@@ -519,5 +519,26 @@ class correlated_efficiency_0vbb_gen:
 
         return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
 
+    def can_combine(
+        self,
+        a_Es: np.array,
+        a_S: float,
+        a_BI: float,
+        a_delta: float,
+        a_sigma: float,
+        a_eff: float,
+        a_effunc: float,
+        a_effuncscale: float,
+        a_exp: float,
+    ) -> bool:
+        """
+        This sets an arbitrary rule if this dataset can be combined with other datasets.
+        In this case, if the dataset contains no data, then it can be combined, but more complex rules can be imposed.
+        """
+        if len(a_Es) == 0:
+            return True
+        else:
+            return False
+
 
 correlated_efficiency_0vbb = correlated_efficiency_0vbb_gen()

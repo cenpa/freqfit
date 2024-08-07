@@ -6,8 +6,8 @@ import logging
 import numpy as np
 from iminuit import Minuit, cost
 
-from legendfreqfit.utils import grab_results
 from legendfreqfit.dataset import combine_datasets
+from legendfreqfit.utils import grab_results
 
 SEED = 42
 
@@ -31,29 +31,66 @@ class Toy:
             parameter and sets the constraint to be centered at this new value.
         """
 
-        self.experiment = experiment # the experiment this Toy is based on
-        self.toy_data_to_save = ([])  # list to store the data drawn for this toy. A flat array, consists of all data from all datasets
-        self.varied_nuisance_to_save = ([])  # 2d array of randomly varied nuisance parameters, per dataset
-        self.costfunction = None # costfunction for this Toy
-        self.fitparameters = None # fit parameters from the costfunction, reference to self.costfunction._parameters
-        self.minuit = None # Minuit object
-        self.best = None # best fit
-        self.fixed_bc_no_data = {} # parameters that can be fixed because no data in their Datasets
-        self.combined_datasets = {} # holds combined_datasets
+        self.experiment = experiment  # the experiment this Toy is based on
+        self.toy_data_to_save = (
+            []
+        )  # list to store the data drawn for this toy. A flat array, consists of all data from all datasets
+        self.varied_nuisance_to_save = (
+            []
+        )  # 2d array of randomly varied nuisance parameters, per dataset
+        self.costfunction = None  # costfunction for this Toy
+        self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
+        self.minuit = None  # Minuit object
+        self.best = None  # best fit
+        self.fixed_bc_no_data = (
+            {}
+        )  # parameters that can be fixed because no data in their Datasets
+        self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
+
+        # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
+        for combined_ds in experiment.included_in_combined_datasets.keys():
+            # Datasets may have been combined into more than one new datasets, that's why we loop over the keys
+            # Now, loop over datasets and add back in their parameter values
+            for ds in experiment.included_in_combined_datasets[combined_ds]:
+                # Check to make sure that the user hasn't overridden any of the parameters in datasets that were combined
+                # This needs to happen so we don't overwrite them when we de-combine datasets next
+                if any(
+                    x in list(parameters.keys())
+                    for x in list(experiment.datasets[ds].model_parameters.keys())
+                ):
+                    raise NotImplementedError(
+                        "Overriding a parameter that is in a combined dataset is not supported."
+                    )
+
+                # Loop through the model parameters in the dataset and find their values from the combined dataset
+                for model_par in experiment.datasets[ds].model_parameters.keys():
+                    ds_par_name = experiment.datasets[ds].model_parameters[model_par]
+                    # find the corresponding parameter name in the combined dataset
+                    combined_ds_par_name = experiment.combined_datasets[
+                        combined_ds
+                    ].model_parameters[model_par]
+
+                    # nuisance parameters should not be passed in parameters, so we need to skip the nuisance parameters from the dataset
+                    if combined_ds_par_name in parameters.keys():
+                        parameters[ds_par_name] = parameters[combined_ds_par_name]
 
         # vary the toy parameters as indicated
         if len(self.experiment._toy_pars_to_vary) > 0:
             np.random.seed(seed=seed)
 
-            pars, vals, covar = self.experiment.get_constraints(self.experiment._toy_pars_to_vary)
+            pars, vals, covar = self.experiment.get_constraints(
+                self.experiment._toy_pars_to_vary
+            )
 
             varied_toy_pars = []
             # check if parameters are all independent, draw from simpler distribution if so
             if np.all(covar == np.diag(np.diagonal(covar))):
                 varied_toy_pars = np.random.normal(vals, np.sqrt(np.diagonal(covar)))
             else:
-                varied_toy_pars = np.random.multivariate_normal(vals, covar) # sooooooooo SLOW
+                varied_toy_pars = np.random.multivariate_normal(
+                    vals, covar
+                )  # sooooooooo SLOW
 
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
@@ -80,8 +117,10 @@ class Toy:
                 pars[j] = parameters[fitpar]
 
             # make the toy for this particular dataset
-            dataset.toy(par=pars, seed=thisseed) # saved in dataset._toy_data
-            self.toy_data_to_save.extend(dataset._toy_data)  # store the data as list of lists
+            dataset.toy(par=pars, seed=thisseed)  # saved in dataset._toy_data
+            self.toy_data_to_save.extend(
+                dataset._toy_data
+            )  # store the data as list of lists
 
         # combine datasets
         if self.experiment.options["try_to_combine_datasets"]:
@@ -90,15 +129,22 @@ class Toy:
                 # find the Datasets to try to combine
                 ds_tocombine = []
                 for dsname in self.experiment.datasets.keys():
-                    if self.experiment.datasets[dsname].try_combine and self.experiment.datasets[dsname].combined_dataset == cdsname:
+                    if (
+                        self.experiment.datasets[dsname].try_combine
+                        and self.experiment.datasets[dsname].combined_dataset == cdsname
+                    ):
                         ds_tocombine.append(self.experiment.datasets[dsname])
 
                 combined_dataset, included_datasets = combine_datasets(
-                    datasets=ds_tocombine, 
+                    datasets=ds_tocombine,
                     model=self.experiment._combined_datasets_config[cdsname]["model"],
-                    model_parameters=self.experiment._combined_datasets_config[cdsname]["model_parameters"],
+                    model_parameters=self.experiment._combined_datasets_config[cdsname][
+                        "model_parameters"
+                    ],
                     parameters=self.experiment._toy_parameters,
-                    costfunction=self.experiment._combined_datasets_config[cdsname]["costfunction"],
+                    costfunction=self.experiment._combined_datasets_config[cdsname][
+                        "costfunction"
+                    ],
                     name=cdsname,
                     use_toy_data=True,
                 )
@@ -129,12 +175,12 @@ class Toy:
                 first = False
             else:
                 self.costfunction += thiscostfunction
-            
+
             # find which parameters are part of Datasets that have data
             if ds._toy_data.size > 0:
                 # add the fit parameters of this Dataset if there is some data
                 for fitpar in thiscostfunction._parameters:
-                    parstofitthathavedata.add(fitpar)  
+                    parstofitthathavedata.add(fitpar)
 
         for cdsname, cds in self.combined_datasets.items():
             # make the cost function for this particular combined_dataset
@@ -151,12 +197,12 @@ class Toy:
             if cds.data.size > 0:
                 # add the fit parameters of this combined_dataset if there is some data
                 for fitpar in thiscostfunction._parameters:
-                    parstofitthathavedata.add(fitpar)  
+                    parstofitthathavedata.add(fitpar)
 
         # fitparameters of Toy are a little different than fitparameters of Dataset
         self.fitparameters = self.costfunction._parameters
 
-        # get the cosntraints needed from the fitparameters
+        # get the constraints needed from the fitparameters
         # but note that we need to adjust the central values for the varied pars
         # check if they are in the varied pars list and pull the value from parameters if so
 
@@ -166,7 +212,7 @@ class Toy:
             for i, par in enumerate(pars):
                 if par in self.experiment._toy_pars_to_vary:
                     values[i] = parameters[par]
-        
+
             self.constraints = cost.NormalConstraint(pars, values, error=covariance)
 
             self.costfunction = self.costfunction + self.constraints
