@@ -68,32 +68,48 @@ class Dataset:
         Currently, only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as cost functions.
         """
 
-        self.data = np.asarray(data) # the data of this Dataset
-        self.name = name # name of this Dataset
-        self.model = model # model object for this Dataset
-        self.model_parameters = model_parameters # model parameter name : parameter name 
+        self.data = np.asarray(data)  # the data of this Dataset
+        self.name = name  # name of this Dataset
+        self.model = model  # model object for this Dataset
+        self.model_parameters = (
+            model_parameters  # model parameter name : parameter name
+        )
 
-        self._costfunctioncall = None # function call for the costfunction
-        self.costfunction = None # iminuit cost function object
+        self._costfunctioncall = None  # function call for the costfunction
+        self.costfunction = None  # iminuit cost function object
 
-        self._parlist = [] # list that contains all of the parameters of the model for this Dataset in the correct order
-        self._parlist_indices = ([]) # indices in self._parlist of the the parameters to be fit 
-        
-        self.fitparameters = {} # fit parameter names : index in self._parlist (same as in self._parlist_indices)
-        self._toy_pars_to_vary = {} # parameter to vary for toys : index in self._parlist
+        self._parlist = (
+            []
+        )  # list that contains all of the parameters of the model for this Dataset in the correct order
+        self._parlist_indices = (
+            []
+        )  # indices in self._parlist of the the parameters to be fit
 
-        self.try_combine = try_combine # whether to attempt to combine this Dataset into a combined_dataset
-        self.is_combined = False # whether this Dataset is combined into a combined_dataset
-        self.combined_dataset = None # name of the combined_dataset that this Dataset is part of
+        self.fitparameters = (
+            {}
+        )  # fit parameter names : index in self._parlist (same as in self._parlist_indices)
+        self._toy_pars_to_vary = (
+            {}
+        )  # parameter to vary for toys : index in self._parlist
 
-        self._toy_data = None # place to hold Toy data for this Dataset
-        self._toy_is_combined = False # if this Dataset is combined into a combined_dataset in the Toy
+        self.try_combine = try_combine  # whether to attempt to combine this Dataset into a combined_dataset
+        self.is_combined = (
+            False  # whether this Dataset is combined into a combined_dataset
+        )
+        self.combined_dataset = (
+            None  # name of the combined_dataset that this Dataset is part of
+        )
+
+        self._toy_data = None  # place to hold Toy data for this Dataset
+        self._toy_is_combined = (
+            False  # if this Dataset is combined into a combined_dataset in the Toy
+        )
 
         if self.try_combine:
             if combined_dataset is None:
                 msg = f"`Dataset` `{self.name}` has `try_combine` `{self.try_combine}` but `combined_dataset` is {combined_dataset}"
-                raise ValueError(msg)   
-            else:             
+                raise ValueError(msg)
+            else:
                 self.combined_dataset = combined_dataset
 
         # check that all passed parameters are valid
@@ -138,10 +154,12 @@ class Dataset:
                     else None
                 }
 
-                if ("value" not in parameters[model_parameters[par]]):
-                    msg = (f"`Dataset` `{self.name}`: value for parameter `{par}` is required for" 
-                        + f" model `{model}` parameter `{par}`")
-                    raise KeyError(msg)                    
+                if "value" not in parameters[model_parameters[par]]:
+                    msg = (
+                        f"`Dataset` `{self.name}`: value for parameter `{par}` is required for"
+                        + f" model `{model}` parameter `{par}`"
+                    )
+                    raise KeyError(msg)
                 self._parlist.append(parameters[model_parameters[par]]["value"])
                 self._parlist_indices.append(i)
                 self.fitparameters |= {model_parameters[par]: i}
@@ -150,8 +168,10 @@ class Dataset:
                 if ("value" not in parameters[model_parameters[par]]) and (
                     defaultvalue == "nodefaultvalue"
                 ):
-                    msg = (f"`Dataset` '{self.name}': value for parameter '{par}' is required for" 
-                        + f"model '{model}' parameter '{par}'")
+                    msg = (
+                        f"`Dataset` '{self.name}': value for parameter '{par}' is required for"
+                        + f"model '{model}' parameter '{par}'"
+                    )
                     raise KeyError(msg)
                 self._parlist.append(parameters[model_parameters[par]]["value"])
 
@@ -167,7 +187,7 @@ class Dataset:
     def density(
         self,
         data,
-        *par, # DO NOT DELETE THE * - NEEDED FOR IMINUIT
+        *par,  # DO NOT DELETE THE * - NEEDED FOR IMINUIT
     ) -> np.array:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
@@ -179,7 +199,7 @@ class Dataset:
     def density_gradient(
         self,
         data,
-        *par, # DO NOT DELETE THE * - NEEDED FOR IMINUIT
+        *par,  # DO NOT DELETE THE * - NEEDED FOR IMINUIT
     ) -> np.array:
         """
         Parameters
@@ -204,7 +224,6 @@ class Dataset:
         par,
         seed: int = SEED,
     ) -> np.array:
-
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
@@ -212,14 +231,13 @@ class Dataset:
 
         rvs = self.model.extendedrvs(*self._parlist, seed=seed)
         return rvs
-    
+
     # generates toy data and sets some attributes
     def toy(
         self,
         par,
         seed: int = SEED,
     ) -> None:
-
         self.toy_reset()
         self._toy_data = self.rvs(par, seed=seed)
         return
@@ -228,10 +246,10 @@ class Dataset:
     def toy_reset(
         self,
     ) -> None:
-
         self._toy_data = None
         self._toy_is_combined = False
         return
+
 
 # method to combine datasets
 def combine_datasets(
@@ -240,14 +258,14 @@ def combine_datasets(
     model_parameters: dict[str, str],
     parameters: dict,
     costfunction: cost.Cost,
-    name: str = "", 
+    name: str = "",
     use_toy_data: bool = False,
 ) -> Dataset:
     """
     Parameters
     ----------
     datasets
-        tuple of the `Dataset` to combine. The `model` must have a `combine` method that specifies whether and how the 
+        tuple of the `Dataset` to combine. The `model` must have a `combine` method that specifies whether and how the
         datasets are to be combined.
     model
         model of the combined `Dataset` (see `Dataset`)
@@ -260,8 +278,10 @@ def combine_datasets(
     name
         name of the combined `Dataset`
     """
-            
-    if not isinstance(datasets, list) or not all(isinstance(ds, Dataset) for ds in datasets):
+
+    if not isinstance(datasets, list) or not all(
+        isinstance(ds, Dataset) for ds in datasets
+    ):
         msg = "must be `list` of `Datasets` to be combined"
         raise TypeError(msg)
 
@@ -273,7 +293,6 @@ def combine_datasets(
     combination = None
     first = True
     for ds in datasets:
-
         if ds.model != model:
             msg = f"`Dataset` {ds.name} has model `{ds.model}` != `{model}` - must be the same to combine"
             raise NotImplementedError(msg)
@@ -281,7 +300,7 @@ def combine_datasets(
         if ds._costfunctioncall != costfunction:
             msg = f"`Dataset` {ds.name} has costfunction `{ds._costfunctioncall}` != `{costfunction}` - must be the same to combine"
             raise NotImplementedError(msg)
-        
+
         # whether to use the real data or the toy data
         thisdata = ds.data
         if use_toy_data:
@@ -292,7 +311,8 @@ def combine_datasets(
             thisdata = ds._toy_data
 
         # if first dataset, the combination is just the stuff needed to recreate it
-        if first:
+        # TODO: check if it is allowed to be combined
+        if first and (ds.model.can_combine(thisdata, *ds._parlist)):
             combination = [thisdata, *ds._parlist]
             included_datasets.append(ds.name)
             msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
@@ -302,9 +322,9 @@ def combine_datasets(
                 ds._toy_is_combined = True
             else:
                 ds.is_combined = True
-        else:
+        elif ds.model.can_combine(thisdata, *ds._parlist):
             result = model.combine(*combination, thisdata, *ds._parlist)
-            if result is not None: # if None, we cannot combine them
+            if result is not None:  # if None, we cannot combine them
                 combination = result
                 included_datasets.append(ds.name)
                 msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
@@ -320,7 +340,6 @@ def combine_datasets(
     # return the combined dataset if we combined some datasets
     combined_dataset = None
     if len(included_datasets) > 0:
-            
         # now to set the parameters based on the combined results
         simplified_parameters = {}
         # model.parameters contains all parameters, including default valued ones
@@ -331,12 +350,17 @@ def combine_datasets(
                 # this is a reference not a copy!
                 simplified_parameters[parname] = parameters[parname]
                 # hence why it is important to check whether we should overwrite the value
-                if "value_from_combine" in parameters[parname] and parameters[parname]["value_from_combine"]:
+                if (
+                    "value_from_combine" in parameters[parname]
+                    and parameters[parname]["value_from_combine"]
+                ):
                     # i+1 because data occupies index 0
-                    simplified_parameters[parname]["value"] = combination[i+1]
+                    simplified_parameters[parname]["value"] = combination[i + 1]
 
         data = combination[0]
 
-        combined_dataset = Dataset(data, model, model_parameters, simplified_parameters, costfunction, name)
+        combined_dataset = Dataset(
+            data, model, model_parameters, simplified_parameters, costfunction, name
+        )
 
     return combined_dataset, included_datasets

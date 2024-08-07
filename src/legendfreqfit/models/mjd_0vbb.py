@@ -686,5 +686,29 @@ class mjd_0vbb_gen:
 
         return [Es, S, BI, frac, mu, sigma, tau, alpha, eff, effunc, effuncscale, exp]
 
+    def can_combine(
+        self,
+        a_Es: np.array,
+        a_S: float,
+        a_BI: float,
+        a_frac: float,
+        a_mu: float,
+        a_sigma: float,
+        a_tau: float,
+        a_alpha: float,
+        a_eff: float,
+        a_effunc: float,
+        a_effuncscale: float,
+        a_exp: float,
+    ) -> bool:
+        """
+        This sets an arbitrary rule if this dataset can be combined with other datasets.
+        In this case, if the dataset contains no data, then it can be combined, but more complex rules can be imposed.
+        """
+        if len(a_Es) == 0:
+            return True
+        else:
+            return False
+
 
 mjd_0vbb = mjd_0vbb_gen()
