@@ -325,11 +325,10 @@ class Toy:
     # plots slightly differently
     def visualize(
         self,
-        parameters: dict,
         component_kwargs=None,
     ) -> None:
         """
-        Visualize data and model agreement (requires matplotlib).
+        Visualize the last toy.
 
         The visualization is drawn with matplotlib.pyplot into the current figure.
         Subplots are created to visualize each part of the cost function, the figure
@@ -350,6 +349,10 @@ class Toy:
             Other keyword arguments are forwarded to all components.
         """
         from matplotlib import pyplot as plt
+
+        parameters = {}
+        for par, pardict in self.experiment._toy_parameters.items():
+            parameters[par] = pardict["value"]
 
         args = []
         for par in self.fitparameters:

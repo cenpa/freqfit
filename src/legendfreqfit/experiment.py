@@ -23,6 +23,7 @@ class Experiment(Superset):
     ) -> None:
         self.options = {}
         self.options["try_to_combine_datasets"] = False
+        self.toy = None # the last Toy from this experiment
 
         combined_datasets = None
         if "options" in config:
@@ -224,9 +225,9 @@ class Experiment(Superset):
         parameters: dict,
         seed: int = SEED,
     ) -> Toy:
-        toy = Toy(experiment=self, parameters=parameters, seed=seed)
+        self.toy = Toy(experiment=self, parameters=parameters, seed=seed)
 
-        return toy
+        return self.toy
 
     def toy_ts(
         self,
