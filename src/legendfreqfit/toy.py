@@ -38,9 +38,7 @@ class Toy:
         self.toy_num_drawn_to_save = (
             []
         )  # list to store tuples of the number of signal and background counts drawn per dataset
-        self.varied_nuisance_to_save = (
-            []
-        )  # 2d array of randomly varied nuisance parameters, per dataset
+        self.parameters_to_save = np.array([np.full(len(self.experiment._toy_parameters), np.nan)]) # the parameters of the toy
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
@@ -99,9 +97,6 @@ class Toy:
             for i, par in enumerate(pars):
                 parameters[par] = varied_toy_pars[i]
                 self.experiment._toy_parameters[par]["value"] = varied_toy_pars[i]
-
-            # Save the values of these randomized nuisance parameters
-            self.varied_nuisance_to_save.append(varied_toy_pars)
 
         # draw the toy data
         for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
@@ -240,6 +235,10 @@ class Toy:
                     self.fixed_bc_no_data[parname] = self.experiment._toy_parameters[
                         parname
                     ]["value"]
+
+        # save the values of the toy parameters
+        for i, (parname, pardict) in enumerate(self.experiment._toy_parameters.items()):
+            self.parameters_to_save[0,i] = pardict["value"]
 
         # to set limits and fixed variables
         # this function will also fix those nuisance parameters which can be fixed because they are not part of a
