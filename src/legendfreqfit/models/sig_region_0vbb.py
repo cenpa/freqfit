@@ -340,7 +340,7 @@ def nb_extendedrvs(
                     breaks[i][1] - breaks[i][0]
                 ) + WINDOW[i][0]
 
-    return Es
+    return Es, (n_sig, n_bkg)
 
 
 @nb.jit(**nb_kwd)

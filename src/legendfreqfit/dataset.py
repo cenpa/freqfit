@@ -101,6 +101,7 @@ class Dataset:
         )
 
         self._toy_data = None  # place to hold Toy data for this Dataset
+        self._toy_num_drawn = None  # place to hold the number of signal and number of background events drawn for a toy
         self._toy_is_combined = (
             False  # if this Dataset is combined into a combined_dataset in the Toy
         )
@@ -229,8 +230,8 @@ class Dataset:
         for i in range(len(par)):
             self._parlist[self._parlist_indices[i]] = par[i]
 
-        rvs = self.model.extendedrvs(*self._parlist, seed=seed)
-        return rvs
+        rvs, toy_num_drawn = self.model.extendedrvs(*self._parlist, seed=seed)
+        return rvs, toy_num_drawn
 
     # generates toy data and sets some attributes
     def toy(
@@ -239,7 +240,7 @@ class Dataset:
         seed: int = SEED,
     ) -> None:
         self.toy_reset()
-        self._toy_data = self.rvs(par, seed=seed)
+        self._toy_data, self._toy_num_drawn = self.rvs(par, seed=seed)
         return
 
     # resets some toy attributes
@@ -247,6 +248,7 @@ class Dataset:
         self,
     ) -> None:
         self._toy_data = None
+        self._toy_num_drawn = None
         self._toy_is_combined = False
         return
 

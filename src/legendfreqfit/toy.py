@@ -35,6 +35,9 @@ class Toy:
         self.toy_data_to_save = (
             []
         )  # list to store the data drawn for this toy. A flat array, consists of all data from all datasets
+        self.toy_num_drawn_to_save = (
+            []
+        )  # list to store tuples of the number of signal and background counts drawn per dataset
         self.varied_nuisance_to_save = (
             []
         )  # 2d array of randomly varied nuisance parameters, per dataset
@@ -121,6 +124,9 @@ class Toy:
             self.toy_data_to_save.extend(
                 dataset._toy_data
             )  # store the data as list of lists
+            self.toy_num_drawn_to_save.extend(
+                dataset._toy_num_drawn
+            )  # also save the number of signal and background counts drawn
 
         # combine datasets
         if self.experiment.options["try_to_combine_datasets"]:

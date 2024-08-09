@@ -215,6 +215,7 @@ class SetLimit(Experiment):
         ts = [arr[0] for arr in return_args]
         data_to_return = [arr[1] for arr in return_args]
         nuisance_to_return = [arr[2] for arr in return_args]
+        num_drawn_to_return = [arr[3] for arr in return_args]
 
         # data_to_return is a jagged list, each element is a 2d-array filled it nans
         # First, find the maximum length of array we will need to pad to
@@ -226,7 +227,20 @@ class SetLimit(Experiment):
         for i, arr in enumerate(data_flattened):
             data_to_return_flat[i, : len(arr)] = arr
 
-        return np.hstack(ts), data_to_return_flat, np.vstack(nuisance_to_return)
+        maxlen = np.amax([len(arr[0]) for arr in num_drawn_to_return])
+        num_drawn_flattened = [e for arr in num_drawn_to_return for e in arr]
+
+        # Need to flatten the data_to_return in order to save it in h5py
+        num_drawn_to_return_flat = np.ones((len(num_drawn_flattened), maxlen)) * np.nan
+        for i, arr in enumerate(num_drawn_flattened):
+            num_drawn_to_return_flat[i, : len(arr)] = arr
+
+        return (
+            np.hstack(ts),
+            data_to_return_flat,
+            np.vstack(nuisance_to_return),
+            num_drawn_to_return_flat,
+        )
 
     def run_toys(
         self,
@@ -280,7 +294,7 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts, data, nuisance = self.toy_ts_mp(
+        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
             toypars, {f"{self.var_to_profile}": scan_point}, num=self.numtoy
         )
 
@@ -291,6 +305,7 @@ class SetLimit(Experiment):
         dset = f.create_dataset("s", data=scan_point)
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
+        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
 
         f.close()
 
