@@ -42,6 +42,7 @@ def nb_pdf(
     effunc: float,
     effuncscale: float,
     exp: float,
+    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
@@ -64,6 +65,9 @@ def nb_pdf(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    check_window
+        whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
+        all fall inside the window (for speed)
 
     Notes
     -----
@@ -89,6 +93,15 @@ def nb_pdf(
             S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
+    if check_window:
+        for i in nb.prange(Es.shape[0]):
+            inwindow = False
+            for j in range(len(WINDOW)):
+                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+                    inwindow = True
+            if not inwindow:
+                y[i] = 0.0
+                
     return y
 
 
@@ -366,8 +379,9 @@ class correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
+        return nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, check_window)
 
     def logpdf(
         self,
