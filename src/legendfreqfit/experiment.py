@@ -21,9 +21,15 @@ class Experiment(Superset):
         config: dict,
         name: str = "",
     ) -> None:
+    
         self.options = {}
         self.options["try_to_combine_datasets"] = False
         self.toy = None # the last Toy from this experiment
+        self.best = None # to store the best fit result
+        self.guess = None # store the initial guess
+        self.minuit = None # Minuit object
+
+        self.fixed_bc_no_data = {} # check which nuisance parameters can be fixed in the fit due to no data
 
         combined_datasets = None
         if "options" in config:
@@ -65,7 +71,6 @@ class Experiment(Superset):
         self.minuit.throw_nan = True
 
         # check which nuisance parameters can be fixed in the fit due to no data
-        self.fixed_bc_no_data = {}
 
         # find which parameters are part of Datasets that have data
         parstofitthathavedata = set()
@@ -90,9 +95,6 @@ class Experiment(Superset):
         # this function will also fix those fit parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
-
-        # to store the best fit result
-        self.best = None
 
     @classmethod
     def file(
@@ -250,13 +252,13 @@ class Experiment(Superset):
                 raise ValueError("Seeds must have same length as the number of toys!")
 
         data_to_return = []
-        nuisance_to_return = []
+        paramvalues_to_return = []
         num_drawn = []
         for i in range(num):
             thistoy = self.maketoy(parameters=parameters, seed=seed[i])
             ts[i] = thistoy.ts(profile_parameters=profile_parameters)
             data_to_return.append(thistoy.toy_data_to_save)
-            nuisance_to_return.append(thistoy.varied_nuisance_to_save)
+            paramvalues_to_return.append(thistoy.parameters_to_save)
             num_drawn.append(thistoy.toy_num_drawn_to_save)
 
         # Need to flatten the data_to_return in order to save it in h5py
@@ -276,7 +278,7 @@ class Experiment(Superset):
         for i, arr in enumerate(num_drawn):
             num_drawn_to_return_flat[i, : len(arr)] = arr
 
-        return ts, data_to_return_flat, nuisance_to_return, num_drawn_to_return_flat
+        return ts, data_to_return_flat, paramvalues_to_return, num_drawn_to_return_flat
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
