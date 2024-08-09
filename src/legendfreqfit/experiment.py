@@ -250,11 +250,13 @@ class Experiment(Superset):
 
         data_to_return = []
         nuisance_to_return = []
+        num_drawn = []
         for i in range(num):
             thistoy = self.maketoy(parameters=parameters, seed=seed[i])
             ts[i] = thistoy.ts(profile_parameters=profile_parameters)
             data_to_return.append(thistoy.toy_data_to_save)
             nuisance_to_return.append(thistoy.varied_nuisance_to_save)
+            num_drawn.append(thistoy.toy_num_drawn_to_save)
 
         # Need to flatten the data_to_return in order to save it in h5py
         data_to_return_flat = (
@@ -266,7 +268,14 @@ class Experiment(Superset):
         for i, arr in enumerate(data_to_return):
             data_to_return_flat[i, : len(arr)] = arr
 
-        return ts, data_to_return_flat, nuisance_to_return
+        num_drawn_to_return_flat = (
+            np.ones((len(num_drawn), np.nanmax([len(arr) for arr in num_drawn])))
+            * np.nan
+        )
+        for i, arr in enumerate(num_drawn):
+            num_drawn_to_return_flat[i, : len(arr)] = arr
+
+        return ts, data_to_return_flat, nuisance_to_return, num_drawn_to_return_flat
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently

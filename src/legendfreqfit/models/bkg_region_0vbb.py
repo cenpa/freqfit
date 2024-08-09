@@ -175,7 +175,7 @@ def nb_extendedrvs(
                     breaks[i][1] - breaks[i][0]
                 ) + WINDOW[i][0]
 
-    return Es
+    return Es, (0, n_bkg)
 
 
 class bkg_region_0vbb_gen:

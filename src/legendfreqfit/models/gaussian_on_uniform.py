@@ -306,6 +306,13 @@ def nb_extendedrvs(
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
+
+    Returns
+    -------
+    rvs
+        The random variables drawn
+    (n_sig, n_bkg)
+        Number of signal counts drawn and number of background counts
     """
 
     np.random.seed(seed)
@@ -336,7 +343,7 @@ def nb_extendedrvs(
                     breaks[i][1] - breaks[i][0]
                 ) + WINDOW[i][0]
 
-    return Es
+    return Es, (n_sig, n_bkg)
 
 
 @nb.jit(**nb_kwd)
@@ -492,7 +499,6 @@ class gaussian_on_uniform_gen:
         eff: float,
         exp: float,
     ) -> np.array:
-
         mu_S = S * eff * exp
         mu_B = exp * BI * WINDOWSIZE
 
@@ -502,8 +508,7 @@ class gaussian_on_uniform_gen:
         else:
             return (
                 mu_S + mu_B,
-                np.log(mu_S + mu_B)
-                + nb_logpdf(Es, S, BI, delta, sigma, eff, exp),
+                np.log(mu_S + mu_B) + nb_logpdf(Es, S, BI, delta, sigma, eff, exp),
             )
 
     # should we have an rvs method for drawing a random number of events?
