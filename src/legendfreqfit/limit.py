@@ -39,6 +39,7 @@ class SetLimit(Experiment):
         self.jobid = jobid
         self.numtoy = numtoy
         self.out_path = out_path
+        self.numcores = NUM_CORES # default
 
     def set_var_to_profile(self, var_to_profile: str):
         self.var_to_profile = var_to_profile
@@ -80,7 +81,7 @@ class SetLimit(Experiment):
         # Create the arguments to multiprocess over
         args = [[{f"{self.var_to_profile}": float(xx)}] for xx in var_values]
 
-        with mp.Pool(NUM_CORES) as pool:
+        with mp.Pool(self.numcores) as pool:
             ts = pool.starmap(self.ts, args)
         return ts
 
@@ -188,8 +189,8 @@ class SetLimit(Experiment):
         Makes a number of toys and returns their test statistics. Multiprocessed
         """
         x = np.arange(0, num)
-        toys_per_core = np.full(NUM_CORES, num // NUM_CORES)
-        toys_per_core = np.insert(toys_per_core, len(toys_per_core), num % NUM_CORES)
+        toys_per_core = np.full(self.numcores, num // self.numcores)
+        toys_per_core = np.insert(toys_per_core, len(toys_per_core), num % self.numcores)
 
         # remove any cores with 0 toys
         index = np.argwhere(toys_per_core == 0)
@@ -209,7 +210,7 @@ class SetLimit(Experiment):
             for i, num_toy in enumerate(toys_per_core)
         ]  # give each core multiple MCs
 
-        with mp.Pool(NUM_CORES) as pool:
+        with mp.Pool(self.numcores) as pool:
             return_args = pool.starmap(self.toy_ts, args)
 
         ts = [arr[0] for arr in return_args]
