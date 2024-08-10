@@ -128,9 +128,11 @@ class Experiment(Superset):
 
     def minuit_reset(
         self,
+        use_physical_limits: bool = True, # for numerators of test statistics, want this to be False
     ) -> None:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
+        # 2024/08/09: This no longer seems to be true? Not sure if something changed in iminuit or if I was wrong?
         self.minuit.reset()
 
         # overwrite the limits
@@ -140,8 +142,14 @@ class Experiment(Superset):
         # also set which parameters are fixed
         for parname, pardict in self.parameters.items():
             if parname in self.minuit.parameters:
+
+                self.minuit.fixed[parname] = False
+                self.minuit.limits[parname] = (-1.0*np.inf, np.inf)
+
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
+                if use_physical_limits and "physical_limits" in pardict:
+                    self.minuit.limits[parname] = pardict["physical_limits"]
                 if "fixed" in pardict:
                     self.minuit.fixed[parname] = pardict["fixed"]
                 # fix those nuisance parameters which can be fixed because they are not part of a
@@ -181,6 +189,7 @@ class Experiment(Superset):
     def profile(
         self,
         parameters: dict,
+        use_physical_limits: bool = True,
     ) -> dict:
         """
         parameters
@@ -188,7 +197,7 @@ class Experiment(Superset):
             fixed to
         """
 
-        self.minuit_reset()
+        self.minuit_reset(use_physical_limits=use_physical_limits)
 
         # set fixed parameters
         for parname, parvalue in parameters.items():
@@ -205,7 +214,7 @@ class Experiment(Superset):
 
         return results
 
-    # this corresponds to t_mu or t_mu^tilde depending on whether there is a limit on the parameters
+    # this corresponds to t_mu or t_mu^tilde depending on whether there is a physical limit on the parameters
     def ts(
         self,
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
@@ -217,7 +226,7 @@ class Experiment(Superset):
         """
         denom = self.bestfit(force=force)["fval"]
 
-        num = self.profile(parameters=profile_parameters)["fval"]
+        num = self.profile(parameters=profile_parametersm, use_physical_limits=False)["fval"]
 
         # because these are already -2*ln(L) from iminuit
         return num - denom
