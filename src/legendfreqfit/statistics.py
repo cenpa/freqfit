@@ -194,4 +194,6 @@ def toy_ts_critical(
         plt.suptitle(plot_title)
         plt.savefig(plot_dir + f"ts_critical_{int_thresh}.pdf", dpi=300)
 
+        return (critical, lo_ts, hi_ts), (threshold, lo, hi), fig
+
     return (critical, lo_ts, hi_ts), (threshold, lo, hi)

@@ -135,6 +135,9 @@ def load_config(
     for par, pardict in config["parameters"].items():
         if "limits" in pardict and type(pardict["limits"]) is str:
             pardict["limits"] = eval(pardict["limits"])
+        
+        if "physical_limits" in pardict and type(pardict["physical_limits"]) is str:
+            pardict["physical_limits"] = eval(pardict["physical_limits"])
 
     return config
 
