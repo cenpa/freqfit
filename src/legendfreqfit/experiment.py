@@ -21,15 +21,16 @@ class Experiment(Superset):
         config: dict,
         name: str = "",
     ) -> None:
-    
         self.options = {}
         self.options["try_to_combine_datasets"] = False
-        self.toy = None # the last Toy from this experiment
-        self.best = None # to store the best fit result
-        self.guess = None # store the initial guess
-        self.minuit = None # Minuit object
+        self.toy = None  # the last Toy from this experiment
+        self.best = None  # to store the best fit result
+        self.guess = None  # store the initial guess
+        self.minuit = None  # Minuit object
 
-        self.fixed_bc_no_data = {} # check which nuisance parameters can be fixed in the fit due to no data
+        self.fixed_bc_no_data = (
+            {}
+        )  # check which nuisance parameters can be fixed in the fit due to no data
 
         combined_datasets = None
         if "options" in config:
@@ -128,7 +129,7 @@ class Experiment(Superset):
 
     def minuit_reset(
         self,
-        use_physical_limits: bool = True, # for numerators of test statistics, want this to be False
+        use_physical_limits: bool = True,  # for numerators of test statistics, want this to be False
     ) -> None:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
@@ -142,9 +143,8 @@ class Experiment(Superset):
         # also set which parameters are fixed
         for parname, pardict in self.parameters.items():
             if parname in self.minuit.parameters:
-
                 self.minuit.fixed[parname] = False
-                self.minuit.limits[parname] = (-1.0*np.inf, np.inf)
+                self.minuit.limits[parname] = (-1.0 * np.inf, np.inf)
 
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
@@ -226,7 +226,9 @@ class Experiment(Superset):
         """
         denom = self.bestfit(force=force)["fval"]
 
-        num = self.profile(parameters=profile_parametersm, use_physical_limits=False)["fval"]
+        num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
+            "fval"
+        ]
 
         # because these are already -2*ln(L) from iminuit
         return num - denom
