@@ -24,8 +24,8 @@ class SetLimit(Experiment):
         config: dict,
         jobid: int = 0,
         numtoy: int = 0,
-        out_path: str = None,
-        name: str = None,
+        out_path: str = ".",
+        name: str = "",
     ) -> None:
         """
         This class inherits from `Experiment`, and also holds the name of the variable to profile
