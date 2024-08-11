@@ -23,6 +23,7 @@ class Experiment(Superset):
     ) -> None:
         self.options = {}
         self.options["try_to_combine_datasets"] = False
+        self.test_statistic = "t_mu"
         self.toy = None  # the last Toy from this experiment
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
@@ -45,6 +46,19 @@ class Experiment(Superset):
 
             if "name" in config["options"]:
                 name = config["options"]["name"]
+
+            if "test_statistic" in config["options"]:
+                if config["options"]["test_statistic"] in ["t_mu", "t_mu_tilde"]:
+                    self.test_statistic = config["options"]["test_statistic"]
+                    msg = f"setting test statistic: {self.test_statistic}"
+                    logging.info(msg)
+                elif config["options"]["test_statistic"] in ["q_mu", "q_mu_tilde"]: 
+                    msg = "test statistics q_mu and q_mu_tilde not yet implemented"
+                    logging.error(msg)
+                    raise NotImplementedError(msg)
+        else:
+            msg = "setting test statistic to default: t_mu"
+            logging.info(msg)
 
         constraints = None
         if "constraints" in config:
@@ -163,6 +177,7 @@ class Experiment(Superset):
     def bestfit(
         self,
         force: bool = False,
+        use_physical_limits: bool = True,
     ) -> dict:
         """
         force
@@ -178,7 +193,7 @@ class Experiment(Superset):
             return self.best
 
         # remove any previous minimizations
-        self.minuit_reset()
+        self.minuit_reset(use_physical_limits=use_physical_limits)
 
         self.minuit.migrad()
 
@@ -224,7 +239,12 @@ class Experiment(Superset):
         force
             See `experiment.bestfit()` for description. Default is `False`.
         """
-        denom = self.bestfit(force=force)["fval"]
+
+        use_physical_limits = False # for t_mu
+        if self.test_statistic == "t_mu_tilde":
+            use_physical_limits = True
+
+        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)["fval"]
 
         num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
             "fval"

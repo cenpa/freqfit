@@ -74,6 +74,7 @@ constraints: # the collection of constraints (a Gaussian constraint term in the 
 options: # a collection of global options (only one option so far)
   try_to_combine_datasets: true # whether to attempt to combine datasets
   name: experiment name
+  test_statistic: t_mu # can be "t_mu", "t_mu_tilde", "q_mu", "q_mu_tilde"
 ```
 
 For `constraints`, there are some additional options for how to specify these constraints. You can provide a list of parameters, values, and uncertainties:
@@ -111,6 +112,8 @@ Constraints will be combined into a single `NormalConstraint` as this dramatical
 Constraints are also used to specificy how nuisance parameters should be varied for toys. All parameters in a single constraint must be included as a parameter of a dataset, but do not necessarily need to be parameters in the fit.
 
 You can specify independent datasets that should later be combined `combined_datasets`. This is useful for LEGEND where we have many, independent datasets with their own nuisance parameters. For our fit, it is much faster to simply combine all datasets that have no events (are empty). However, in generating our toys, we would like to vary the nuisance parameters and draw events randomly for all datasets. We therefore would like to combine datasets during our toys on the fly. Since, for each toy, we do no a prior know which datasets are empty and can be combined, we have written the code in such a way as to attempt to combine datasets. This is a very niche use case and probably only relevant for the 0vbb fit.
+
+Test statistic definitions come from [G. Cowan, K. Cranmer, E. Gross, and O. Vitells, Eur. Phys. J. C 71, 1554 (2011)](https://doi.org/10.1140/epjc/s10052-011-1554-0).
 
 Once you have a config file made, you can load it by doing
 

@@ -282,13 +282,14 @@ class Toy:
     def bestfit(
         self,
         force: bool = False,
+        use_physical_limits: bool = True,
     ) -> dict:
         # don't run this more than once if we don't have to
         if self.best is not None and not force:
             return self.best
 
         # remove any previous minimizations
-        self.minuit_reset()
+        self.minuit_reset(use_physical_limits=use_physical_limits)
 
         self.minuit.migrad()
 
@@ -323,9 +324,20 @@ class Toy:
         profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
         force: bool = False,
     ) -> float:
-        denom = self.bestfit(force=force)["fval"]
+        """
+        force
+            See `experiment.bestfit()` for description. Default is `False`.
+        """
 
-        num = self.profile(parameters=profile_parameters, use_physical_limits=False)["fval"]
+        use_physical_limits = False # for t_mu
+        if self.experiment.test_statistic == "t_mu_tilde":
+            use_physical_limits = True
+
+        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)["fval"]
+
+        num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
+            "fval"
+        ]
 
         # because these are already -2*ln(L) from iminuit
         return num - denom
