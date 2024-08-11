@@ -56,9 +56,6 @@ class Superset:
         self._toy_pars_to_vary = [] # list of parameters to vary
         self._toy_parameters = {} # a copy of self.parameters that we can mutate without care
 
-        msg = f"all constraints will be combined into a single `NormalConstraint`"
-        logging.info(msg)
-
         if try_to_combine_datasets:
             msg = f"option 'try_to_combine_datasets' set to True - will attempt to combine `Dataset` where indicated"
             logging.info(msg)       
@@ -162,7 +159,14 @@ class Superset:
             logging.error(msg)
             raise ValueError(msg)
 
+        if constraints is None:
+            msg = f"no constraints were provided"
+            logging.info(msg)
+
         if constraints is not None:
+            msg = f"all constraints will be combined into a single `NormalConstraint`"
+            logging.info(msg)
+
             # shove all the constraints in one big matrix
             for constraintname, constraint in constraints.items():  
                 # would love to move this somewhere else, maybe sanitize the config before doing anything
