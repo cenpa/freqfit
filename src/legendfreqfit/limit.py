@@ -39,7 +39,7 @@ class SetLimit(Experiment):
         self.jobid = jobid
         self.numtoy = numtoy
         self.out_path = out_path
-        self.numcores = NUM_CORES # default
+        self.numcores = NUM_CORES  # default
 
     def set_var_to_profile(self, var_to_profile: str):
         self.var_to_profile = var_to_profile
@@ -190,7 +190,9 @@ class SetLimit(Experiment):
         """
         x = np.arange(0, num)
         toys_per_core = np.full(self.numcores, num // self.numcores)
-        toys_per_core = np.insert(toys_per_core, len(toys_per_core), num % self.numcores)
+        toys_per_core = np.insert(
+            toys_per_core, len(toys_per_core), num % self.numcores
+        )
 
         # remove any cores with 0 toys
         index = np.argwhere(toys_per_core == 0)
@@ -304,6 +306,40 @@ class SetLimit(Experiment):
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_point)
+        dset = f.create_dataset("Es", data=data)
+        dset = f.create_dataset("nuisance", data=nuisance)
+        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+
+        f.close()
+
+        return None
+
+    def run_and_save_brazil(
+        self,
+        scan_points,
+    ) -> None:
+        """
+        Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
+        """
+        # First we need to profile out the variable we are scanning at 0 signal rate
+        toypars = self.profile({f"{self.var_to_profile}": 0.0})["values"]
+
+        # Add 0 to the scan points if it is not there
+        if 0.0 not in scan_points:
+            scan_points = np.insert(scan_points, 0, 0)
+
+        # Now we can run the toys
+        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
+            toypars,
+            [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
+            num=self.numtoy,
+        )
+
+        # Now, save the toys to a file
+        file_name = self.out_path + f"/0.0_{self.jobid}.h5"
+        f = h5py.File(file_name, "a")
+        dset = f.create_dataset("ts", data=toyts)
+        dset = f.create_dataset("s", data=scan_points)
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
         dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
