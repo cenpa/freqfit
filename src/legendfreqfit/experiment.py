@@ -52,7 +52,7 @@ class Experiment(Superset):
                     self.test_statistic = config["options"]["test_statistic"]
                     msg = f"setting test statistic: {self.test_statistic}"
                     logging.info(msg)
-                elif config["options"]["test_statistic"] in ["q_mu", "q_mu_tilde"]: 
+                elif config["options"]["test_statistic"] in ["q_mu", "q_mu_tilde"]:
                     msg = "test statistics q_mu and q_mu_tilde not yet implemented"
                     logging.error(msg)
                     raise NotImplementedError(msg)
@@ -240,11 +240,13 @@ class Experiment(Superset):
             See `experiment.bestfit()` for description. Default is `False`.
         """
 
-        use_physical_limits = False # for t_mu
+        use_physical_limits = False  # for t_mu
         if self.test_statistic == "t_mu_tilde":
             use_physical_limits = True
 
-        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)["fval"]
+        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
+            "fval"
+        ]
 
         num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
             "fval"
@@ -265,7 +267,8 @@ class Experiment(Superset):
     def toy_ts(
         self,
         parameters: dict,  # parameters and values needed to generate the toys
-        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict
+        | list,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seed: np.array = None,
     ):
@@ -273,24 +276,37 @@ class Experiment(Superset):
         Makes a number of toys and returns their test statistics.
         Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
         """
-
-        ts = np.zeros(num)
         np.random.seed(SEED)
         if seed is None:
             seed = np.random.randint(1000000, size=num)
         else:
             if len(seed) != num:
                 raise ValueError("Seeds must have same length as the number of toys!")
+        if isinstance(profile_parameters, dict):
+            ts = np.zeros(num)
+            data_to_return = []
+            paramvalues_to_return = []
+            num_drawn = []
+            for i in range(num):
+                thistoy = self.maketoy(parameters=parameters, seed=seed[i])
+                ts[i] = thistoy.ts(profile_parameters=profile_parameters)
+                data_to_return.append(thistoy.toy_data_to_save)
+                paramvalues_to_return.append(thistoy.parameters_to_save)
+                num_drawn.append(thistoy.toy_num_drawn_to_save)
 
-        data_to_return = []
-        paramvalues_to_return = []
-        num_drawn = []
-        for i in range(num):
-            thistoy = self.maketoy(parameters=parameters, seed=seed[i])
-            ts[i] = thistoy.ts(profile_parameters=profile_parameters)
-            data_to_return.append(thistoy.toy_data_to_save)
-            paramvalues_to_return.append(thistoy.parameters_to_save)
-            num_drawn.append(thistoy.toy_num_drawn_to_save)
+        # otherwise profile parameters is a list of dicts
+        else:
+            ts = np.zeros((len(profile_parameters), num))
+            data_to_return = []
+            paramvalues_to_return = []
+            num_drawn = []
+            for i in range(num):
+                thistoy = self.maketoy(parameters=parameters, seed=seed[i])
+                for j in range(len(profile_parameters)):
+                    ts[j][i] = thistoy.ts(profile_parameters=profile_parameters[j])
+                data_to_return.append(thistoy.toy_data_to_save)
+                paramvalues_to_return.append(thistoy.parameters_to_save)
+                num_drawn.append(thistoy.toy_num_drawn_to_save)
 
         # Need to flatten the data_to_return in order to save it in h5py
         data_to_return_flat = (
