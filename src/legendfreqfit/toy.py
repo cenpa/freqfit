@@ -335,6 +335,12 @@ class Toy:
 
         denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)["fval"]
 
+        # see Cowan (2011) Eq. 14 and Eq. 16
+        if self.experiment.test_statistic == "q_mu" or self.experiment.test_statistic == "q_mu_tilde":
+            for parname, parvalue in profile_parameters.items():
+                if self.best["values"][parname] > parvalue:
+                    return 0.0
+
         num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
             "fval"
         ]
