@@ -12,7 +12,7 @@ from scipy.special import erfcinv
 from legendfreqfit.experiment import Experiment
 from legendfreqfit.statistics import toy_ts_critical
 
-NUM_CORES = 15  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
 
 log = logging.getLogger(__name__)
