@@ -316,27 +316,26 @@ class SetLimit(Experiment):
 
     def run_and_save_brazil(
         self,
-        scan_points,
+        scan_point,
     ) -> None:
         """
-        Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
+        Runs toys at a given signal rate and computes the test statistic for both the given rate and the 0 signal hypothesis
         """
-        # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 0.0})["values"]
+        # First we need to profile out the variable we are scanning
+        toypars = self.profile({f"{self.var_to_profile}": scan_point})["values"]
 
         # Add 0 to the scan points if it is not there
-        if 0.0 not in scan_points:
-            scan_points = np.insert(scan_points, 0, 0)
+        scan_points = np.insert(np.array([scan_point]), 0, 0)
 
         # Now we can run the toys
         toyts, data, nuisance, num_drawn = self.toy_ts_mp(
             toypars,
-            [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
+            [{f"{self.var_to_profile}": sc_point} for sc_point in scan_points],
             num=self.numtoy,
         )
 
         # Now, save the toys to a file
-        file_name = self.out_path + f"/0.0_{self.jobid}.h5"
+        file_name = self.out_path + f"/{scan_point}_{self.jobid}.h5"
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_points)
