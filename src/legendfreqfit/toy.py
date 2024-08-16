@@ -331,7 +331,10 @@ class Toy:
         """
 
         use_physical_limits = False  # for t_mu and q_mu
-        if self.test_statistic == "t_mu_tilde" or self.test_statistic == "q_mu_tilde":
+        if (
+            self.experiment.test_statistic == "t_mu_tilde"
+            or self.experiment.test_statistic == "q_mu_tilde"
+        ):
             use_physical_limits = True
 
         denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
