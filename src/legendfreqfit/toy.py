@@ -38,7 +38,9 @@ class Toy:
         self.toy_num_drawn_to_save = (
             []
         )  # list to store tuples of the number of signal and background counts drawn per dataset
-        self.parameters_to_save = np.array([np.full(len(self.experiment._toy_parameters), np.nan)]) # the parameters of the toy
+        self.parameters_to_save = np.array(
+            [np.full(len(self.experiment._toy_parameters), np.nan)]
+        )  # the parameters of the toy
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
@@ -238,7 +240,7 @@ class Toy:
 
         # save the values of the toy parameters
         for i, (parname, pardict) in enumerate(self.experiment._toy_parameters.items()):
-            self.parameters_to_save[0,i] = pardict["value"]
+            self.parameters_to_save[0, i] = pardict["value"]
 
         # to set limits and fixed variables
         # this function will also fix those nuisance parameters which can be fixed because they are not part of a
@@ -247,7 +249,7 @@ class Toy:
 
     def minuit_reset(
         self,
-        use_physical_limits: bool = True, # for numerators of test statistics, want this to be False
+        use_physical_limits: bool = True,  # for numerators of test statistics, want this to be False
     ) -> None:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
@@ -261,9 +263,8 @@ class Toy:
         # also set which parameters are fixed
         for parname, pardict in self.experiment._toy_parameters.items():
             if parname in self.minuit.parameters:
-
                 self.minuit.fixed[parname] = False
-                self.minuit.limits[parname] = (-1.0*np.inf, np.inf)
+                self.minuit.limits[parname] = (-1.0 * np.inf, np.inf)
 
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
@@ -276,7 +277,7 @@ class Toy:
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
                     self.minuit.values[parname] = self.fixed_bc_no_data[parname]
-                    
+
         return
 
     def bestfit(
@@ -329,14 +330,19 @@ class Toy:
             See `experiment.bestfit()` for description. Default is `False`.
         """
 
-        use_physical_limits = False # for t_mu
-        if self.experiment.test_statistic == "t_mu_tilde":
+        use_physical_limits = False  # for t_mu and q_mu
+        if self.test_statistic == "t_mu_tilde" or self.test_statistic == "q_mu_tilde":
             use_physical_limits = True
 
-        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)["fval"]
+        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
+            "fval"
+        ]
 
         # see Cowan (2011) Eq. 14 and Eq. 16
-        if self.experiment.test_statistic == "q_mu" or self.experiment.test_statistic == "q_mu_tilde":
+        if (
+            self.experiment.test_statistic == "q_mu"
+            or self.experiment.test_statistic == "q_mu_tilde"
+        ):
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
                     return 0.0
