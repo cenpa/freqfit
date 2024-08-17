@@ -48,7 +48,12 @@ class Experiment(Superset):
                 name = config["options"]["name"]
 
             if "test_statistic" in config["options"]:
-                if config["options"]["test_statistic"] in ["t_mu", "t_mu_tilde", "q_mu", "q_mu_tilde"]:
+                if config["options"]["test_statistic"] in [
+                    "t_mu",
+                    "t_mu_tilde",
+                    "q_mu",
+                    "q_mu_tilde",
+                ]:
                     self.test_statistic = config["options"]["test_statistic"]
                     msg = f"setting test statistic: {self.test_statistic}"
                     logging.info(msg)
@@ -243,16 +248,16 @@ class Experiment(Superset):
         denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
             "fval"
         ]
-        
+
         # see Cowan (2011) Eq. 14 and Eq. 16
         if self.test_statistic == "q_mu" or self.test_statistic == "q_mu_tilde":
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
                     return 0.0
 
-        num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
-            "fval"
-        ]
+        num = self.profile(
+            parameters=profile_parameters, use_physical_limits=use_physical_limits
+        )["fval"]
 
         # because these are already -2*ln(L) from iminuit
         return num - denom
