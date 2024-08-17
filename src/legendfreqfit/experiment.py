@@ -19,7 +19,7 @@ class Experiment(Superset):
     def __init__(
         self,
         config: dict,
-        name: str = "",
+        name: str = None,
     ) -> None:
         self.options = {}
         self.options["try_to_combine_datasets"] = False
@@ -44,7 +44,7 @@ class Experiment(Superset):
                     msg = "found 'combined_datasets' in config"
                     logging.info(msg)
 
-            if "name" in config["options"]:
+            if "name" in config["options"] and (name is None):
                 name = config["options"]["name"]
 
             if "test_statistic" in config["options"]:
