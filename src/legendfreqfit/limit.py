@@ -200,7 +200,15 @@ class SetLimit(Experiment):
 
         # In order to ensure toys aren't correlated between experiments, use the experiment name to set the seed
 
-        experiment_seed = int.from_bytes(self.name.encode(), "little")
+        experiment_seed = 0
+
+        for c in self.name:
+            experiment_seed += ord(c)
+
+        if experiment_seed > 2**30:
+            raise ValueError(
+                "Experiment seed cannot be too large, try naming the experiment a smaller string."
+            )
 
         # Pick the random seeds that we will pass to toys
         seeds = np.arange(
