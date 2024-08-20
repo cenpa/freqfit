@@ -350,9 +350,9 @@ class Toy:
                 if self.best["values"][parname] > parvalue:
                     return 0.0
 
-        num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
-            "fval"
-        ]
+        num = self.profile(
+            parameters=profile_parameters, use_physical_limits=use_physical_limits
+        )["fval"]
 
         # because these are already -2*ln(L) from iminuit
         return num - denom

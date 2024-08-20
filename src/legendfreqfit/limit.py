@@ -198,8 +198,23 @@ class SetLimit(Experiment):
         index = np.argwhere(toys_per_core == 0)
         toys_per_core = np.delete(toys_per_core, index)
 
+        # In order to ensure toys aren't correlated between experiments, use the experiment name to set the seed
+
+        experiment_seed = 0
+
+        for c in self.name:
+            experiment_seed += ord(c)
+
+        if experiment_seed > 2**30:
+            raise ValueError(
+                "Experiment seed cannot be too large, try naming the experiment a smaller string."
+            )
+
         # Pick the random seeds that we will pass to toys
-        seeds = np.arange(self.jobid * self.numtoy, (self.jobid + 1) * self.numtoy)
+        seeds = np.arange(
+            experiment_seed + self.jobid * self.numtoy,
+            experiment_seed + (self.jobid + 1) * self.numtoy,
+        )
         seeds_per_toy = []
 
         j = 0
