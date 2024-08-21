@@ -166,10 +166,10 @@ logging.basicConfig(level=logging.INFO) # or some other level
 
 ### TODO
 - maybe we need some way to sanitize the inputs before sending them to the classes so we can do less error checking in the classes? to speed up a little?
+- - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
 - set up logger like this? https://stackoverflow.com/questions/56532106/how-to-use-python-logging-for-a-single-package
-- GERDA: figure out uncertainties
-- implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
-- options for different test statistics (see Cowan)
+- [x] GERDA: figure out uncertainties - thanks, Moritz!
+- [x] options for different test statistics (see Cowan)
 - [x] ~~right now, we have `numba` running parallel at the level of the model. Do we want that? It seems like maybe not... Especially since these will be very fast computations. Instead want the parallelization at a higher level.~~ it's fine
 - [x] probably need to settle on some variable name conventions (Louis prefers more characters :) )
 - [x] ~~maybe we want to compute `np.log(2)` etc. and use values directly? not sure how much faster (a lot in testing, but IDK how many times these actually need to be computed)~~ doesn't matter
