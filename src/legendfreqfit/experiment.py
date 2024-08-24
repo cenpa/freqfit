@@ -82,7 +82,7 @@ class Experiment(Superset):
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = 0.001  # set the tolerance
+        self.minuit.tol = 0.0001  # set the tolerance
 
         # raise a RunTime error if function evaluates to NaN
         self.minuit.throw_nan = True

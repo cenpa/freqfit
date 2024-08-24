@@ -225,7 +225,8 @@ class Toy:
             guess |= {par: parameters[par]}
 
         self.minuit = Minuit(self.costfunction, **guess)
-        self.minuit.tol = 0.001  # set the tolerance
+        self.minuit.tol = 0.0001  # set the tolerance
+        self.minuit.strategy = 2
 
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.fitparameters:
