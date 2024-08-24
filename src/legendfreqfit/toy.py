@@ -26,9 +26,6 @@ class Toy:
             `experiment` to base this `Toy` on
         parameters
             `dict` of parameters and their values to model with
-        vary_nuisance
-            whether to vary the nuisance parameters by their constraints. If True, draws a new value of the nuisance
-            parameter and sets the constraint to be centered at this new value.
         """
 
         self.experiment = experiment  # the experiment this Toy is based on
@@ -50,6 +47,10 @@ class Toy:
         )  # parameters that can be fixed because no data in their Datasets
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
+
+        # overwrite the toy parameters with the passed parameters
+        for par in parameters.keys():
+            self.experiment._toy_parameters[par]["value"] = parameters[par]
 
         # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
         for combined_ds in experiment.included_in_combined_datasets.keys():
