@@ -3,6 +3,7 @@ A class that holds a collection of fake datasets and associated hardware
 """
 import logging
 
+from copy import deepcopy
 import numpy as np
 from iminuit import Minuit, cost
 
@@ -48,9 +49,15 @@ class Toy:
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
 
+        # reset toy_parameters to "default" values
+        # deepcopy so we can mutate this without fear
+        self.experiment._toy_parameters = deepcopy(self.experiment.parameters)
+
         # overwrite the toy parameters with the passed parameters
         for par in parameters.keys():
             self.experiment._toy_parameters[par]["value"] = parameters[par]
+
+        # \/\/\/\/\/\/ do we need the stuff here now that I added the lines above? to think about... \/\/\/\/
 
         # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
         for combined_ds in experiment.included_in_combined_datasets.keys():
@@ -78,6 +85,8 @@ class Toy:
                     # nuisance parameters should not be passed in parameters, so we need to skip the nuisance parameters from the dataset
                     if combined_ds_par_name in parameters.keys():
                         parameters[ds_par_name] = parameters[combined_ds_par_name]
+
+        # /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
 
         # vary the toy parameters as indicated
         if len(self.experiment._toy_pars_to_vary) > 0:
