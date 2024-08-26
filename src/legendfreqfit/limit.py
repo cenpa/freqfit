@@ -258,6 +258,7 @@ class SetLimit(Experiment):
             data_to_return_flat,
             np.vstack(nuisance_to_return),
             num_drawn_to_return_flat,
+            seeds,
         )
 
     def run_toys(
@@ -271,6 +272,10 @@ class SetLimit(Experiment):
         """
         Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
         """
+        # TODO: Deprecate
+        raise DeprecationWarning(
+            "This function will not work and is being deprecated. Call `run_and_save_toys` instead."
+        )
         # First we need to profile out the variable we are scanning
         toypars = self.profile({f"{self.var_to_profile}": scan_point})["values"]
         if scan_point_override is not None:
@@ -312,7 +317,7 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
+        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
             toypars, {f"{self.var_to_profile}": scan_point}, num=self.numtoy
         )
 
@@ -324,6 +329,7 @@ class SetLimit(Experiment):
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
         dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
@@ -337,14 +343,14 @@ class SetLimit(Experiment):
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         """
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 1.e-10})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": 1.0e-10})["values"]
 
         # Add 0 to the scan points if it is not there
-        if 1.e-10 not in scan_points:
-            scan_points = np.insert(scan_points, 0, 1.e-10)
+        if 1.0e-10 not in scan_points:
+            scan_points = np.insert(scan_points, 0, 1.0e-10)
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
+        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
             toypars,
             [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
             num=self.numtoy,
@@ -358,6 +364,7 @@ class SetLimit(Experiment):
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
         dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
