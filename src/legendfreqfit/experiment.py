@@ -200,6 +200,10 @@ class Experiment(Superset):
 
         self.minuit.migrad()
 
+        if not self.minuit.valid:
+            msg = (f"`Toy` with seed {self.seed} has invalid best fit")
+            logging.warning(msg)
+
         self.best = grab_results(self.minuit)
 
         return self.best
@@ -223,6 +227,10 @@ class Experiment(Superset):
             self.minuit.values[parname] = parvalue
 
         self.minuit.migrad()
+
+        if not self.minuit.valid:
+            msg = (f"`Toy` with seed {self.seed} has invalid profile")
+            logging.warning(msg)
 
         results = grab_results(self.minuit)
 
@@ -261,8 +269,14 @@ class Experiment(Superset):
             parameters=profile_parameters, use_physical_limits=use_physical_limits
         )["fval"]
 
+        ts = num - denom
+
+        if ts < 0:
+            msg = (f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}")
+            logging.warning(msg)
+
         # because these are already -2*ln(L) from iminuit
-        return num - denom
+        return ts
 
     def maketoy(
         self,

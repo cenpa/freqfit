@@ -337,11 +337,11 @@ class SetLimit(Experiment):
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         """
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 0.0})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": 1.e-10})["values"]
 
         # Add 0 to the scan points if it is not there
-        if 0.0 not in scan_points:
-            scan_points = np.insert(scan_points, 0, 0)
+        if 1.e-10 not in scan_points:
+            scan_points = np.insert(scan_points, 0, 1.e-10)
 
         # Now we can run the toys
         toyts, data, nuisance, num_drawn = self.toy_ts_mp(
@@ -351,7 +351,7 @@ class SetLimit(Experiment):
         )
 
         # Now, save the toys to a file
-        file_name = self.out_path + f"/0.0_{self.jobid}.h5"
+        file_name = self.out_path + f"/1E-10_{self.jobid}.h5"
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_points)

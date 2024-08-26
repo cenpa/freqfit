@@ -48,6 +48,7 @@ class Toy:
         )  # parameters that can be fixed because no data in their Datasets
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
+        self.seed = seed
 
         # reset toy_parameters to "default" values
         # deepcopy so we can mutate this without fear
@@ -57,40 +58,9 @@ class Toy:
         for par in parameters.keys():
             self.experiment._toy_parameters[par]["value"] = parameters[par]
 
-        # \/\/\/\/\/\/ do we need the stuff here now that I added the lines above? to think about... \/\/\/\/
-
-        # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
-        for combined_ds in experiment.included_in_combined_datasets.keys():
-            # Datasets may have been combined into more than one new datasets, that's why we loop over the keys
-            # Now, loop over datasets and add back in their parameter values
-            for ds in experiment.included_in_combined_datasets[combined_ds]:
-                # Check to make sure that the user hasn't overridden any of the parameters in datasets that were combined
-                # This needs to happen so we don't overwrite them when we de-combine datasets next
-                if any(
-                    x in list(parameters.keys())
-                    for x in list(experiment.datasets[ds].model_parameters.keys())
-                ):
-                    raise NotImplementedError(
-                        "Overriding a parameter that is in a combined dataset is not supported."
-                    )
-
-                # Loop through the model parameters in the dataset and find their values from the combined dataset
-                for model_par in experiment.datasets[ds].model_parameters.keys():
-                    ds_par_name = experiment.datasets[ds].model_parameters[model_par]
-                    # find the corresponding parameter name in the combined dataset
-                    combined_ds_par_name = experiment.combined_datasets[
-                        combined_ds
-                    ].model_parameters[model_par]
-
-                    # nuisance parameters should not be passed in parameters, so we need to skip the nuisance parameters from the dataset
-                    if combined_ds_par_name in parameters.keys():
-                        parameters[ds_par_name] = parameters[combined_ds_par_name]
-
-        # /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
-
         # vary the toy parameters as indicated
         if len(self.experiment._toy_pars_to_vary) > 0:
-            np.random.seed(seed=seed)
+            np.random.seed(seed=self.seed)
 
             pars, vals, covar = self.experiment.get_constraints(
                 self.experiment._toy_pars_to_vary
@@ -114,7 +84,7 @@ class Toy:
         for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
             # worried that this is not totally deterministic (depends on number of Datasets),
             # but more worried that random draws between datasets would be correlated otherwise.
-            thisseed = seed + i
+            thisseed = self.seed + i
 
             # allocate length in case `parameters` is passed out of order
             pars = [None for j in range(len(dataset.fitparameters))]
@@ -238,6 +208,9 @@ class Toy:
         self.minuit.tol = 0.00001  # set the tolerance
         self.minuit.strategy = 2
 
+        # raise a RunTime error if function evaluates to NaN
+        self.minuit.throw_nan = True
+
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.fitparameters:
             if (
@@ -306,6 +279,10 @@ class Toy:
 
         self.minuit.migrad()
 
+        if not self.minuit.valid:
+            msg = (f"`Toy` with seed {self.seed} has invalid best fit")
+            logging.warning(msg)
+
         self.best = grab_results(self.minuit)
 
         return self.best
@@ -329,7 +306,17 @@ class Toy:
 
         self.minuit.migrad()
 
-        return grab_results(self.minuit)
+        if not self.minuit.valid:
+            msg = (f"`Toy` with seed {self.seed} has invalid profile")
+            logging.warning(msg)
+
+        results = grab_results(self.minuit)
+
+        # also include the fixed parameters
+        for parname, parvalue in parameters.items():
+            results[parname] = parvalue
+
+        return results
 
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a physical limit on the parameters
     def ts(
@@ -366,8 +353,14 @@ class Toy:
             parameters=profile_parameters, use_physical_limits=use_physical_limits
         )["fval"]
 
+        ts = num - denom
+
+        if ts < 0:
+            msg = (f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}")
+            logging.warning(msg)
+
         # because these are already -2*ln(L) from iminuit
-        return num - denom
+        return ts
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
