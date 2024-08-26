@@ -2,8 +2,8 @@
 A class that holds a collection of fake datasets and associated hardware
 """
 import logging
-
 from copy import deepcopy
+
 import numpy as np
 from iminuit import Minuit, cost
 
@@ -57,6 +57,33 @@ class Toy:
         # overwrite the toy parameters with the passed parameters
         for par in parameters.keys():
             self.experiment._toy_parameters[par]["value"] = parameters[par]
+
+        # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
+        for combined_ds in experiment.included_in_combined_datasets.keys():
+            # Datasets may have been combined into more than one new datasets, that's why we loop over the keys
+            # Now, loop over datasets and add back in their parameter values
+            for ds in experiment.included_in_combined_datasets[combined_ds]:
+                # Check to make sure that the user hasn't overridden any of the parameters in datasets that were combined
+                # This needs to happen so we don't overwrite them when we de-combine datasets next
+                if any(
+                    x in list(parameters.keys())
+                    for x in list(experiment.datasets[ds].model_parameters.keys())
+                ):
+                    raise NotImplementedError(
+                        "Overriding a parameter that is in a combined dataset is not supported."
+                    )
+
+                # Loop through the model parameters in the dataset and find their values from the combined dataset
+                for model_par in experiment.datasets[ds].model_parameters.keys():
+                    ds_par_name = experiment.datasets[ds].model_parameters[model_par]
+                    # find the corresponding parameter name in the combined dataset
+                    combined_ds_par_name = experiment.combined_datasets[
+                        combined_ds
+                    ].model_parameters[model_par]
+
+                    # nuisance parameters should not be passed in parameters, so we need to skip the nuisance parameters from the dataset
+                    if combined_ds_par_name in parameters.keys():
+                        parameters[ds_par_name] = parameters[combined_ds_par_name]
 
         # vary the toy parameters as indicated
         if len(self.experiment._toy_pars_to_vary) > 0:
@@ -280,7 +307,7 @@ class Toy:
         self.minuit.migrad()
 
         if not self.minuit.valid:
-            msg = (f"`Toy` with seed {self.seed} has invalid best fit")
+            msg = f"`Toy` with seed {self.seed} has invalid best fit"
             logging.warning(msg)
 
         self.best = grab_results(self.minuit)
@@ -307,7 +334,7 @@ class Toy:
         self.minuit.migrad()
 
         if not self.minuit.valid:
-            msg = (f"`Toy` with seed {self.seed} has invalid profile")
+            msg = f"`Toy` with seed {self.seed} has invalid profile"
             logging.warning(msg)
 
         results = grab_results(self.minuit)
@@ -356,7 +383,7 @@ class Toy:
         ts = num - denom
 
         if ts < 0:
-            msg = (f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}")
+            msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
             logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
