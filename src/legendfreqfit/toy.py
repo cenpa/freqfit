@@ -2,6 +2,7 @@
 A class that holds a collection of fake datasets and associated hardware
 """
 import logging
+from copy import deepcopy
 
 import numpy as np
 from iminuit import Minuit, cost
@@ -26,9 +27,6 @@ class Toy:
             `experiment` to base this `Toy` on
         parameters
             `dict` of parameters and their values to model with
-        vary_nuisance
-            whether to vary the nuisance parameters by their constraints. If True, draws a new value of the nuisance
-            parameter and sets the constraint to be centered at this new value.
         """
 
         self.experiment = experiment  # the experiment this Toy is based on
@@ -38,7 +36,9 @@ class Toy:
         self.toy_num_drawn_to_save = (
             []
         )  # list to store tuples of the number of signal and background counts drawn per dataset
-        self.parameters_to_save = np.array([np.full(len(self.experiment._toy_parameters), np.nan)]) # the parameters of the toy
+        self.parameters_to_save = np.array(
+            [np.full(len(self.experiment._toy_parameters), np.nan)]
+        )  # the parameters of the toy
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
@@ -48,6 +48,15 @@ class Toy:
         )  # parameters that can be fixed because no data in their Datasets
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
+        self.seed = seed
+
+        # reset toy_parameters to "default" values
+        # deepcopy so we can mutate this without fear
+        self.experiment._toy_parameters = deepcopy(self.experiment.parameters)
+
+        # overwrite the toy parameters with the passed parameters
+        for par in parameters.keys():
+            self.experiment._toy_parameters[par]["value"] = parameters[par]
 
         # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
         for combined_ds in experiment.included_in_combined_datasets.keys():
@@ -78,7 +87,7 @@ class Toy:
 
         # vary the toy parameters as indicated
         if len(self.experiment._toy_pars_to_vary) > 0:
-            np.random.seed(seed=seed)
+            np.random.seed(seed=self.seed)
 
             pars, vals, covar = self.experiment.get_constraints(
                 self.experiment._toy_pars_to_vary
@@ -102,7 +111,7 @@ class Toy:
         for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
             # worried that this is not totally deterministic (depends on number of Datasets),
             # but more worried that random draws between datasets would be correlated otherwise.
-            thisseed = seed + i
+            thisseed = self.seed + i
 
             # allocate length in case `parameters` is passed out of order
             pars = [None for j in range(len(dataset.fitparameters))]
@@ -223,6 +232,11 @@ class Toy:
             guess |= {par: parameters[par]}
 
         self.minuit = Minuit(self.costfunction, **guess)
+        self.minuit.tol = 0.00001  # set the tolerance
+        self.minuit.strategy = 2
+
+        # raise a RunTime error if function evaluates to NaN
+        self.minuit.throw_nan = True
 
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.fitparameters:
@@ -238,7 +252,7 @@ class Toy:
 
         # save the values of the toy parameters
         for i, (parname, pardict) in enumerate(self.experiment._toy_parameters.items()):
-            self.parameters_to_save[0,i] = pardict["value"]
+            self.parameters_to_save[0, i] = pardict["value"]
 
         # to set limits and fixed variables
         # this function will also fix those nuisance parameters which can be fixed because they are not part of a
@@ -247,7 +261,7 @@ class Toy:
 
     def minuit_reset(
         self,
-        use_physical_limits: bool = True, # for numerators of test statistics, want this to be False
+        use_physical_limits: bool = True,  # for numerators of test statistics, want this to be False
     ) -> None:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
@@ -261,9 +275,8 @@ class Toy:
         # also set which parameters are fixed
         for parname, pardict in self.experiment._toy_parameters.items():
             if parname in self.minuit.parameters:
-
                 self.minuit.fixed[parname] = False
-                self.minuit.limits[parname] = (-1.0*np.inf, np.inf)
+                self.minuit.limits[parname] = (-1.0 * np.inf, np.inf)
 
                 if "limits" in pardict:
                     self.minuit.limits[parname] = pardict["limits"]
@@ -276,7 +289,7 @@ class Toy:
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
                     self.minuit.values[parname] = self.fixed_bc_no_data[parname]
-                    
+
         return
 
     def bestfit(
@@ -292,6 +305,10 @@ class Toy:
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
         self.minuit.migrad()
+
+        if not self.minuit.valid:
+            msg = f"`Toy` with seed {self.seed} has invalid best fit"
+            logging.warning(msg)
 
         self.best = grab_results(self.minuit)
 
@@ -316,7 +333,17 @@ class Toy:
 
         self.minuit.migrad()
 
-        return grab_results(self.minuit)
+        if not self.minuit.valid:
+            msg = f"`Toy` with seed {self.seed} has invalid profile"
+            logging.warning(msg)
+
+        results = grab_results(self.minuit)
+
+        # also include the fixed parameters
+        for parname, parvalue in parameters.items():
+            results[parname] = parvalue
+
+        return results
 
     # this corresponds to t_mu or t_mu^tilde depending on whether there is a physical limit on the parameters
     def ts(
@@ -329,24 +356,38 @@ class Toy:
             See `experiment.bestfit()` for description. Default is `False`.
         """
 
-        use_physical_limits = False # for t_mu
-        if self.experiment.test_statistic == "t_mu_tilde":
+        use_physical_limits = False  # for t_mu and q_mu
+        if (
+            self.experiment.test_statistic == "t_mu_tilde"
+            or self.experiment.test_statistic == "q_mu_tilde"
+        ):
             use_physical_limits = True
 
-        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)["fval"]
+        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
+            "fval"
+        ]
 
         # see Cowan (2011) Eq. 14 and Eq. 16
-        if self.experiment.test_statistic == "q_mu" or self.experiment.test_statistic == "q_mu_tilde":
+        if (
+            self.experiment.test_statistic == "q_mu"
+            or self.experiment.test_statistic == "q_mu_tilde"
+        ):
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
                     return 0.0
 
-        num = self.profile(parameters=profile_parameters, use_physical_limits=False)[
-            "fval"
-        ]
+        num = self.profile(
+            parameters=profile_parameters, use_physical_limits=use_physical_limits
+        )["fval"]
+
+        ts = num - denom
+
+        if ts < 0:
+            msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
+            logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
-        return num - denom
+        return ts
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
