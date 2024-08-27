@@ -12,7 +12,7 @@ from scipy.special import erfcinv
 from legendfreqfit.experiment import Experiment
 from legendfreqfit.statistics import toy_ts_critical
 
-NUM_CORES = 15  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
 
 log = logging.getLogger(__name__)
@@ -198,8 +198,23 @@ class SetLimit(Experiment):
         index = np.argwhere(toys_per_core == 0)
         toys_per_core = np.delete(toys_per_core, index)
 
+        # In order to ensure toys aren't correlated between experiments, use the experiment name to set the seed
+
+        experiment_seed = 0
+
+        for c in self.name:
+            experiment_seed += ord(c)
+
+        if experiment_seed > 2**30:
+            raise ValueError(
+                "Experiment seed cannot be too large, try naming the experiment a smaller string."
+            )
+
         # Pick the random seeds that we will pass to toys
-        seeds = np.arange(self.jobid * self.numtoy, (self.jobid + 1) * self.numtoy)
+        seeds = np.arange(
+            experiment_seed + self.jobid * self.numtoy,
+            experiment_seed + (self.jobid + 1) * self.numtoy,
+        )
         seeds_per_toy = []
 
         j = 0
@@ -243,6 +258,7 @@ class SetLimit(Experiment):
             data_to_return_flat,
             np.vstack(nuisance_to_return),
             num_drawn_to_return_flat,
+            seeds,
         )
 
     def run_toys(
@@ -257,6 +273,10 @@ class SetLimit(Experiment):
         """
         Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
         """
+        # TODO: Deprecate
+        raise DeprecationWarning(
+            "This function will not work and is being deprecated. Call `run_and_save_toys` instead."
+        )
         # First we need to profile out the variable we are scanning
         toypars = self.profile({f"{self.var_to_profile}": scan_point})["values"]
         if scan_point_override is not None:
@@ -298,7 +318,7 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
+        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
             toypars, {f"{self.var_to_profile}": scan_point}, num=self.numtoy
         )
 
@@ -310,6 +330,7 @@ class SetLimit(Experiment):
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
         dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
@@ -323,27 +344,28 @@ class SetLimit(Experiment):
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         """
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 0.0})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": 1.0e-10})["values"]
 
         # Add 0 to the scan points if it is not there
-        if 0.0 not in scan_points:
-            scan_points = np.insert(scan_points, 0, 0)
+        if 1.0e-10 not in scan_points:
+            scan_points = np.insert(scan_points, 0, 1.0e-10)
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
+        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
             toypars,
             [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
             num=self.numtoy,
         )
 
         # Now, save the toys to a file
-        file_name = self.out_path + f"/0.0_{self.jobid}.h5"
+        file_name = self.out_path + f"/1E-10_{self.jobid}.h5"
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_points)
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
         dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
