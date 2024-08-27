@@ -35,6 +35,25 @@ def emp_cdf(
 
     return np.cumsum(h) / np.sum(h), b
 
+def percentile(
+    data: np.array, # the data to make a cdf out of
+    percentiles: np.array  # which percentiles to find; should be in [0, 1]
+):
+    """
+    Returns the test statistic, linearly interpolated, that defines the percentiles in `percentiles`
+    for the given data
+    """
+    nevts = len(data)
+    data = sorted(data)
+    if isinstance(percentiles, float):
+        percentiles = np.array([percentiles])
+    results = np.zeros_like(percentiles)
+    for i, p in enumerate(percentiles):
+        p_idx = int(p*nevts)
+        p_rem = p*nevts - p_idx
+        results[i] = data[p_idx] + p_rem*(data[p_idx+1] - data[p_idx])
+    return results
+
 
 def binomial_unc_band(
     cdf: np.array,  # binned CDF
@@ -99,10 +118,10 @@ def test_statistic_asymptotic_limit(
 
 def toy_ts_critical(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
-    bins=100,  # int or array, number of bins or list of bin edges for CDF
+    bins=None,  # int or array, number of bins or list of bin edges for CDF
     step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
     threshold: float = 0.9,  # critical threshold for test statistic
-    confidence: float = 0.68,  # width of confidence interval on the CDF
+    confidence: float = 0.68,  # width of confidence interval on the CDF 
     plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
     plot_dir: str = "",  # directory where to save plots
     plot_title: str = "",
@@ -110,36 +129,34 @@ def toy_ts_critical(
     """
     Returns the critical value of the test statistic for the specified threshold and the confidence interval on this
     critical value.
+    Bins are only used for plotting purposes
     """
+    nevts = len(ts)
+    binom_interval = binom.interval(confidence, nevts, threshold)
+    lo_binom_percentile = binom_interval[0] / nevts
+    hi_binom_percentile = binom_interval[1] / nevts
 
-    if isinstance(bins, int):
-        bins = np.linspace(0, np.nanmax(ts), int((np.nanmax(ts)) / step))
+    ts_crit, ts_lo, ts_hi = percentile(data=ts, percentiles=[threshold, lo_binom_percentile, hi_binom_percentile])
 
-    cdf, binedges = emp_cdf(
-        ts, bins
-    )  # note that the CDF is evaluated at the right bin edge
-
-    lo_band, hi_band = binomial_unc_band(cdf, nevts=len(ts), CL=confidence)
-
-    # TODO: would like to use interpolation so that result is independent of number of bins, etc.
-    # but this is a little tricky because need inverse of function and this is not necessarily strictly
-    # increasing. So instead allow the user to specify the bin step so this is respected regardless of
-    # number of events (which can dictate bin size if fixed number of bins is requested b/c more likely to get
-    # very large test statistic with more events).
-
-    idx_crit = np.where(cdf >= threshold)[0][0]
-    critical = binedges[idx_crit]
-
-    lo = lo_band[idx_crit]
-    hi = hi_band[idx_crit]
-
-    lo_idx = np.where(cdf >= lo)[0][0]
-    hi_idx = np.where(cdf >= hi)[0][0]
-
-    lo_ts = binedges[lo_idx]
-    hi_ts = binedges[hi_idx]
 
     if plot:
+        if isinstance(bins, int):
+            bins = np.linspace(0, np.nanmax(ts), bins)
+        elif not isinstance(bins, np.ndarray):
+            bins = np.linspace(0, np.nanmax(ts), int(np.nanmax(ts) / step) )
+
+        cdf, binedges = emp_cdf(
+            ts, bins
+        )  # note that the CDF is evaluated at the right bin edge
+
+        lo_band, hi_band = binomial_unc_band(cdf, nevts=len(ts), CL=confidence)
+
+        # TODO: would like to use interpolation so that result is independent of number of bins, etc.
+        # but this is a little tricky because need inverse of function and this is not necessarily strictly
+        # increasing. So instead allow the user to specify the bin step so this is respected regardless of
+        # number of events (which can dictate bin size if fixed number of bins is requested b/c more likely to get
+        # very large test statistic with more events).
+
         int_thresh = int(100 * threshold)
         int_conf = int(100 * confidence)
 
@@ -167,20 +184,20 @@ def toy_ts_critical(
         )
 
         axs[0].axvline(
-            critical,
+            ts_crit,
             color="g",
             alpha=0.75,
             label=f"{int_thresh}% CL, "
-            + rf"$t_C = {{{critical:0.2f}}}_{{-{critical-lo_ts:0.2f}}}^{{+{hi_ts-critical:0.2f}}}$",
+            + rf"$t_C = {{{ts_crit:0.2f}}}_{{-{ts_crit-ts_lo:0.2f}}}^{{+{ts_hi-ts_crit:0.2f}}}$",
         )
-        axs[0].axvspan(lo_ts, hi_ts, alpha=0.25, color="g")
+        axs[0].axvspan(ts_lo, ts_hi, alpha=0.25, color="g")
         axs[0].axhline(
             threshold,
             color="orange",
             alpha=0.75,
-            label=rf"actual CL: ${100*threshold:0.1f} \pm {100*(hi-lo)/2.0:0.1f}$%",
+            label=rf"actual CL: ${100*threshold:0.1f} \pm {100*(hi_binom_percentile-lo_binom_percentile)/2.0:0.1f}$%",
         )
-        axs[0].axhspan(lo, hi, color="orange", alpha=0.25)
+        axs[0].axhspan(lo_binom_percentile, hi_binom_percentile, color="orange", alpha=0.25)
         axs[0].set_xlabel(r"$t$")
         axs[0].set_ylabel(r"CDF$(t)$")
         axs[0].legend()
@@ -214,13 +231,13 @@ def toy_ts_critical(
         )
 
         axs[1].axvline(
-            critical,
+            ts_crit,
             color="g",
             alpha=0.75,
             label=f"{int_thresh}% CL, "
-            + rf"$t_C = {{{critical:0.2f}}}_{{-{critical-lo_ts:0.2f}}}^{{+{hi_ts-critical:0.2f}}}$",
+            + rf"$t_C = {{{ts_crit:0.2f}}}_{{-{ts_crit-ts_lo:0.2f}}}^{{+{ts_hi-ts_crit:0.2f}}}$",
         )
-        axs[1].axvspan(lo_ts, hi_ts, color="g", alpha=0.25)
+        axs[1].axvspan(ts_lo, ts_hi, color="g", alpha=0.25)
 
         axs[1].set_xlabel(r"t")
         axs[1].set_ylabel(r"$P(t)$")
@@ -233,9 +250,9 @@ def toy_ts_critical(
         plt.suptitle(plot_title)
         plt.savefig(plot_dir + f"ts_critical_{int_thresh}.pdf", dpi=300)
 
-        return (critical, lo_ts, hi_ts), (threshold, lo, hi), fig
+        return (ts_crit, ts_lo, ts_hi), (threshold, lo_binom_percentile, hi_binom_percentile), fig
 
-    return (critical, lo_ts, hi_ts), (threshold, lo, hi)
+    return (ts_crit, ts_lo, ts_hi), (threshold, lo_binom_percentile, hi_binom_percentile)
 
 
 def toy_ts_critical_p_value(

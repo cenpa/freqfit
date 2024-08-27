@@ -124,7 +124,7 @@ def test_criticalts():
     toypars["global_S"] = true_S
 
     numtoys = 2000
-    toyts = p.toy_ts(toypars, {"global_S": true_S}, num=numtoys)
+    toyts = p.toy_ts(toypars, {"global_S": true_S}, num=numtoys)[0]
     nbins = 500
 
     (crit95, lo95, hi95), _ = toy_ts_critical(toyts, bins=nbins, confidence=0.99, threshold=0.95)

@@ -251,6 +251,7 @@ class SetLimit(Experiment):
         num_toys,
         threshold: float = 0.9,
         confidence: float = 0.68,
+        step: float = 0.01,
         scan_point_override=None,
     ) -> list[np.array, np.array]:
         """
@@ -266,13 +267,13 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts = self.toy_ts_mp(
+        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
             toypars, {f"{self.var_to_profile}": scan_point}, num=num_toys
         )
 
         # Now grab the critical test statistic
         tcrit_tuple, _ = toy_ts_critical(
-            toyts, threshold=threshold, confidence=confidence
+            toyts, threshold=threshold, confidence=confidence, step=step
         )
         t_crit, t_crit_low, t_crit_high = tcrit_tuple
         return toyts, t_crit, t_crit_low, t_crit_high
