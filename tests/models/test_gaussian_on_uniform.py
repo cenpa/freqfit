@@ -118,7 +118,7 @@ def test_density_gradient():
         gaussian_on_uniform.density,
         grad=gaussian_on_uniform.density_gradient,
     )
-    m = Minuit(c, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m = Minuit(c, S=1.0, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
     m.fixed["eff", "exp"] = True
     m.migrad()
 
