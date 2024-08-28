@@ -28,7 +28,7 @@ for i in range(len(WINDOW)):
 SEED = 42  # set the default random seed
 
 
-@nb.jit(**nb_kwd)
+# @nb.jit(**nb_kwd)
 def nb_pdf(
     Es: np.array,
     S: float,
@@ -87,7 +87,7 @@ def nb_pdf(
     return y
 
 
-@nb.jit(**nb_kwd)
+# @nb.jit(**nb_kwd)
 def nb_density(
     Es: np.array,
     S: float,
@@ -145,7 +145,7 @@ def nb_density(
     return mu_S + mu_B, y
 
 
-@nb.jit(**nb_kwd)
+# @nb.jit(**nb_kwd)
 def nb_logpdf(
     Es: np.array,
     S: float,
@@ -214,7 +214,7 @@ def nb_logpdf(
     return y
 
 
-@nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
+# @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_rvs(
     n_sig: int,
     n_bkg: int,
@@ -274,7 +274,7 @@ def nb_rvs(
     return Es
 
 
-@nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
+# @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
     S: float,
     BI: float,
@@ -346,7 +346,7 @@ def nb_extendedrvs(
     return Es, (n_sig, n_bkg)
 
 
-@nb.jit(**nb_kwd)
+# @nb.jit(**nb_kwd)
 def nb_density_gradient(
     Es: np.array,
     S: float,
