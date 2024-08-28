@@ -206,13 +206,13 @@ class Experiment(Superset):
         self.minuit.migrad()
 
         if not self.minuit.valid:
-            msg = f"`Toy` with seed {self.seed} has invalid best fit"
+            msg = "`Experiment` has invalid best fit"
             logging.warning(msg)
 
         self.best = grab_results(self.minuit)
 
         if self.guess == self.best["values"]:
-            msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"
+            msg = "`Experiment` has best fit values very close to initial guess"
             logging.warning(msg)
 
         return self.best
@@ -238,13 +238,13 @@ class Experiment(Superset):
         self.minuit.migrad()
 
         if not self.minuit.valid:
-            msg = f"`Toy` with seed {self.seed} has invalid profile"
+            msg = "`Experiment` has invalid profile"
             logging.warning(msg)
 
         results = grab_results(self.minuit)
 
         if self.guess == results["values"]:
-            msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"
+            msg = "`Experiment` has profile fit values very close to initial guess"
             logging.warning(msg)
 
         # also include the fixed parameters
