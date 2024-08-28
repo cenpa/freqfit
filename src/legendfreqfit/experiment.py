@@ -211,6 +211,10 @@ class Experiment(Superset):
 
         self.best = grab_results(self.minuit)
 
+        if self.guess == self.best["values"]:
+            msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"
+            logging.warning(msg)
+
         return self.best
 
     def profile(
@@ -238,6 +242,10 @@ class Experiment(Superset):
             logging.warning(msg)
 
         results = grab_results(self.minuit)
+
+        if self.guess == results["values"]:
+            msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"
+            logging.warning(msg)
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():
