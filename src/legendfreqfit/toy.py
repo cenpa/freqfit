@@ -49,6 +49,9 @@ class Toy:
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
         self.seed = seed
+        self.data = (
+            []
+        )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
 
         # reset toy_parameters to "default" values
         # deepcopy so we can mutate this without fear
@@ -188,6 +191,8 @@ class Toy:
 
             # find which parameters are part of Datasets that have data
             if ds._toy_data.size > 0:
+                # Add the data to self.data
+                self.data.extend(ds._toy_data)
                 # add the fit parameters of this Dataset if there is some data
                 for fitpar in thiscostfunction._parameters:
                     parstofitthathavedata.add(fitpar)

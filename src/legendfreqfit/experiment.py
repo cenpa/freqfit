@@ -28,6 +28,9 @@ class Experiment(Superset):
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
+        self.data = (
+            []
+        )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
 
         self.fixed_bc_no_data = (
             {}
@@ -95,6 +98,8 @@ class Experiment(Superset):
         for datasetname in self.datasets:
             # check if there is some data
             if self.datasets[datasetname].data.size > 0:
+                # Add the data to self.data
+                self.data.extend(self.datasets[datasetname].data)
                 # add the fit parameters of this Dataset if there is some data
                 for fitpar in self.datasets[datasetname].fitparameters:
                     parstofitthathavedata.add(fitpar)
@@ -201,7 +206,7 @@ class Experiment(Superset):
         self.minuit.migrad()
 
         if not self.minuit.valid:
-            msg = (f"`Toy` with seed {self.seed} has invalid best fit")
+            msg = f"`Toy` with seed {self.seed} has invalid best fit"
             logging.warning(msg)
 
         self.best = grab_results(self.minuit)
@@ -229,7 +234,7 @@ class Experiment(Superset):
         self.minuit.migrad()
 
         if not self.minuit.valid:
-            msg = (f"`Toy` with seed {self.seed} has invalid profile")
+            msg = f"`Toy` with seed {self.seed} has invalid profile"
             logging.warning(msg)
 
         results = grab_results(self.minuit)
@@ -272,7 +277,7 @@ class Experiment(Superset):
         ts = num - denom
 
         if ts < 0:
-            msg = (f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}")
+            msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
             logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit

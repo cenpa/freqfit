@@ -101,7 +101,7 @@ def nb_pdf(
                     inwindow = True
             if not inwindow:
                 y[i] = 0.0
-                
+
     return y
 
 
@@ -384,7 +384,9 @@ class correlated_efficiency_0vbb_gen:
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, check_window)
+        return nb_pdf(
+            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, check_window
+        )
 
     def logpdf(
         self,
@@ -556,6 +558,47 @@ class correlated_efficiency_0vbb_gen:
             return True
         else:
             return False
+
+    def intial_guess(self, Es: np.array, exp_tot: float, eff_tot: float) -> tuple:
+        """
+        Give a better initial guess for the signal and background rate given an array of data
+        The signal rate is estimated in a +/-5 keV window around Qbb, the BI is estimated from everything outside that window
+
+        Parameters
+        ----------
+        Es
+            A numpy array of observed energy data
+        exp_tot
+            The total exposure of the experiment
+        eff_tot
+            The total efficiency of the experiment
+        """
+        QBB_ROI_SIZE = [
+            5,
+            5,
+        ]  # how many keV away from QBB in - and + directions we are defining the ROI
+        BKG_WINDOW_SIZE = WINDOWSIZE - np.sum(
+            QBB_ROI_SIZE
+        )  # subtract off the keV we are counting as the signal region
+        n_sig = 0
+        n_bkg = 0
+        for E in Es:
+            if QBB - QBB_ROI_SIZE[0] <= E <= QBB + QBB_ROI_SIZE[1]:
+                n_sig += 1
+            else:
+                n_bkg += 1
+
+        # find the expected BI
+        BI_guess = n_bkg / (BKG_WINDOW_SIZE * exp_tot)
+
+        # Now find the expected signal rate
+        n_sig -= (
+            n_bkg * np.sum(QBB_ROI_SIZE) / BKG_WINDOW_SIZE
+        )  # subtract off the expected number of BI counts in ROI
+
+        s_guess = n_sig / (exp_tot * eff_tot)
+
+        return s_guess, BI_guess
 
 
 correlated_efficiency_0vbb = correlated_efficiency_0vbb_gen()
