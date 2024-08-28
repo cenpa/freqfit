@@ -89,7 +89,7 @@ class Experiment(Superset):
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN
-        self.minuit.throw_nan = True
+        self.minuit.throw_nan = False
 
         # check which nuisance parameters can be fixed in the fit due to no data
 

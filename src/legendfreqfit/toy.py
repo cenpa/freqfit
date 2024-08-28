@@ -42,7 +42,7 @@ class Toy:
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
-        self.guess = None # initial guess for minuit
+        self.guess = None  # initial guess for minuit
         self.best = None  # best fit
         self.fixed_bc_no_data = (
             {}
@@ -240,7 +240,7 @@ class Toy:
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN
-        self.minuit.throw_nan = True
+        self.minuit.throw_nan = False
 
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.fitparameters:
