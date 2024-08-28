@@ -356,11 +356,11 @@ class SetLimit(Experiment):
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         """
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 1.0e-10})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": 1.0e-9})["values"]
 
         # Add 0 to the scan points if it is not there
-        if 1.0e-10 not in scan_points:
-            scan_points = np.insert(scan_points, 0, 1.0e-10)
+        if 1.0e-9 not in scan_points:
+            scan_points = np.insert(scan_points, 0, 1.0e-9)
 
         # Now we can run the toys
         toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
