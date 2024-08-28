@@ -42,6 +42,7 @@ class Toy:
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
+        self.guess = None # initial guess for minuit
         self.best = None  # best fit
         self.fixed_bc_no_data = (
             {}
@@ -232,11 +233,9 @@ class Toy:
 
             self.costfunction = self.costfunction + self.constraints
 
-        guess = {}
-        for par in self.fitparameters:
-            guess |= {par: parameters[par]}
+        self.guess = self.initialguess()
 
-        self.minuit = Minuit(self.costfunction, **guess)
+        self.minuit = Minuit(self.costfunction, **self.guess)
         self.minuit.tol = 0.00001  # set the tolerance
         self.minuit.strategy = 2
 
@@ -263,6 +262,15 @@ class Toy:
         # this function will also fix those nuisance parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
+
+    def initialguess(
+        self,
+    ) -> dict:
+        guess = {}
+        for par in self.fitparameters:
+            guess |= {par: self.experiment._toy_parameters[par]["value"]}
+
+        return guess
 
     def minuit_reset(
         self,
@@ -317,6 +325,10 @@ class Toy:
 
         self.best = grab_results(self.minuit)
 
+        if self.guess == self.best["values"]:
+            msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"
+            logging.warning(msg)
+
         return self.best
 
     def profile(
@@ -343,6 +355,10 @@ class Toy:
             logging.warning(msg)
 
         results = grab_results(self.minuit)
+
+        if self.guess == results["values"]:
+            msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"
+            logging.warning(msg)
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():
