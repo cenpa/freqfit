@@ -89,7 +89,7 @@ def test_iminuit_integration():
     random_sample = gaussian_on_uniform.rvs(n_sig, n_bkg, delta, sigma)
 
     c = cost.UnbinnedNLL(random_sample, gaussian_on_uniform.pdf)
-    m = Minuit(c, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m = Minuit(c, S=0.5, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
     m.fixed["eff", "exp"] = True
     m.migrad()
 
