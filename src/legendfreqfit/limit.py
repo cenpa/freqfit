@@ -370,7 +370,7 @@ class SetLimit(Experiment):
         )
 
         # Now, save the toys to a file
-        file_name = self.out_path + f"/1E-10_{self.jobid}.h5"
+        file_name = self.out_path + f"/1E-9_{self.jobid}.h5"
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_points)
