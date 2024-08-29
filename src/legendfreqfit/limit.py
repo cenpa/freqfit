@@ -205,7 +205,7 @@ class SetLimit(Experiment):
         for c in self.name:
             experiment_seed += ord(c)
 
-        if experiment_seed > 2**30:
+        if experiment_seed > 2**31:
             raise ValueError(
                 "Experiment seed cannot be too large, try naming the experiment a smaller string."
             )
@@ -223,7 +223,7 @@ class SetLimit(Experiment):
                 "You need to change the spacing between seeds for completely uncorrelated toys."
             )
 
-        if (seeds > 2**30).any():
+        if (seeds > 2**31).any():
             raise ValueError(
                 "Experiment seed cannot be too large, try multiplying the seeds by a smaller number."
             )
