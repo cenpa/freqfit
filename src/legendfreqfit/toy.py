@@ -50,6 +50,7 @@ class Toy:
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
         self.seed = seed
+        self.user_gradient = experiment.user_gradient
         self.data = (
             []
         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate

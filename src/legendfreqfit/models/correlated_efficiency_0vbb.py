@@ -172,6 +172,137 @@ def nb_density(
 
 
 @nb.jit(**nb_kwd)
+def nb_density_gradient(
+    Es: np.array,
+    S: float,
+    BI: float,
+    delta: float,
+    sigma: float,
+    eff: float,
+    effunc: float,
+    effuncscale: float,
+    exp: float,
+) -> np.array:
+    """
+    Parameters
+    ----------
+    Es
+        Energies at which this function is evaluated, in keV
+    S
+        The signal rate, in units of counts/(kg*yr)
+    BI
+        The background index rate, in counts/(kg*yr*keV)
+    delta
+        Systematic energy offset from QBB, in keV
+    sigma
+        The energy resolution at QBB, in keV
+    eff
+        The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
+    exp
+        The exposure, in kg*yr
+
+    Notes
+    -----
+    This function computes the gradient of the density function and returns a tuple where the first element is the gradient of the CDF, and the second element is the gradient of the PDF.
+    The first element has shape (K,) where K is the number of parameters, and the second element has shape (K,N) where N is the length of Es.
+    mu_S = S * exp * (eff + effuncscale * effunc)
+    mu_B = exp * BI * windowsize
+    pdf(E) = [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    cdf(E) = mu_S + mu_B
+    """
+
+    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    mu_S = S * exp * (eff + effuncscale * effunc)
+
+    grad_CDF = np.array(
+        [
+            (eff + effuncscale * effunc) * exp,
+            exp * WINDOWSIZE,
+            0,
+            0,
+            S * exp,
+            S * exp * effuncscale,
+            S * exp * effunc,
+            BI * WINDOWSIZE + S * (eff + effuncscale * effunc),
+        ]
+    )
+
+    grad_PDF = np.zeros(shape=(8, len(Es)))
+    if sigma == 0:  # give up
+        for i in nb.prange(Es.shape[0]):
+            grad_PDF[0][i] = np.inf
+            grad_PDF[1][i] = exp
+            grad_PDF[2][i] = np.inf
+            grad_PDF[3][i] = np.inf
+            grad_PDF[4][i] = np.inf
+            grad_PDF[5][i] = np.inf
+            grad_PDF[6][i] = np.inf
+            grad_PDF[7][i] = np.inf
+            grad_PDF[8][i] = np.inf
+    else:
+        for i in nb.prange(Es.shape[0]):
+            # For readability, don't precompute anything and see how performance is impacted
+            grad_PDF[0][i] = (
+                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                * (eff + effuncscale * effunc)
+                * exp
+            ) / (np.sqrt(2 * np.pi) * sigma)
+            grad_PDF[1][i] = exp
+            grad_PDF[2][i] = (
+                (
+                    np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                    * (eff + effuncscale * effunc)
+                    * exp
+                    * S
+                )
+                * (-delta + Es[i] - QBB)
+                / (np.sqrt(2 * np.pi) * sigma**3)
+            )
+            grad_PDF[3][i] = (
+                (
+                    np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                    * (eff + effuncscale * effunc)
+                    * exp
+                    * S
+                )
+                * ((Es[i] - QBB - delta) ** 2 - sigma**2)
+                / (np.sqrt(2 * np.pi) * sigma**4)
+            )
+            grad_PDF[4][i] = (
+                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) * exp * S
+            ) / (np.sqrt(2 * np.pi) * sigma)
+            grad_PDF[5][i] = (
+                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                * exp
+                * effuncscale
+                * S
+            ) / (np.sqrt(2 * np.pi) * sigma)
+            grad_PDF[6][i] = (
+                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                * exp
+                * effuncscale
+                * S
+            ) / (np.sqrt(2 * np.pi) * sigma)
+            grad_PDF[7][i] = (
+                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                * exp
+                * effunc
+                * S
+            ) / (np.sqrt(2 * np.pi) * sigma)
+            grad_PDF[8][i] = (
+                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                * (eff + effuncscale * effunc)
+                * S
+            ) / (np.sqrt(2 * np.pi) * sigma) + BI
+
+    return grad_CDF, grad_PDF
+
+
+@nb.jit(**nb_kwd)
 def nb_logpdf(
     Es: np.array,
     S: float,
@@ -419,6 +550,23 @@ class correlated_efficiency_0vbb_gen:
         exp: float,
     ) -> np.array:
         return nb_density(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
+
+    # for iminuit ExtendedUnbinnedNLL
+    def density_gradient(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        delta: float,
+        sigma: float,
+        eff: float,
+        effunc: float,
+        effuncscale: float,
+        exp: float,
+    ) -> np.array:
+        return nb_density_gradient(
+            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp
+        )
 
     # for iminuit ExtendedUnbinnedNLL
     def log_density(

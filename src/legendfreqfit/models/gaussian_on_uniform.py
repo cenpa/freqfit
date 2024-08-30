@@ -391,7 +391,9 @@ def nb_density_gradient(
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
     mu_S = S * eff * exp
 
-    grad_CDF = np.array([eff * exp, exp * WINDOWSIZE, 0, 0, S * exp, S * eff])
+    grad_CDF = np.array(
+        [eff * exp, exp * WINDOWSIZE, 0, 0, S * exp, S * eff + BI * WINDOWSIZE]
+    )
 
     grad_PDF = np.zeros(shape=(6, len(Es)))
     for i in nb.prange(Es.shape[0]):
