@@ -317,7 +317,14 @@ class Toy:
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        self.minuit.migrad()
+        if self.experiment.backend == "minuit":
+            self.minuit.migrad()
+        elif self.experiment.backend == "scipy":
+            self.minuit.scipy()
+        else:
+            raise NotImplementedError(
+                "Iminuit backend is not set to `minuit` or `scipy`"
+            )
 
         if not self.minuit.valid:
             msg = f"`Toy` with seed {self.seed} has invalid best fit"
@@ -348,7 +355,14 @@ class Toy:
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        self.minuit.migrad()
+        if self.experiment.backend == "minuit":
+            self.minuit.migrad()
+        elif self.experiment.backend == "scipy":
+            self.minuit.scipy()
+        else:
+            raise NotImplementedError(
+                "Iminuit backend is not set to `minuit` or `scipy`"
+            )
 
         if not self.minuit.valid:
             msg = f"`Toy` with seed {self.seed} has invalid profile"

@@ -24,6 +24,7 @@ class Experiment(Superset):
         self.options = {}
         self.options["try_to_combine_datasets"] = False
         self.test_statistic = "t_mu"
+        self.backend = "minuit"
         self.toy = None  # the last Toy from this experiment
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
@@ -49,6 +50,9 @@ class Experiment(Superset):
 
             if "name" in config["options"] and (name is None):
                 name = config["options"]["name"]
+
+            if "backend" in config["options"]:
+                self.backend = config["options"]["backend"]
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
@@ -203,7 +207,14 @@ class Experiment(Superset):
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        self.minuit.migrad()
+        if self.backend == "minuit":
+            self.minuit.migrad()
+        elif self.backend == "scipy":
+            self.minuit.scipy()
+        else:
+            raise NotImplementedError(
+                "Iminuit backend is not set to `minuit` or `scipy`"
+            )
 
         if not self.minuit.valid:
             msg = "`Experiment` has invalid best fit"
@@ -235,7 +246,14 @@ class Experiment(Superset):
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        self.minuit.migrad()
+        if self.backend == "minuit":
+            self.minuit.migrad()
+        elif self.backend == "scipy":
+            self.minuit.scipy()
+        else:
+            raise NotImplementedError(
+                "Iminuit backend is not set to `minuit` or `scipy`"
+            )
 
         if not self.minuit.valid:
             msg = "`Experiment` has invalid profile"
