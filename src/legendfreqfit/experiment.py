@@ -29,6 +29,9 @@ class Experiment(Superset):
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
+        self.user_gradient = (
+            False  # option to use a user-specified density gradient for a model
+        )
         self.data = (
             []
         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
@@ -53,6 +56,9 @@ class Experiment(Superset):
 
             if "backend" in config["options"]:
                 self.backend = config["options"]["backend"]
+
+            if "user_gradient" in config["options"]:
+                self.user_gradient = config["options"]["user_gradient"]
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
@@ -84,6 +90,7 @@ class Experiment(Superset):
             combined_datasets=combined_datasets,
             name=name,
             try_to_combine_datasets=self.options["try_to_combine_datasets"],
+            user_gradient=self.user_gradient,
         )
 
         # get the fit parameters and set the parameter initial values

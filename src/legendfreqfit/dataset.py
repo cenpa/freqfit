@@ -22,6 +22,7 @@ class Dataset:
         name: str = "",
         try_combine: bool = False,
         combined_dataset: str = None,
+        user_gradient: bool = False,
     ) -> None:
         """
         Parameters
@@ -62,6 +63,8 @@ class Dataset:
             as cost functions.
         name
             `str` name for the `Dataset`
+        user_gradient
+            If true use the user's gradient in the costfunction
 
         Notes
         -----
@@ -99,6 +102,7 @@ class Dataset:
         self.combined_dataset = (
             None  # name of the combined_dataset that this Dataset is part of
         )
+        self.user_gradient = user_gradient
 
         self._toy_data = None  # place to hold Toy data for this Dataset
         self._toy_num_drawn = None  # place to hold the number of signal and number of background events drawn for a toy
@@ -132,7 +136,12 @@ class Dataset:
             costfunction is cost.UnbinnedNLL
         ):
             self._costfunctioncall = costfunction
-            self.costfunction = costfunction(self.data, self.density)
+            if user_gradient:
+                self.costfunction = costfunction(
+                    self.data, self.density, grad=self.density_gradient
+                )
+            else:
+                self.costfunction = costfunction(self.data, self.density)
         else:
             msg = f"`Dataset` `{self.name}`: only `cost.ExtendedUnbinnedNLL` or `cost.UnbinnedNLL` are supported as \
                 cost functions"
@@ -262,6 +271,7 @@ def combine_datasets(
     costfunction: cost.Cost,
     name: str = "",
     use_toy_data: bool = False,
+    user_gradient: bool = False,
 ) -> Dataset:
     """
     Parameters
@@ -279,6 +289,8 @@ def combine_datasets(
         see `Dataset`
     name
         name of the combined `Dataset`
+    user_gradient
+        If true, use the user gradient in the combined dataset costfunction
     """
 
     if not isinstance(datasets, list) or not all(
@@ -362,7 +374,13 @@ def combine_datasets(
         data = combination[0]
 
         combined_dataset = Dataset(
-            data, model, model_parameters, simplified_parameters, costfunction, name
+            data,
+            model,
+            model_parameters,
+            simplified_parameters,
+            costfunction,
+            name,
+            user_gradient=user_gradient,
         )
 
     return combined_dataset, included_datasets
