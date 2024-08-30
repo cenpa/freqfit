@@ -215,15 +215,15 @@ class SetLimit(Experiment):
             experiment_seed + self.jobid * self.numtoy,
             experiment_seed + (self.jobid + 1) * self.numtoy,
         )
-        seeds *= 10000  # need to multiply this by a large number because if seed numbers differ by fewer than num of datasets, then adjacent toys will have the same energies pulled but in different datasets
+        seeds *= 5000  # need to multiply this by a large number because if seed numbers differ by fewer than num of datasets, then adjacent toys will have the same energies pulled but in different datasets
         # See line 115 in toys.py, thisseed = self.seed + i
-        # If you have more than 10000 datasets, I am sorry
-        if len(self.datasets.items()) > 10000:
+        # If you have more than 5000 datasets, I am sorry
+        if len(self.datasets.items()) > 5000:
             raise ValueError(
                 "You need to change the spacing between seeds for completely uncorrelated toys."
             )
 
-        if (seeds > 2**31).any():
+        if (seeds > 2**32).any():
             raise ValueError(
                 "Experiment seed cannot be too large, try multiplying the seeds by a smaller number."
             )
