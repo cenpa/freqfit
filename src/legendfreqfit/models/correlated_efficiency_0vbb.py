@@ -242,7 +242,6 @@ def nb_density_gradient(
             grad_PDF[5][i] = np.inf
             grad_PDF[6][i] = np.inf
             grad_PDF[7][i] = np.inf
-            grad_PDF[8][i] = np.inf
     else:
         for i in nb.prange(Es.shape[0]):
             # For readability, don't precompute anything and see how performance is impacted
@@ -269,7 +268,7 @@ def nb_density_gradient(
                     * exp
                     * S
                 )
-                * ((Es[i] - QBB - delta) ** 2 - sigma**2)
+                * ((delta - Es[i] + QBB - sigma) * (delta - Es[i] + QBB + sigma))
                 / (np.sqrt(2 * np.pi) * sigma**4)
             )
             grad_PDF[4][i] = (
@@ -284,16 +283,10 @@ def nb_density_gradient(
             grad_PDF[6][i] = (
                 np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
                 * exp
-                * effuncscale
-                * S
-            ) / (np.sqrt(2 * np.pi) * sigma)
-            grad_PDF[7][i] = (
-                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
-                * exp
                 * effunc
                 * S
             ) / (np.sqrt(2 * np.pi) * sigma)
-            grad_PDF[8][i] = (
+            grad_PDF[7][i] = (
                 np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
                 * (eff + effuncscale * effunc)
                 * S
