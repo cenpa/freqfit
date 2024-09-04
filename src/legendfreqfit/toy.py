@@ -321,7 +321,7 @@ class Toy:
         if self.experiment.backend == "minuit":
             self.minuit.migrad()
         elif self.experiment.backend == "scipy":
-            self.minuit.scipy()
+            self.minuit.scipy(method=self.experiment.scipy_minimizer)
         else:
             raise NotImplementedError(
                 "Iminuit backend is not set to `minuit` or `scipy`"
@@ -359,7 +359,7 @@ class Toy:
         if self.experiment.backend == "minuit":
             self.minuit.migrad()
         elif self.experiment.backend == "scipy":
-            self.minuit.scipy()
+            self.minuit.scipy(method=self.experiment.scipy_minimizer)
         else:
             raise NotImplementedError(
                 "Iminuit backend is not set to `minuit` or `scipy`"

@@ -25,6 +25,7 @@ class Experiment(Superset):
         self.options["try_to_combine_datasets"] = False
         self.test_statistic = "t_mu"
         self.backend = "minuit"
+        self.scipy_minimizer = None
         self.toy = None  # the last Toy from this experiment
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
@@ -56,6 +57,29 @@ class Experiment(Superset):
 
             if "backend" in config["options"]:
                 self.backend = config["options"]["backend"]
+
+            if "scipy_minimizer" in config["options"]:
+                self.scipy_minimizer = config["options"]["scipy_minimizer"]
+                if self.scipy_minimizer not in [
+                    "Nelder-Mead",
+                    "Powell",
+                    "CG",
+                    "BFGS",
+                    "Newton-CG",
+                    "L-BFGS-B",
+                    "TNC",
+                    "COBYLA",
+                    "COBYQA",
+                    "SLSQP",
+                    "trust-constr",
+                    "dogleg",
+                    "trust-ncg",
+                    "trust-exact",
+                    "trust-krylov",
+                ]:
+                    raise NotImplementedError(
+                        f"{self.scipy_minimizer} is not a valid minimizer"
+                    )
 
             if "user_gradient" in config["options"]:
                 self.user_gradient = config["options"]["user_gradient"]
@@ -217,7 +241,7 @@ class Experiment(Superset):
         if self.backend == "minuit":
             self.minuit.migrad()
         elif self.backend == "scipy":
-            self.minuit.scipy()
+            self.minuit.scipy(method=self.scipy_minimizer)
         else:
             raise NotImplementedError(
                 "Iminuit backend is not set to `minuit` or `scipy`"
@@ -256,7 +280,7 @@ class Experiment(Superset):
         if self.backend == "minuit":
             self.minuit.migrad()
         elif self.backend == "scipy":
-            self.minuit.scipy()
+            self.minuit.scipy(method=self.scipy_minimizer)
         else:
             raise NotImplementedError(
                 "Iminuit backend is not set to `minuit` or `scipy`"
@@ -310,7 +334,7 @@ class Experiment(Superset):
         ts = num - denom
 
         if ts < 0:
-            msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
+            msg = f"`Experiment` gave test statistic below zero: {ts}"
             logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
