@@ -150,11 +150,10 @@ def nb_density(
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
+    S *= 0.01
+    BI *= 0.0001
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
-
-    if mu_S + mu_B < 0:
-        return 0.0, np.full_like(Es, np.inf, dtype=np.float64)
 
     if sigma == 0:
         return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
@@ -243,18 +242,6 @@ def nb_density_gradient(
             grad_PDF[5][i] = np.inf
             grad_PDF[6][i] = np.inf
             grad_PDF[7][i] = np.inf
-
-    elif mu_S + mu_B < 0:
-        grad_PDF[0][i] = np.inf
-        grad_PDF[1][i] = np.inf
-        grad_PDF[2][i] = np.inf
-        grad_PDF[3][i] = np.inf
-        grad_PDF[4][i] = np.inf
-        grad_PDF[5][i] = np.inf
-        grad_PDF[6][i] = np.inf
-        grad_PDF[7][i] = np.inf
-
-        grad_CDF = np.zeros(8)
 
     else:
         for i in nb.prange(Es.shape[0]):
@@ -475,6 +462,8 @@ def nb_extendedrvs(
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
+    S *= 0.01
+    BI *= 0.0001
 
     np.random.seed(seed)
 
