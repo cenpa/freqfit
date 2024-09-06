@@ -7,6 +7,7 @@ from copy import deepcopy
 import numpy as np
 from iminuit import Minuit, cost
 
+from legendfreqfit import initial_guesses
 from legendfreqfit.dataset import combine_datasets
 from legendfreqfit.utils import grab_results
 
@@ -267,9 +268,14 @@ class Toy:
     def initialguess(
         self,
     ) -> dict:
-        guess = {}
-        for par in self.fitparameters:
-            guess |= {par: self.experiment._toy_parameters[par]["value"]}
+        if self.experiment.initial_guess_function is None:
+            guess = {}
+            for par in self.fitparameters:
+                guess |= {par: self.experiment._toy_parameters[par]["value"]}
+
+        else:
+            func = getattr(initial_guesses, self.experiment.initial_guess_function)
+            guess = func(self)
 
         return guess
 

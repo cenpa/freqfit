@@ -6,6 +6,7 @@ import logging
 import numpy as np
 from iminuit import Minuit
 
+from legendfreqfit import initial_guesses
 from legendfreqfit.superset import Superset
 from legendfreqfit.toy import Toy
 from legendfreqfit.utils import grab_results, load_config
@@ -36,6 +37,7 @@ class Experiment(Superset):
         self.data = (
             []
         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
+        self.initial_guess_function = None
 
         self.fixed_bc_no_data = (
             {}
@@ -83,6 +85,11 @@ class Experiment(Superset):
 
             if "user_gradient" in config["options"]:
                 self.user_gradient = config["options"]["user_gradient"]
+
+            if "initial_guess_function" in config["options"]:
+                self.initial_guess_function = config["options"][
+                    "initial_guess_function"
+                ]
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
@@ -166,12 +173,17 @@ class Experiment(Superset):
     def initialguess(
         self,
     ) -> dict:
-        guess = {
-            fitpar: self.parameters[fitpar]["value"]
-            if "value" in self.parameters[fitpar]
-            else None
-            for fitpar in self.fitparameters
-        }
+        if self.initial_guess_function is None:
+            guess = {
+                fitpar: self.parameters[fitpar]["value"]
+                if "value" in self.parameters[fitpar]
+                else None
+                for fitpar in self.fitparameters
+            }
+
+        else:
+            func = getattr(initial_guesses, self.initial_guess_function)
+            guess = func(self)
 
         # for fitpar, value in guess.items():
         #     if value is None:
