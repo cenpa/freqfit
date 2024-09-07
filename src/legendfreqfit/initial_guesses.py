@@ -5,7 +5,9 @@ Script for users to write their own initial guesses and pass them into the `expe
 import numpy as np
 
 import legendfreqfit.models.constants as constants
-from legendfreqfit.models import correlated_efficiency_0vbb
+from legendfreqfit.models.correlated_efficiency_0vbb import (
+    correlated_efficiency_0vbb_gen,
+)
 
 # default analysis window and width
 # window
@@ -33,7 +35,7 @@ def zero_nu_initial_guess(experiment):
     # This is for a toy
     if hasattr(experiment, "experiment"):
         for ds in experiment.experiment.datasets.values():
-            if ds.model == correlated_efficiency_0vbb:
+            if isinstance(ds.model, correlated_efficiency_0vbb_gen):
                 totexp = totexp + ds._parlist[7]
                 sigma_expweighted = sigma_expweighted + ds._parlist[3] * ds._parlist[7]
                 eff_expweighted = eff_expweighted + ds._parlist[4] * ds._parlist[7]
@@ -49,7 +51,7 @@ def zero_nu_initial_guess(experiment):
     # This is an experiment
     else:
         for ds in experiment.datasets.values():
-            if ds.model == correlated_efficiency_0vbb:
+            if isinstance(ds.model, correlated_efficiency_0vbb_gen):
                 totexp = totexp + ds._parlist[7]
                 sigma_expweighted = sigma_expweighted + ds._parlist[3] * ds._parlist[7]
                 eff_expweighted = eff_expweighted + ds._parlist[4] * ds._parlist[7]
