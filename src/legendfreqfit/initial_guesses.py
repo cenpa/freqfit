@@ -124,8 +124,8 @@ def zero_nu_initial_guess(experiment):
     # update only the S and BI
     for fitpar in guess.keys():
         if "BI" in fitpar:
-            guess[fitpar] = BI_guess
+            guess[fitpar] = BI_guess / 0.0001
         if "global_S" in fitpar:
-            guess[fitpar] = s_guess
+            guess[fitpar] = s_guess / 0.01
 
     return guess
