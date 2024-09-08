@@ -61,27 +61,30 @@ class Experiment(Superset):
                 self.backend = config["options"]["backend"]
 
             if "scipy_minimizer" in config["options"]:
-                self.scipy_minimizer = config["options"]["scipy_minimizer"]
-                if self.scipy_minimizer not in [
-                    "Nelder-Mead",
-                    "Powell",
-                    "CG",
-                    "BFGS",
-                    "Newton-CG",
-                    "L-BFGS-B",
-                    "TNC",
-                    "COBYLA",
-                    "COBYQA",
-                    "SLSQP",
-                    "trust-constr",
-                    "dogleg",
-                    "trust-ncg",
-                    "trust-exact",
-                    "trust-krylov",
-                ]:
-                    raise NotImplementedError(
-                        f"{self.scipy_minimizer} is not a valid minimizer"
-                    )
+                if config["options"]["scipy_minimizer"] in ["None", "none"]:
+                    self.scipy_minimizer = None
+                else:
+                    self.scipy_minimizer = config["options"]["scipy_minimizer"]
+                    if self.scipy_minimizer not in [
+                        "Nelder-Mead",
+                        "Powell",
+                        "CG",
+                        "BFGS",
+                        "Newton-CG",
+                        "L-BFGS-B",
+                        "TNC",
+                        "COBYLA",
+                        "COBYQA",
+                        "SLSQP",
+                        "trust-constr",
+                        "dogleg",
+                        "trust-ncg",
+                        "trust-exact",
+                        "trust-krylov",
+                    ]:
+                        raise NotImplementedError(
+                            f"{self.scipy_minimizer} is not a valid minimizer"
+                        )
 
             if "user_gradient" in config["options"]:
                 self.user_gradient = config["options"]["user_gradient"]
