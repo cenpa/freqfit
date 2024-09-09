@@ -242,7 +242,7 @@ class Toy:
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN
-        self.minuit.throw_nan = False
+        self.minuit.throw_nan = True
 
         # now check which nuisance parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in self.fitparameters:
@@ -324,14 +324,19 @@ class Toy:
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        if self.experiment.backend == "minuit":
-            self.minuit.migrad()
-        elif self.experiment.backend == "scipy":
-            self.minuit.scipy(method=self.experiment.scipy_minimizer)
-        else:
-            raise NotImplementedError(
-                "Iminuit backend is not set to `minuit` or `scipy`"
-            )
+        try:
+            if self.experiment.backend == "minuit":
+                self.minuit.migrad()
+            elif self.experiment.backend == "scipy":
+                self.minuit.scipy(method=self.experiment.scipy_minimizer)
+            else:
+                raise NotImplementedError(
+                    "Iminuit backend is not set to `minuit` or `scipy`"
+                )
+
+        except RuntimeError:
+            msg = f"`Toy` with seed {self.seed} has best fit throwing NaN"
+            logging.warning(msg)
 
         if not self.minuit.valid:
             msg = f"`Toy` with seed {self.seed} has invalid best fit"
@@ -362,14 +367,18 @@ class Toy:
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        if self.experiment.backend == "minuit":
-            self.minuit.migrad()
-        elif self.experiment.backend == "scipy":
-            self.minuit.scipy(method=self.experiment.scipy_minimizer)
-        else:
-            raise NotImplementedError(
-                "Iminuit backend is not set to `minuit` or `scipy`"
-            )
+        try:
+            if self.experiment.backend == "minuit":
+                self.minuit.migrad()
+            elif self.experiment.backend == "scipy":
+                self.minuit.scipy(method=self.experiment.scipy_minimizer)
+            else:
+                raise NotImplementedError(
+                    "Iminuit backend is not set to `minuit` or `scipy`"
+                )
+        except RuntimeError:
+            msg = f"`Toy` with seed {self.seed} has profile raising NaN with parameters {parameters}"
+            logging.warning(msg)
 
         if not self.minuit.valid:
             msg = f"`Toy` with seed {self.seed} has invalid profile"

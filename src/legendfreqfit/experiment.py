@@ -134,7 +134,7 @@ class Experiment(Superset):
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN
-        self.minuit.throw_nan = False
+        self.minuit.throw_nan = True
 
         # check which nuisance parameters can be fixed in the fit due to no data
 
@@ -253,14 +253,18 @@ class Experiment(Superset):
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        if self.backend == "minuit":
-            self.minuit.migrad()
-        elif self.backend == "scipy":
-            self.minuit.scipy(method=self.scipy_minimizer)
-        else:
-            raise NotImplementedError(
-                "Iminuit backend is not set to `minuit` or `scipy`"
-            )
+        try:
+            if self.backend == "minuit":
+                self.minuit.migrad()
+            elif self.backend == "scipy":
+                self.minuit.scipy(method=self.scipy_minimizer)
+            else:
+                raise NotImplementedError(
+                    "Iminuit backend is not set to `minuit` or `scipy`"
+                )
+        except RuntimeError:
+            msg = "`Experiment` has invalid best fit"
+            logging.warning(msg)
 
         if not self.minuit.valid:
             msg = "`Experiment` has invalid best fit"
@@ -292,14 +296,18 @@ class Experiment(Superset):
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        if self.backend == "minuit":
-            self.minuit.migrad()
-        elif self.backend == "scipy":
-            self.minuit.scipy(method=self.scipy_minimizer)
-        else:
-            raise NotImplementedError(
-                "Iminuit backend is not set to `minuit` or `scipy`"
-            )
+        try:
+            if self.backend == "minuit":
+                self.minuit.migrad()
+            elif self.backend == "scipy":
+                self.minuit.scipy(method=self.scipy_minimizer)
+            else:
+                raise NotImplementedError(
+                    "Iminuit backend is not set to `minuit` or `scipy`"
+                )
+        except RuntimeError:
+            msg = f"`Experiment` throwing NaN has invalid profile at {parameters}"
+            logging.warning(msg)
 
         if not self.minuit.valid:
             msg = "`Experiment` has invalid profile"
