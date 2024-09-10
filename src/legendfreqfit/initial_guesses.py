@@ -8,6 +8,7 @@ import legendfreqfit.models.constants as constants
 from legendfreqfit.models.correlated_efficiency_0vbb import (
     correlated_efficiency_0vbb_gen,
 )
+from legendfreqfit.models.mjd_0vbb import mjd_0vbb_gen
 
 # default analysis window and width
 # window
@@ -43,6 +44,14 @@ def zero_nu_initial_guess(experiment):
                     effunc_expweighted + ds._parlist[5] * ds._parlist[7]
                 )
                 Es.extend(ds._toy_data)
+            elif isinstance(ds.model, mjd_0vbb_gen):
+                totexp = totexp + ds._parlist[10]
+                sigma_expweighted = sigma_expweighted + ds._parlist[4] * ds._parlist[10]
+                eff_expweighted = eff_expweighted + ds._parlist[7] * ds._parlist[10]
+                effunc_expweighted = (
+                    effunc_expweighted + ds._parlist[8] * ds._parlist[10]
+                )
+                Es.extend(ds._toy_data)
             else:
                 raise NotImplementedError(
                     f"Model of type {ds.model} not yet implemented here!"
@@ -59,6 +68,14 @@ def zero_nu_initial_guess(experiment):
                     effunc_expweighted + ds._parlist[5] * ds._parlist[7]
                 )
                 Es.extend(ds.data)
+            elif isinstance(ds.model, mjd_0vbb_gen):
+                totexp = totexp + ds._parlist[10]
+                sigma_expweighted = sigma_expweighted + ds._parlist[4] * ds._parlist[10]
+                eff_expweighted = eff_expweighted + ds._parlist[7] * ds._parlist[10]
+                effunc_expweighted = (
+                    effunc_expweighted + ds._parlist[8] * ds._parlist[10]
+                )
+                Es.extend(ds._toy_data)
             else:
                 raise NotImplementedError(
                     f"Model of type {ds.model} not yet implemented here!"
@@ -121,11 +138,17 @@ def zero_nu_initial_guess(experiment):
             for fitpar in experiment.fitparameters
         }
 
+    # If we get only one count in the signal window, then this guess will estimate too low a background
+    # So, if BI is guessed as 0 and S is not 0, smear out the signal rate between them
+    if (BI_guess < 1e-6) and (s_guess != 0):
+        BI_guess = s_guess / 2
+        s_guess /= 2
+
     # update only the S and BI
     for fitpar in guess.keys():
         if "BI" in fitpar:
-            guess[fitpar] = BI_guess / 0.0001
+            guess[fitpar] = BI_guess / 0.0001  # For scaled BI
         if "global_S" in fitpar:
-            guess[fitpar] = s_guess / 0.01
+            guess[fitpar] = s_guess / 0.01  # For scaled S in the model
 
     return guess
