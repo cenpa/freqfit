@@ -140,6 +140,9 @@ def zero_nu_initial_guess(experiment):
 
     # If we get only one count in the signal window, then this guess will estimate too low a background
     # So, if BI is guessed as 0 and S is not 0, smear out the signal rate between them
+    if s_guess < 0:
+        s_guess = 0
+
     if (BI_guess < 1e-6) and (s_guess != 0):
         BI_guess = s_guess / 2
         s_guess /= 2

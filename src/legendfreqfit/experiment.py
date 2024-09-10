@@ -90,9 +90,12 @@ class Experiment(Superset):
                 self.user_gradient = config["options"]["user_gradient"]
 
             if "initial_guess_function" in config["options"]:
-                self.initial_guess_function = config["options"][
-                    "initial_guess_function"
-                ]
+                if config["options"]["initial_guess_function"] in ["None", "none"]:
+                    self.initial_guess_function = None
+                else:
+                    self.initial_guess_function = config["options"][
+                        "initial_guess_function"
+                    ]
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
