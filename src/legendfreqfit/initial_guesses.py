@@ -75,7 +75,7 @@ def zero_nu_initial_guess(experiment):
                 effunc_expweighted = (
                     effunc_expweighted + ds._parlist[8] * ds._parlist[10]
                 )
-                Es.extend(ds._toy_data)
+                Es.extend(ds.data)
             else:
                 raise NotImplementedError(
                     f"Model of type {ds.model} not yet implemented here!"
