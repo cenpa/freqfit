@@ -139,7 +139,7 @@ def zero_nu_initial_guess(experiment):
         if s_guess < 0:
             s_guess = 0
         if (BI_guess < 1e-6) and (s_guess != 0):
-            BI_guess = s_guess / 2
+            BI_guess = s_guess / 2 / 1000  # handle the scaling separately
             s_guess /= 2
 
         BI_guesses.append(BI_guess)
