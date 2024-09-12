@@ -139,7 +139,7 @@ def zero_nu_initial_guess(experiment):
         if s_guess < 0:
             s_guess = 0
         if (BI_guess < 1e-6) and (s_guess != 0):
-            BI_guess = s_guess / 2 / 1000  # handle the scaling separately
+            BI_guess = s_guess / 2
             s_guess /= 2
 
         BI_guesses.append(BI_guess)
@@ -168,10 +168,10 @@ def zero_nu_initial_guess(experiment):
 
     # update the BI
     for i, BI in enumerate(BI_list):
-        guess[BI] = BI_guesses[i] / 0.0001  # For scaled BI
+        guess[BI] = BI_guesses[i]
 
     # Update the signal guess
-    guess["global_S"] = S_guess / 0.01  # For scaled S in the model
+    guess["global_S"] = S_guess
 
     return guess
 
