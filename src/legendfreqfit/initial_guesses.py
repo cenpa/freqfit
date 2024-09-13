@@ -146,7 +146,7 @@ def zero_nu_initial_guess(experiment):
             BKG_WINDOW_SIZE = WINDOWSIZE - np.sum(
                 QBB_ROI_SIZE
             )  # subtract off the keV we are counting as the signal region
-            BI_guess = len(Es_per_BI) / (totexp * BKG_WINDOW_SIZE)
+            BI_guess = len(Es_per_BI) / (totexp * BKG_WINDOW_SIZE * 2)
             s_guess /= 2
 
         BI_guesses.append(BI_guess)
