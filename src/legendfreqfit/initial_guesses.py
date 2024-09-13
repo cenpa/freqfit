@@ -146,8 +146,15 @@ def zero_nu_initial_guess(experiment):
             BKG_WINDOW_SIZE = WINDOWSIZE - np.sum(
                 QBB_ROI_SIZE
             )  # subtract off the keV we are counting as the signal region
-            BI_guess = len(Es_per_BI) / (totexp * BKG_WINDOW_SIZE * 2)
+            len_Es_in_sig = 0
+            for E in Es:
+                if QBB - QBB_ROI_SIZE[0] <= E <= QBB + QBB_ROI_SIZE[1]:
+                    len_Es_in_sig += 1
+            BI_guess = len_Es_in_sig / (totexp * BKG_WINDOW_SIZE) * (BI_totexp / totexp)
             s_guess /= 2
+
+        if BI_guess == 0:
+            BI_guess = 1e-3
 
         BI_guesses.append(BI_guess)
 
@@ -158,7 +165,10 @@ def zero_nu_initial_guess(experiment):
 
     S_guess = guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted)[1]
     if S_guess < 0:
-        S_guess = 0
+        S_guess = 1e-3
+    # if S_guess > 0:
+    #     if is_toy:
+    #         S_guess = loop_exp._toy_parameters["global_S"]["value"]
 
     # need to handle this differently depending on if this is a toy or not/what datasets have been combined
     if is_toy:
