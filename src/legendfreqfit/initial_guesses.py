@@ -139,7 +139,14 @@ def zero_nu_initial_guess(experiment):
         if s_guess < 0:
             s_guess = 0
         if (BI_guess < 1e-6) and (s_guess != 0):
-            BI_guess = s_guess / 2
+            QBB_ROI_SIZE = [
+                5 * BI_sigma_expweighted,
+                5 * BI_sigma_expweighted,
+            ]  # how many keV away from QBB in - and + directions we are defining the ROI
+            BKG_WINDOW_SIZE = WINDOWSIZE - np.sum(
+                QBB_ROI_SIZE
+            )  # subtract off the keV we are counting as the signal region
+            BI_guess = len(Es_per_BI) / (totexp * BKG_WINDOW_SIZE)
             s_guess /= 2
 
         BI_guesses.append(BI_guess)
