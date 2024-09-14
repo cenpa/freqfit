@@ -150,7 +150,9 @@ def zero_nu_initial_guess(experiment):
             for E in Es:
                 if QBB - QBB_ROI_SIZE[0] <= E <= QBB + QBB_ROI_SIZE[1]:
                     len_Es_in_sig += 1
-            BI_guess = len_Es_in_sig / (totexp * BKG_WINDOW_SIZE) * (BI_totexp / totexp)
+            BI_guess = (
+                len_Es_in_sig / (totexp * BKG_WINDOW_SIZE * 5) * (BI_totexp / totexp)
+            )
             s_guess /= 2
 
         if BI_guess == 0:
@@ -165,7 +167,7 @@ def zero_nu_initial_guess(experiment):
 
     S_guess = guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted)[1]
     if S_guess < 0:
-        S_guess = 1e-3
+        S_guess = 1e-9
     # if S_guess > 0:
     #     if is_toy:
     #         S_guess = loop_exp._toy_parameters["global_S"]["value"]
