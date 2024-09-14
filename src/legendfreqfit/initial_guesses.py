@@ -150,9 +150,7 @@ def zero_nu_initial_guess(experiment):
             for E in Es:
                 if QBB - QBB_ROI_SIZE[0] <= E <= QBB + QBB_ROI_SIZE[1]:
                     len_Es_in_sig += 1
-            BI_guess = (
-                len_Es_in_sig / (totexp * BKG_WINDOW_SIZE * 5) * (BI_totexp / totexp)
-            )
+            BI_guess = len_Es_in_sig / (totexp * BKG_WINDOW_SIZE) * (BI_totexp / totexp)
             s_guess /= 2
 
         if BI_guess == 0:
