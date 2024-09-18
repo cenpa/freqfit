@@ -81,15 +81,20 @@ def zero_nu_initial_guess(experiment):
     for par in minuit.parameters:
         minuit.fixed[par] = True
     minuit.fixed["global_S"] = False
-    minuit.limits["global_S"] = (1e-9, None)
+    minuit.limits["global_S"] = (0, None)
 
     minuit.fixed["global_effuncscale"] = False
     minuit.limits["global_effuncscale"] = (-100, 100)
     for BI in BI_list:
         minuit.fixed[f"{BI}"] = False
-        minuit.limits[f"{BI}"] = (1e-9, None)
+        minuit.limits[f"{BI}"] = (0, None)
+    # minuit.simplex()
     minuit.migrad()
     guess = minuit.values.to_dict()
+
+    # if guess["global_S"]<1e-8:
+    #     print("inside here")
+    #     guess["global_S"] = 1e-8
 
     # # Then perform the loop over datasets that share a background index
     # BI_guesses = []
