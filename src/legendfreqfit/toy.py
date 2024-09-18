@@ -2,6 +2,7 @@
 A class that holds a collection of fake datasets and associated hardware
 """
 import logging
+import multiprocessing as mp
 from copy import deepcopy
 
 import numpy as np
@@ -52,6 +53,7 @@ class Toy:
         self.included_in_combined_datasets = {}
         self.seed = seed
         self.user_gradient = experiment.user_gradient
+        self.scan_bestfit = experiment.scan_bestfit
         self.data = (
             []
         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
@@ -324,25 +326,38 @@ class Toy:
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        try:
-            if self.experiment.backend == "minuit":
-                self.minuit.migrad()
-            elif self.experiment.backend == "scipy":
-                self.minuit.scipy(method=self.experiment.scipy_minimizer)
-            else:
-                raise NotImplementedError(
-                    "Iminuit backend is not set to `minuit` or `scipy`"
-                )
+        if self.scan_bestfit:
+            grid = np.linspace(0, 0.2, 100)
+            args = [[{"global_S": float(xx)}] for xx in grid]
 
-        except RuntimeError:
-            msg = f"`Toy` with seed {self.seed} has best fit throwing NaN"
-            logging.warning(msg)
+            with mp.Pool(self.numcores) as pool:
+                ts = pool.starmap(self.profile, args)
+            best = ts[np.argmin([t["fval"] for t in ts])]
+            self.best = best
+            if not best["valid"]:
+                msg = "`Experiment` has invalid best fit"
+                logging.warning(msg)
 
-        if not self.minuit.valid:
-            msg = f"`Toy` with seed {self.seed} has invalid best fit"
-            logging.warning(msg)
+        else:
+            try:
+                if self.experiment.backend == "minuit":
+                    self.minuit.migrad()
+                elif self.experiment.backend == "scipy":
+                    self.minuit.scipy(method=self.experiment.scipy_minimizer)
+                else:
+                    raise NotImplementedError(
+                        "Iminuit backend is not set to `minuit` or `scipy`"
+                    )
 
-        self.best = grab_results(self.minuit)
+            except RuntimeError:
+                msg = f"`Toy` with seed {self.seed} has best fit throwing NaN"
+                logging.warning(msg)
+
+            if not self.minuit.valid:
+                msg = f"`Toy` with seed {self.seed} has invalid best fit"
+                logging.warning(msg)
+
+            self.best = grab_results(self.minuit)
 
         if self.guess == self.best["values"]:
             msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"

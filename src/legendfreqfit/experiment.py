@@ -2,6 +2,7 @@
 A class that controls an experiment and calls the `Superset` class.
 """
 import logging
+import multiprocessing as mp
 
 import numpy as np
 from iminuit import Minuit
@@ -31,6 +32,7 @@ class Experiment(Superset):
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
+        self.scan_bestfit = False
         self.user_gradient = (
             False  # option to use a user-specified density gradient for a model
         )
@@ -88,6 +90,9 @@ class Experiment(Superset):
 
             if "user_gradient" in config["options"]:
                 self.user_gradient = config["options"]["user_gradient"]
+
+            if "scan_bestfit" in config["options"]:
+                self.scan_bestfit = config["options"]["scan_bestfit"]
 
             if "initial_guess_function" in config["options"]:
                 if config["options"]["initial_guess_function"] in ["None", "none"]:
@@ -256,24 +261,37 @@ class Experiment(Superset):
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        try:
-            if self.backend == "minuit":
-                self.minuit.migrad()
-            elif self.backend == "scipy":
-                self.minuit.scipy(method=self.scipy_minimizer)
-            else:
-                raise NotImplementedError(
-                    "Iminuit backend is not set to `minuit` or `scipy`"
-                )
-        except RuntimeError:
-            msg = "`Experiment` has invalid best fit"
-            logging.warning(msg)
+        if self.scan_bestfit:
+            grid = np.linspace(0, 0.2, 100)
+            args = [[{"global_S": float(xx)}] for xx in grid]
 
-        if not self.minuit.valid:
-            msg = "`Experiment` has invalid best fit"
-            logging.warning(msg)
+            with mp.Pool(self.numcores) as pool:
+                ts = pool.starmap(self.profile, args)
+            best = ts[np.argmin([t["fval"] for t in ts])]
+            self.best = best
+            if not best["valid"]:
+                msg = "`Experiment` has invalid best fit"
+                logging.warning(msg)
 
-        self.best = grab_results(self.minuit)
+        else:
+            try:
+                if self.backend == "minuit":
+                    self.minuit.migrad()
+                elif self.backend == "scipy":
+                    self.minuit.scipy(method=self.scipy_minimizer)
+                else:
+                    raise NotImplementedError(
+                        "Iminuit backend is not set to `minuit` or `scipy`"
+                    )
+            except RuntimeError:
+                msg = "`Experiment` has invalid best fit"
+                logging.warning(msg)
+
+            if not self.minuit.valid:
+                msg = "`Experiment` has invalid best fit"
+                logging.warning(msg)
+
+            self.best = grab_results(self.minuit)
 
         if self.guess == self.best["values"]:
             msg = "`Experiment` has best fit values very close to initial guess"
