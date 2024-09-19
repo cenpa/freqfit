@@ -1,6 +1,6 @@
 QBB = 2039.0612  # 2039.0612 +- 0.0075 keV from AME2020
 NA = 6.0221408e23  # Avogadro's number
-MA = 0.0759214027  # kilograms per mole, molar mass of 76Ge
+M76 = 0.0759214027  # kilograms per mole, molar mass of 76Ge
 
 # lines to exclude are
 # 2614.511(10) - 511 = 2103.511 keV SEP from 208Tl
@@ -30,7 +30,7 @@ SQRT2PI = 2.506628274631000241612355239340104162693023681640625
 # conversion function
 def s_prime_to_s(s_prime):
   # Given s_prime in decays/(kg*yr), find s in decays/yr
-  s = s_prime * (MA / (LOG2 * NA) )
+  s = s_prime * (M76 / (LOG2 * NA) )
   return s
 
 def s_prime_to_halflife(s_prime):

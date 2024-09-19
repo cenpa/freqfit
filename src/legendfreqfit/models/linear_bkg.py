@@ -23,7 +23,7 @@ M_A = constants.MA
 #     Default is typical analysis window.
 
 # default analysis window and width
-WINDOW = np.array(constants.WINDOW_BKG_REGION_0VBB)
+WINDOW = np.array(constants.WINDOW)
 
 WINDOWSIZE = 0.0
 for i in range(len(WINDOW)):
