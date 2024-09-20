@@ -153,6 +153,7 @@ class Dataset:
             # if not passed, use default value (already checked that required parameters passed)
             if par not in model_parameters:
                 self._parlist.append(defaultvalue)
+                break # no constraints on non-passed parameters
 
             # parameter was passed and should be included in the fit
             elif ("includeinfit" in parameters[model_parameters[par]]) and (
