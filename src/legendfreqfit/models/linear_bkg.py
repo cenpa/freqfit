@@ -164,7 +164,7 @@ def nb_extendedrvs(
     a   
         "normalized" slope between -1 and 1 inclusive
     BI
-        rate of background in cts/exposure
+        rate of background in cts/exposure/energy
     exp
         exposure
     """
