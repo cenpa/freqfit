@@ -13,10 +13,6 @@ nb_kwd = {
     "fastmath": True,
 }
 
-QBB = constants.QBB
-N_A = constants.NA
-M_A = constants.MA
-
 # window
 #     must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
 #     where edges of window are monotonically increasing (this is not checked), in keV.
@@ -29,61 +25,66 @@ WINDOWSIZE = 0.0
 for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
+FULLWINDOWSIZE = WINDOW[-1][1] - WINDOW[0][0]
+
 SEED = 42  # set the default random seed
 
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
     Es: np.array,
+    a: float,
+    BI: float,
+    exp: float,
+    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-
-    Notes
-    -----
-    This function makes an approximation to the model `gaussian_on_uniform` and assumes that the peak has zero
-    contribution to the pdf to simplify computation. Because of this, we assume that there are no signal events in the
-    window and therefore the normalization should be only to the expected number of background events in the window. Note that
-    whether the events are properly in the window is not checked!
-
-    From `gaussian_on_uniform`:
-    mu_S = eff * exp * S
-    mu_B = exp * BI * windowsize
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
-
-    But instead in this pdf we should have
-    # mu_S = eff * exp * S <-- not needed, so do not need these parameters
-    mu_B = exp * BI * windowsize
-    # pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize] <-- we consider a different window so we should have instead
-    pdf(E) = 1/(mu_B) * [mu_B / windowsize] --> 1 / windowsize
-
-    So in fact we need no parameters other than the windowsize. We take this as a global constant however to speed up computation further!
+    a   
+        "normalized" slope between -1 and 1 inclusive
+    BI
+        rate of background in cts/exposure/energy (not used in pdf)
+    exp
+        exposure (not used in pdf)
+    check_window
+        whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
+        all fall inside the window (for speed)
     """
 
-    # windowsize = 0.0
-    # for i in range(len(window)):
-    #     windowsize += window[i][1] - window[i][0]
+    x0 = WINDOW[0][0]
+    x1 = WINDOW[-1][1]
 
-    # Precompute the signal and background counts
-    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    # mu_S = S * eff * exp
-    # mu_B = exp * BI * windowsize
+    mid = (x1 + x0) / 2.0
 
-    # Precompute the prefactors so that way we save multiplications in the for loop
-    # B_amp = exp * BI
-    # S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
+    # take normalized slope and convert to actual slope
+    slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
+
+    b = 1.0 / FULLWINDOWSIZE
+
+    includedarea = 0.0
+    for i in nb.prange(WINDOW.shape[0]):
+        includedarea += (2.0 * (WINDOW[i][1] - WINDOW[i][0]) 
+            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b))
+
+    totarea = (2.0 * (WINDOW[-1][1] - WINDOW[0][0]) 
+        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b))
 
     # Initialize and execute the for loop
-    # y = np.empty_like(Es, dtype=np.float64)
-    # for i in nb.prange(Es.shape[0]):
-    #     y[i] = (1 / (mu_S + mu_B)) * (
-    #         S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
-    #     )
+    y = np.empty_like(Es, dtype=np.float64)
+    for i in nb.prange(Es.shape[0]):
+        y[i] = (slope * (Es[i] - mid) + b) * totarea / includedarea
 
-    y = np.full_like(Es, fill_value=1.0 / WINDOWSIZE, dtype=np.float64)
+    if check_window:
+        for i in nb.prange(Es.shape[0]):
+            inwindow = False
+            for j in range(len(WINDOW)):
+                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+                    inwindow = True
+            if not inwindow:
+                y[i] = 0.0
 
     return y
 
@@ -91,62 +92,81 @@ def nb_pdf(
 @nb.jit(**nb_kwd)
 def nb_density(
     Es: np.array,
+    a: float,
     BI: float,
     exp: float,
+    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
+    a   
+        "normalized" slope between -1 and 1 inclusive
     BI
-        The background index rate, in counts/(kg*yr*keV)
+        rate of background in cts/exposure/energy
     exp
-        The exposure, in kg*yr
+        exposure
+    check_window
+        whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
+        all fall inside the window (for speed)
     """
 
-    # expected number of background events
-    mu_B = exp * BI * WINDOWSIZE
+    x0 = WINDOW[0][0]
+    x1 = WINDOW[-1][1]
 
-    y = np.full_like(Es, fill_value=exp * BI, dtype=np.float64)
+    mid = (x1 + x0) / 2.0
 
-    return mu_B, y
+    # take normalized slope and convert to actual slope
+    slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
 
+    b = 1.0 / FULLWINDOWSIZE
 
-@nb.jit(**nb_kwd)
-def nb_logpdf(
-    Es: np.array,
-) -> np.array:
-    """
-    Parameters
-    ----------
-    Es
-        Energies at which this function is evaluated, in keV
-    """
+    includedarea = 0.0
+    for i in nb.prange(WINDOW.shape[0]):
+        includedarea += (2.0 * (WINDOW[i][1] - WINDOW[i][0]) 
+            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b))
 
-    y = np.full_like(Es, fill_value=np.log(1.0 / WINDOWSIZE), dtype=np.float64)
+    totarea = (2.0 * (WINDOW[-1][1] - WINDOW[0][0]) 
+        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b))
 
-    return y
+    amp = totarea / includedarea * BI * exp * WINDOWSIZE
 
+    # Initialize and execute the for loop
+    y = np.empty_like(Es, dtype=np.float64)
+    for i in nb.prange(Es.shape[0]):
+        y[i] = (slope * (Es[i] - mid) + b) * amp
+
+    if check_window:
+        for i in nb.prange(Es.shape[0]):
+            inwindow = False
+            for j in range(len(WINDOW)):
+                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+                    inwindow = True
+            if not inwindow:
+                y[i] = 0.0
+    
+    return BI * exp * WINDOWSIZE, y
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
+    a: float,
     BI: float,
     exp: float,
     seed: int = SEED,
-) -> np.array:
+) -> (np.array, int):
     """
     Parameters
     ----------
+    Es
+        Energies at which this function is evaluated, in keV
+    a   
+        "normalized" slope between -1 and 1 inclusive
     BI
-        rate of background events in events/(kev*kg*yr)
-    seed
-        specify a seed, otherwise uses default seed
-
-    Notes
-    -----
-    This function pulls from a Gaussian for signal events and from a uniform distribution for background events
-    in the provided windows, which may be discontinuous.
+        rate of background in cts/exposure
+    exp
+        exposure
     """
 
     np.random.seed(seed)
@@ -154,31 +174,60 @@ def nb_extendedrvs(
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
     # preallocate for background draws
+    Es = np.zeros(n_bkg, dtype=np.float64)
+
+    x0 = WINDOW[0][0]
+    x1 = WINDOW[-1][1]
+
+    mid = (x1 + x0) / 2.0
+
+    # take normalized slope and convert to actual slope
+    slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
+
+    b = 1.0 / FULLWINDOWSIZE
+
+    # find area of each section and percent of cdf 
+    cumareas = np.zeros(len(WINDOW))
+    percentages = np.zeros(len(WINDOW))
+    areas = np.zeros(len(WINDOW))
+
+    totarea = 0.0
+    for i in nb.prange(WINDOW.shape[0]):
+        area = 2.0 * (WINDOW[i][1] - WINDOW[i][0]) * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
+        totarea += area
+        cumareas[i] = totarea
+        areas[i] = area
+
+    for i in nb.prange(WINDOW.shape[0]):
+        percentages[i] = cumareas[i] / totarea
+
+    # figure out which window each count belongs to
+    whichwindow = np.random.uniform(0.0, 1.0, n_bkg)
+    numwindow = np.zeros(WINDOW.shape[0], dtype='i')
+    for i in nb.prange(n_bkg):
+        for j in nb.prange(WINDOW.shape[0]):
+            if whichwindow[i] < percentages[j]:
+                numwindow[j] += 1
+                break
+
+    m = slope
+    # now draw the events for each window
     Es = np.zeros(n_bkg)
+    k = 0
+    for i in nb.prange(WINDOW.shape[0]):
+        x0 = WINDOW[i][0]
+        rvs = 0.5*areas[i]*np.random.uniform(0.0, 1.0, numwindow[i])
+        for j in nb.prange(numwindow[i]):
+            if m == 0.0:
+                Es[k] = WINDOW[i][0] + rvs[j] / (2.0*b)
+            else:
+                Es[k] = ((b**2 + 2*b*m*(x0-mid) + m*(mid**2*m - 2*mid*m*x0 + m*x0**2 + rvs[j]))**0.5 - b + mid*m) / m
+            
+            k += 1
 
-    # Get background events from a uniform distribution
-    bkg = np.random.uniform(0, 1, n_bkg)
+    return (Es, n_bkg)
 
-    breaks = np.zeros(shape=(len(WINDOW), 2))
-    for i in range(len(WINDOW)):
-        thiswidth = WINDOW[i][1] - WINDOW[i][0]
-
-        if i > 0:
-            breaks[i][0] = breaks[i - 1][1]
-
-        if i < len(WINDOW):
-            breaks[i][1] = breaks[i][0] + thiswidth / WINDOWSIZE
-
-        for j in range(len(bkg)):
-            if breaks[i][0] <= bkg[j] <= breaks[i][1]:
-                Es[j] = (bkg[j] - breaks[i][0]) * thiswidth / (
-                    breaks[i][1] - breaks[i][0]
-                ) + WINDOW[i][0]
-
-    return Es, (0, n_bkg)
-
-
-class bkg_region_0vbb_gen:
+class linear_bkg_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
         pass
@@ -186,40 +235,31 @@ class bkg_region_0vbb_gen:
     def pdf(
         self,
         Es: np.array,
+        a: float,
+        BI: float,
+        exp: float,
+        check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(Es)
-
-    def logpdf(
-        self,
-        Es: np.array,
-    ) -> np.array:
-        return nb_logpdf(Es)
+        return nb_pdf(Es, a, BI, exp, check_window=check_window)
 
     # for iminuit ExtendedUnbinnedNLL
     def density(
         self,
         Es: np.array,
+        a: float,
         BI: float,
         exp: float,
+        check_window: bool = False,
     ) -> np.array:
-        return nb_density(Es, BI, exp)
+        return nb_density(Es, a, BI, exp, check_window=check_window)
 
     def extendedrvs(
         self,
+        a: float,
         BI: float,
         exp: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(BI, exp, seed=seed)
+        return nb_extendedrvs(a, BI, exp, seed=seed)
 
-    def plot(
-        self,
-        Es: np.array,
-    ) -> None:
-        y = nb_pdf(Es)
-
-        plt.step(Es, y)
-        plt.show()
-
-
-bkg_region_0vbb = bkg_region_0vbb_gen()
+linear_bkg = linear_bkg_gen()
