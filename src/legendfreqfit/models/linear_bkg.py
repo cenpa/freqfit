@@ -72,10 +72,12 @@ def nb_pdf(
     totarea = (2.0 * (WINDOW[-1][1] - WINDOW[0][0]) 
         * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b))
 
+    amp = totarea / includedarea
+
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        y[i] = (slope * (Es[i] - mid) + b) * totarea / includedarea
+        y[i] = (slope * (Es[i] - mid) + b) * amp
 
     if check_window:
         for i in nb.prange(Es.shape[0]):
@@ -95,7 +97,6 @@ def nb_density(
     a: float,
     BI: float,
     exp: float,
-    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
@@ -134,20 +135,20 @@ def nb_density(
     amp = totarea / includedarea * BI * exp * WINDOWSIZE
 
     # Initialize and execute the for loop
-    y = np.empty_like(Es, dtype=np.float64)
+    y = np.zeros_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (slope * (Es[i] - mid) + b) * amp
 
-    if check_window:
-        for i in nb.prange(Es.shape[0]):
-            inwindow = False
-            for j in range(len(WINDOW)):
-                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
-                    inwindow = True
-            if not inwindow:
-                y[i] = 0.0
+    # if True:
+    #     for i in nb.prange(Es.shape[0]):
+    #         inwindow = False
+    #         for j in range(len(WINDOW)):
+    #             if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+    #                 inwindow = True
+    #         if not inwindow:
+    #             y[i] = 0.0
     
-    return BI * exp * WINDOWSIZE, y
+    return WINDOWSIZE * BI * exp, y
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
@@ -225,7 +226,7 @@ def nb_extendedrvs(
             
             k += 1
 
-    return (Es, n_bkg)
+    return (Es, (n_bkg, 0))
 
 class linear_bkg_gen:
     def __init__(self):
@@ -249,9 +250,8 @@ class linear_bkg_gen:
         a: float,
         BI: float,
         exp: float,
-        check_window: bool = False,
     ) -> np.array:
-        return nb_density(Es, a, BI, exp, check_window=check_window)
+        return nb_density(Es, a, BI, exp)
 
     def extendedrvs(
         self,
