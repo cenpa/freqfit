@@ -184,6 +184,10 @@ def nb_extendedrvs(
 
     # take normalized slope and convert to actual slope
     slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
+    
+    # there's a precision issue with how I am drawing rvs when a is very small
+    if abs(a) < 1E-12:
+        slope = 0.0
 
     b = 1.0 / FULLWINDOWSIZE
 
