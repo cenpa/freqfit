@@ -396,8 +396,7 @@ class Experiment(Superset):
     def toy_ts(
         self,
         parameters: dict,  # parameters and values needed to generate the toys
-        profile_parameters: dict
-        | list,  # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict | list,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seed: np.array = None,
     ):

@@ -118,11 +118,11 @@ def test_statistic_asymptotic_limit(
 
 def toy_ts_critical(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
-    bins=None,  # int or array, number of bins or list of bin edges for CDF
-    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
     threshold: float = 0.9,  # critical threshold for test statistic
     confidence: float = 0.68,  # width of confidence interval on the CDF 
     plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
+    bins = None,  # int or array, number of bins or list of bin edges for CDF
+    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
     plot_dir: str = "",  # directory where to save plots
     plot_title: str = "",
 ):
@@ -138,7 +138,6 @@ def toy_ts_critical(
 
     ts_crit, ts_lo, ts_hi = percentile(data=ts, percentiles=[threshold, lo_binom_percentile, hi_binom_percentile])
 
-
     if plot:
         if isinstance(bins, int):
             bins = np.linspace(0, np.nanmax(ts), bins)
@@ -150,12 +149,6 @@ def toy_ts_critical(
         )  # note that the CDF is evaluated at the right bin edge
 
         lo_band, hi_band = binomial_unc_band(cdf, nevts=len(ts), CL=confidence)
-
-        # TODO: would like to use interpolation so that result is independent of number of bins, etc.
-        # but this is a little tricky because need inverse of function and this is not necessarily strictly
-        # increasing. So instead allow the user to specify the bin step so this is respected regardless of
-        # number of events (which can dictate bin size if fixed number of bins is requested b/c more likely to get
-        # very large test statistic with more events).
 
         int_thresh = int(100 * threshold)
         int_conf = int(100 * confidence)
