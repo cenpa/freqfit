@@ -265,6 +265,22 @@ def ts_critical(
 
     return (ts_crit, ts_lo, ts_hi), (threshold, lo_binom_percentile, hi_binom_percentile)
 
+def p_value(
+    ts: np.array,
+    ts_exp: float
+):
+    """
+    Returns p-value and uncertainty of an experimental test statistic and distribution of toy test statistics. 
+    """
+    tot = 1.0 * len(ts)
+    hi = np.sum(ts > ts_exp)
+
+    pval = hi/tot
+
+    # binomial uncertainty at 1 sigma
+    unc = 1.0 / np.sqrt(tot) * np.sqrt(pval * (1.0 - pval))
+
+    return pval, unc
 
 def toy_ts_critical_p_value(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
