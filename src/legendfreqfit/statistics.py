@@ -140,9 +140,9 @@ def toy_ts_critical(
 
     if plot:
         if isinstance(bins, int):
-            bins = np.linspace(0, np.nanmax(ts), bins)
+            bins = np.linspace(np.floor(np.nanmin(ts)), np.nanmax(ts), bins)
         elif not isinstance(bins, np.ndarray):
-            bins = np.linspace(0, np.nanmax(ts), int(np.nanmax(ts) / step) )
+            bins = np.linspace(np.floor(np.nanmin(ts)), np.nanmax(ts), int(np.nanmax(ts) / step) )
 
         cdf, binedges = emp_cdf(
             ts, bins
@@ -195,7 +195,7 @@ def toy_ts_critical(
         axs[0].set_ylabel(r"CDF$(t)$")
         axs[0].legend()
         axs[0].set_ylim([0, 1])
-        axs[0].set_xlim([0, None])
+        axs[0].set_xlim([bins[0], None])
         axs[0].grid()
 
         # bin the PDF with slightly larger bins if the step size is too small (just for viewing)
@@ -237,7 +237,7 @@ def toy_ts_critical(
         axs[1].legend()
         axs[1].set_yscale("log")
         axs[1].set_ylim([1 / (10 * len(ts)), 1.0])
-        axs[1].set_xlim([0, None])
+        axs[1].set_xlim([bins[0], None])
         axs[1].grid(zorder=0)
 
         plt.suptitle(plot_title)
