@@ -313,8 +313,6 @@ class SetLimit(Experiment):
     def run_and_save_toys(
         self,
         scan_point,
-        threshold: float = 0.9,
-        confidence: float = 0.68,
         scan_point_override=None,
     ) -> list[np.array, np.array]:
         """
