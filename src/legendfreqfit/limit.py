@@ -11,6 +11,7 @@ from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
 from legendfreqfit.statistics import toy_ts_critical
+from legendfreqfit.models import constants
 
 NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
@@ -152,16 +153,16 @@ class SetLimit(Experiment):
         num_points
             The number of points to symmetrically create a grid from
         """
-        ma = 0.0759214027
-        NA = 6.022e23
+        M76 = constants.M76
+        NA = constants.NA
 
         # Scan a whole order of magnitude quickly to see if we need to rescan in case Wilks' isn't good
-        T_est = 1 / (ma * s_crit / (np.log(2) * NA))
+        T_est = 1 / (M76 * s_crit / (np.log(2) * NA))
         T_hi = 2 * T_est
         T_lo = T_est / 2
 
-        S_lo = 1 / (ma * T_hi / (np.log(2) * NA))
-        S_hi = 1 / (ma * T_lo / (np.log(2) * NA))
+        S_lo = 1 / (M76 * T_hi / (np.log(2) * NA))
+        S_hi = 1 / (M76 * T_lo / (np.log(2) * NA))
 
         #         lo_range = np.linspace(S_lo, s_crit, num_points//2 + num_points%2, endpoint=False)
         #         hi_range = np.linspace(s_crit, S_hi, num_points//2)
