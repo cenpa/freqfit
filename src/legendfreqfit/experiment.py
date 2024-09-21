@@ -32,6 +32,7 @@ class Experiment(Superset):
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
+        self.tolerance = 0.00001 # tolerance for iminuit or other minimizer
         self.scan_bestfit = False
         self.user_gradient = (
             False  # option to use a user-specified density gradient for a model
@@ -61,6 +62,9 @@ class Experiment(Superset):
 
             if "backend" in config["options"]:
                 self.backend = config["options"]["backend"]
+
+            if "tolerance" in config["options"]:
+                self.tolerance = config["options"]["tolerance"]
 
             if "scipy_minimizer" in config["options"]:
                 if config["options"]["scipy_minimizer"] in ["None", "none"]:
@@ -138,7 +142,7 @@ class Experiment(Superset):
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = 0.00001  # set the tolerance
+        self.minuit.tol = self.tolerance # set the tolerance
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN

@@ -44,6 +44,7 @@ class Toy:
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
+        self.tolerance = self.experiment.tolerance
         self.guess = None  # initial guess for minuit
         self.best = None  # best fit
         self.fixed_bc_no_data = (
@@ -52,8 +53,8 @@ class Toy:
         self.combined_datasets = {}  # holds combined_datasets
         self.included_in_combined_datasets = {}
         self.seed = seed
-        self.user_gradient = experiment.user_gradient
-        self.scan_bestfit = experiment.scan_bestfit
+        self.user_gradient = self.experiment.user_gradient
+        self.scan_bestfit = self.experiment.scan_bestfit
         self.data = (
             []
         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
@@ -82,10 +83,10 @@ class Toy:
                     )
 
                 # Loop through the model parameters in the dataset and find their values from the combined dataset
-                for model_par in experiment.datasets[ds].model_parameters.keys():
-                    ds_par_name = experiment.datasets[ds].model_parameters[model_par]
+                for model_par in self.experiment.datasets[ds].model_parameters.keys():
+                    ds_par_name = self.experiment.datasets[ds].model_parameters[model_par]
                     # find the corresponding parameter name in the combined dataset
-                    combined_ds_par_name = experiment.combined_datasets[
+                    combined_ds_par_name = self.experiment.combined_datasets[
                         combined_ds
                     ].model_parameters[model_par]
 
@@ -116,7 +117,7 @@ class Toy:
                 self.experiment._toy_parameters[par]["value"] = varied_toy_pars[i]
 
         # draw the toy data
-        for i, (datasetname, dataset) in enumerate(experiment.datasets.items()):
+        for i, (datasetname, dataset) in enumerate(self.experiment.datasets.items()):
             # worried that this is not totally deterministic (depends on number of Datasets),
             # but more worried that random draws between datasets would be correlated otherwise.
             thisseed = self.seed + i
@@ -240,7 +241,7 @@ class Toy:
         self.guess = self.initialguess()
 
         self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = 0.00001  # set the tolerance
+        self.minuit.tol = self.tolerance  # set the tolerance
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN
