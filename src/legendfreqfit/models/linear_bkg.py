@@ -97,6 +97,7 @@ def nb_density(
     a: float,
     BI: float,
     exp: float,
+    check_window: bool = False,
 ) -> np.array:
     """
     Parameters
@@ -139,14 +140,14 @@ def nb_density(
     for i in nb.prange(Es.shape[0]):
         y[i] = (slope * (Es[i] - mid) + b) * amp
 
-    # if True:
-    #     for i in nb.prange(Es.shape[0]):
-    #         inwindow = False
-    #         for j in range(len(WINDOW)):
-    #             if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
-    #                 inwindow = True
-    #         if not inwindow:
-    #             y[i] = 0.0
+    if check_window:
+        for i in nb.prange(Es.shape[0]):
+            inwindow = False
+            for j in range(len(WINDOW)):
+                if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+                    inwindow = True
+            if not inwindow:
+                y[i] = 0.0
     
     return WINDOWSIZE * BI * exp, y
 
@@ -235,6 +236,7 @@ def nb_extendedrvs(
 class linear_bkg_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
+        del self.parameters["check_window"] # used for plotting and stuff, screws up rvs since not present there
         pass
 
     def pdf(
@@ -254,8 +256,9 @@ class linear_bkg_gen:
         a: float,
         BI: float,
         exp: float,
+        check_window: bool = False,
     ) -> np.array:
-        return nb_density(Es, a, BI, exp)
+        return nb_density(Es, a, BI, exp, check_window=check_window)
 
     def extendedrvs(
         self,
