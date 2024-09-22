@@ -6,7 +6,7 @@ from legendfreqfit.models import gaussian_on_uniform
 
 QBB = constants.QBB
 N_A = constants.NA
-M_A = constants.MA
+M76 = constants.M76
 WINDOW = np.array(constants.WINDOW)
 
 WINDOWSIZE = 0.0
