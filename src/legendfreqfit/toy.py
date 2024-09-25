@@ -2,7 +2,6 @@
 A class that holds a collection of fake datasets and associated hardware
 """
 import logging
-import multiprocessing as mp
 from copy import deepcopy
 
 import numpy as np
@@ -84,7 +83,9 @@ class Toy:
 
                 # Loop through the model parameters in the dataset and find their values from the combined dataset
                 for model_par in self.experiment.datasets[ds].model_parameters.keys():
-                    ds_par_name = self.experiment.datasets[ds].model_parameters[model_par]
+                    ds_par_name = self.experiment.datasets[ds].model_parameters[
+                        model_par
+                    ]
                     # find the corresponding parameter name in the combined dataset
                     combined_ds_par_name = self.experiment.combined_datasets[
                         combined_ds
@@ -328,11 +329,12 @@ class Toy:
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
         if self.scan_bestfit:
-            grid = np.linspace(0, 0.2, 100)
+            grid = np.linspace(1.0e-9, 0.2, 200)
             args = [[{"global_S": float(xx)}] for xx in grid]
 
-            with mp.Pool(self.numcores) as pool:
-                ts = pool.starmap(self.profile, args)
+            ts = []
+            for arg in args:
+                ts.append(self.profile(arg[0]))
             best = ts[np.argmin([t["fval"] for t in ts])]
             self.best = best
             if not best["valid"]:
