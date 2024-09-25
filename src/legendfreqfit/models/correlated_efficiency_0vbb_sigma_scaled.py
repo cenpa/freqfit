@@ -80,7 +80,7 @@ def nb_pdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, alpha*sigma) + mu_B/windowsize]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, alpha*sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -97,7 +97,7 @@ def nb_pdf(
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
             S_amp
-            * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2 * alpha**2))
+            * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2 * alpha**2))
             + B_amp
         )
 
@@ -154,7 +154,7 @@ def nb_density(
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     CDF(E) = mu_S + mu_B
-    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) =[mu_S * norm(E_j, QBB -, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -176,7 +176,7 @@ def nb_density(
     for i in nb.prange(Es.shape[0]):
         y[i] = (
             S_amp
-            * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2 * alpha**2))
+            * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2 * alpha**2))
             + B_amp
         )
 
@@ -223,7 +223,7 @@ def nb_density_gradient(
     The first element has shape (K,) where K is the number of parameters, and the second element has shape (K,N) where N is the length of Es.
     mu_S = S * exp * (eff + effuncscale * effunc)
     mu_B = exp * BI * windowsize
-    pdf(E) = [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) = [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
     cdf(E) = mu_S + mu_B
     """
     raise NotImplementedError("This function is not yet implemented.")
@@ -350,7 +350,7 @@ def nb_logpdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize])
+    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize])
     """
 
     # Precompute the signal and background counts
@@ -372,7 +372,7 @@ def nb_logpdf(
     for i in nb.prange(Es.shape[0]):
         pdf = (1 / (mu_S + mu_B)) * (
             S_amp
-            * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2 * alpha**2))
+            * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2 * alpha**2))
             + B_amp
         )
 
@@ -418,7 +418,7 @@ def nb_rvs(
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
     Es = np.append(
-        np.random.normal(QBB + delta, sigma * alpha, size=n_sig), np.zeros(n_bkg)
+        np.random.normal(QBB - delta, sigma * alpha, size=n_sig), np.zeros(n_bkg)
     )
 
     # Get background events from a uniform distribution
@@ -494,7 +494,7 @@ def nb_extendedrvs(
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
     Es = np.append(
-        np.random.normal(QBB + delta, sigma * alpha, size=n_sig), np.zeros(n_bkg)
+        np.random.normal(QBB - delta, sigma * alpha, size=n_sig), np.zeros(n_bkg)
     )
 
     # Get background events from a uniform distribution

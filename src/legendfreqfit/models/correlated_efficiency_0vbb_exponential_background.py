@@ -80,7 +80,7 @@ def nb_pdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = BI * W * exp
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + N*BI*W*exp*(np.exp(-a*(E_j-x_lo)/a + 1))]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + N*BI*W*exp*(np.exp(-a*(E_j-x_lo)/a + 1))]
     """
     x_lo = WINDOW[0][0]
     x1 = WINDOW[0][1]
