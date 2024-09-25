@@ -159,8 +159,8 @@ def nb_density(
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
-    S *= 0.01
-    BI *= 0.0001
+    # S *= 0.01
+    # BI *= 0.0001
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
@@ -483,8 +483,8 @@ def nb_extendedrvs(
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-    S *= 0.01
-    BI *= 0.0001
+    # S *= 0.01
+    # BI *= 0.0001
 
     np.random.seed(seed)
 

@@ -69,6 +69,8 @@ def nb_pdf(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    a
+        Controls the decay constant of the exponential background
     check_window
         whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
         all fall inside the window (for speed)
@@ -77,34 +79,35 @@ def nb_pdf(
     -----
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
-    mu_B = m/2(E_hi^2-E_lo^2) + BI*exp*(E_hi-E_lo)
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + a*E + BI*exp]
+    mu_B = BI * W * exp
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + N*BI*W*exp*(np.exp(-a*(E_j-x_lo)/a + 1))]
     """
-    x0 = WINDOW[0][0]
-    x1 = WINDOW[-1][1]
+    x_lo = WINDOW[0][0]
+    x1 = WINDOW[0][1]
+    x2 = WINDOW[1][0]
+    x3 = WINDOW[1][1]
+    x4 = WINDOW[-1][0]
+    x_hi = WINDOW[-1][1]
 
-    mid = (x1 + x0) / 2.0
-
-    # take normalized slope and convert to actual slope
-    slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
-
-    b = 1.0 / FULLWINDOWSIZE
-
-    includedarea = 0.0
-    for i in nb.prange(WINDOW.shape[0]):
-        includedarea += (
-            2.0
-            * (WINDOW[i][1] - WINDOW[i][0])
-            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
-        )
-
-    totarea = (
-        2.0
-        * (WINDOW[-1][1] - WINDOW[0][0])
-        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b)
+    # Compute the normalization for the CDF
+    invnorm = (x_hi - x4 + x3 - x2 + x1 - x_lo) - (
+        np.exp(-a * (x_hi - x_lo))
+        - np.exp(-a * (x4 - x_lo))
+        + np.exp(-a * (x3 - x_lo))
+        - np.exp(-a * (x2 - x_lo))
+        + np.exp(-a * (x1 - x_lo))
+        - 1
     )
 
-    amp = totarea / includedarea
+    if invnorm == 0:
+        norm = np.inf
+    else:
+        norm = 1 / invnorm
+
+    if a == 0:
+        a_inv = np.inf
+    else:
+        a_inv = 1 / a
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
@@ -113,13 +116,14 @@ def nb_pdf(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
+    B_amp = norm * mu_B
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
             S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
-            + (slope * (Es[i] - mid) + b) * amp
+            + B_amp * (np.exp(-a * (Es[i] - x_lo)) * a_inv + 1)
         )
 
     if check_window:
@@ -169,41 +173,44 @@ def nb_density(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    a
+        Controls the decay constant of the exponential background
 
     Notes
     -----
     This function computes the following, faster than without a numba wrapper:
     mu_S = (eff + effuncscale * effunc) * exp * S
-    mu_B = m/2(E_hi^2-E_lo^2) + BI*exp*(E_hi-E_lo)
+    mu_B = BI * W * exp
     CDF(E) = mu_S + mu_B
-    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + m*E + b]
+    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + N * BI * W * exp * (np.exp(-a*(E_j-x_lo))/a + 1)]
     """
 
-    x0 = WINDOW[0][0]
-    x1 = WINDOW[-1][1]
+    x_lo = WINDOW[0][0]
+    x1 = WINDOW[0][1]
+    x2 = WINDOW[1][0]
+    x3 = WINDOW[1][1]
+    x4 = WINDOW[-1][0]
+    x_hi = WINDOW[-1][1]
 
-    mid = (x1 + x0) / 2.0
-
-    # take normalized slope and convert to actual slope
-    slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
-
-    b = 1.0 / FULLWINDOWSIZE
-
-    includedarea = 0.0
-    for i in nb.prange(WINDOW.shape[0]):
-        includedarea += (
-            2.0
-            * (WINDOW[i][1] - WINDOW[i][0])
-            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
-        )
-
-    totarea = (
-        2.0
-        * (WINDOW[-1][1] - WINDOW[0][0])
-        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b)
+    # Compute the normalization for the CDF
+    invnorm = (x_hi - x4 + x3 - x2 + x1 - x_lo) - (
+        np.exp(-a * (x_hi - x_lo))
+        - np.exp(-a * (x4 - x_lo))
+        + np.exp(-a * (x3 - x_lo))
+        - np.exp(-a * (x2 - x_lo))
+        + np.exp(-a * (x1 - x_lo))
+        - 1
     )
 
-    amp = totarea / includedarea * BI * exp * WINDOWSIZE
+    if invnorm == 0:
+        norm = np.inf
+    else:
+        norm = 1 / invnorm
+
+    if a == 0:
+        a_inv = np.inf
+    else:
+        a_inv = 1 / a
 
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = WINDOWSIZE * BI * exp
@@ -213,14 +220,14 @@ def nb_density(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
+    B_amp = norm * mu_B
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        y[i] = (
-            S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
-            + (slope * (Es[i] - mid) + b) * amp
-        )
+        y[i] = S_amp * np.exp(
+            -((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)
+        ) + B_amp * (np.exp(-a * (Es[i] - x_lo)) * a_inv + 1)
 
     if check_window:
         for i in nb.prange(Es.shape[0]):
@@ -312,6 +319,8 @@ def nb_extendedrvs(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    a
+        Controls the decay of the exponential background
     seed
         specify a seed, otherwise uses default seed
 
@@ -320,91 +329,57 @@ def nb_extendedrvs(
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
+    raise NotImplementedError
     # S *= 0.01
     # BI *= 0.0001
 
-    np.random.seed(seed)
+    # np.random.seed(seed)
 
-    n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
-    n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
+    # n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
+    # n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
-    # preallocate for background draws
-    Es = np.zeros(n_bkg, dtype=np.float64)
+    # x_lo = WINDOW[0][0]
+    # x1 = WINDOW[0][1]
+    # x2 = WINDOW[1][0]
+    # x3 = WINDOW[1][1]
+    # x4 = WINDOW[-1][0]
+    # x_hi = WINDOW[-1][1]
 
-    x0 = WINDOW[0][0]
-    x1 = WINDOW[-1][1]
+    # # Compute the normalization for the CDF
+    # invnorm = (x_hi - x4 + x3 - x2 + x1 -x_lo) - (np.exp(-a*(x_hi-x_lo)) - np.exp(-a*(x4-x_lo)) + np.exp(-a*(x3-x_lo)) - np.exp(-a*(x2-x_lo))+
+    # np.exp(-a*(x1-x_lo)) - 1)
 
-    mid = (x1 + x0) / 2.0
+    # if invnorm == 0:
+    #     norm = np.inf
+    # else:
+    #     norm = 1/invnorm
 
-    # take normalized slope and convert to actual slope
-    slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
+    # Es = np.random.exponential(a, n_bkg) + x_lo
+    # # Make sure we drew in the correct window
+    # for i in nb.prange(len(Es)):
+    #     inwindow = False
+    #     for j in range(len(WINDOW)):
+    #         if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+    #             inwindow = True
+    #     if inwindow:
+    #         # loop until we do get a count inside a window
+    #         new_inwindow = True
+    #         while new_inwindow:
+    #             newdraw = np.random.exponential(a, 1)[0] + x_lo
+    #             new_inwindowcheck = False
+    #             for j in range(len(WINDOW)-1):
+    #                 if WINDOW[j][1] <= newdraw <= WINDOW[j+1][0]:
+    #                     new_inwindowcheck = True
+    #             if not new_inwindowcheck:
+    #                 new_inwindow = False
+    #     Es[i] = newdraw
 
-    # there's a precision issue with how I am drawing rvs when a is very small
-    if abs(a) < 1e-12:
-        slope = 0.0
+    #     Es = np.append(Es, np.random.normal(QBB - delta, sigma, size=n_sig))
 
-    b = 1.0 / FULLWINDOWSIZE
-
-    # find area of each section and percent of cdf
-    cumareas = np.zeros(len(WINDOW))
-    percentages = np.zeros(len(WINDOW))
-    areas = np.zeros(len(WINDOW))
-
-    totarea = 0.0
-    for i in nb.prange(WINDOW.shape[0]):
-        area = (
-            2.0
-            * (WINDOW[i][1] - WINDOW[i][0])
-            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
-        )
-        totarea += area
-        cumareas[i] = totarea
-        areas[i] = area
-
-    for i in nb.prange(WINDOW.shape[0]):
-        percentages[i] = cumareas[i] / totarea
-
-    # figure out which window each count belongs to
-    whichwindow = np.random.uniform(0.0, 1.0, n_bkg)
-    numwindow = np.zeros(WINDOW.shape[0], dtype="i")
-    for i in nb.prange(n_bkg):
-        for j in nb.prange(WINDOW.shape[0]):
-            if whichwindow[i] < percentages[j]:
-                numwindow[j] += 1
-                break
-
-    m = slope
-    # now draw the events for each window
-    Es = np.zeros(n_bkg)
-    k = 0
-    for i in nb.prange(WINDOW.shape[0]):
-        x0 = WINDOW[i][0]
-        rvs = 0.5 * areas[i] * np.random.uniform(0.0, 1.0, numwindow[i])
-        for j in nb.prange(numwindow[i]):
-            if m == 0.0:
-                Es[k] = WINDOW[i][0] + rvs[j] / (2.0 * b)
-            else:
-                Es[k] = (
-                    (
-                        b**2
-                        + 2 * b * m * (x0 - mid)
-                        + m * (mid**2 * m - 2 * mid * m * x0 + m * x0**2 + rvs[j])
-                    )
-                    ** 0.5
-                    - b
-                    + mid * m
-                ) / m
-
-            k += 1
-
-    # Get energy of signal events from a Gaussian distribution
-    # preallocate for background draws
-    Es = np.append(Es, np.random.normal(QBB - delta, sigma, size=n_sig))
-
-    return Es, (n_sig, n_bkg)
+    # return Es, (n_bkg, n_sig)
 
 
-class correlated_efficiency_0vbb_linear_background_gen:
+class correlated_efficiency_0vbb_exponential_background_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
         pass
@@ -627,6 +602,6 @@ class correlated_efficiency_0vbb_linear_background_gen:
             return False
 
 
-correlated_efficiency_0vbb_linear_background = (
-    correlated_efficiency_0vbb_linear_background_gen()
+correlated_efficiency_0vbb_exponential_background = (
+    correlated_efficiency_0vbb_exponential_background_gen()
 )
