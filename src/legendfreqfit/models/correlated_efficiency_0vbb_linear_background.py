@@ -78,7 +78,7 @@ def nb_pdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = m/2(E_hi^2-E_lo^2) + BI*exp*(E_hi-E_lo)
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + a*E + BI*exp]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + a*E + BI*exp]
     """
     x0 = WINDOW[0][0]
     x1 = WINDOW[-1][1]
@@ -176,7 +176,7 @@ def nb_density(
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = m/2(E_hi^2-E_lo^2) + BI*exp*(E_hi-E_lo)
     CDF(E) = mu_S + mu_B
-    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + m*E + b]
+    pdf(E) =[mu_S * norm(E_j, QBB - delta, sigma) + m*E + b]
     """
 
     x0 = WINDOW[0][0]
@@ -399,7 +399,7 @@ def nb_extendedrvs(
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
-    Es = np.append(Es, np.random.normal(QBB - delta, sigma, size=n_sig))
+    Es = np.append(Es, np.random.normal(QBB + delta, sigma, size=n_sig))
 
     return Es, (n_sig, n_bkg)
 

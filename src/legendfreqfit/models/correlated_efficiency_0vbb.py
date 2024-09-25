@@ -74,7 +74,7 @@ def nb_pdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -90,7 +90,7 @@ def nb_pdf(
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
     if check_window:
@@ -145,7 +145,7 @@ def nb_density(
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     CDF(E) = mu_S + mu_B
-    pdf(E) =[mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) =[mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -165,7 +165,7 @@ def nb_density(
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        y[i] = S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+        y[i] = S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
 
     return mu_S + mu_B, y
 
@@ -247,48 +247,48 @@ def nb_density_gradient(
         for i in nb.prange(Es.shape[0]):
             # For readability, don't precompute anything and see how performance is impacted
             grad_PDF[0][i] = (
-                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
                 * (eff + effuncscale * effunc)
                 * exp
             ) / (np.sqrt(2 * np.pi) * sigma)
             grad_PDF[1][i] = exp
             grad_PDF[2][i] = (
                 (
-                    np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                    np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
                     * (eff + effuncscale * effunc)
                     * exp
                     * S
                 )
-                * (-delta + Es[i] - QBB)
+                * (delta + Es[i] - QBB)
                 / (np.sqrt(2 * np.pi) * sigma**3)
             )
             grad_PDF[3][i] = (
                 (
-                    np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                    np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
                     * (eff + effuncscale * effunc)
                     * exp
                     * S
                 )
-                * ((delta - Es[i] + QBB - sigma) * (delta - Es[i] + QBB + sigma))
+                * ((-delta - Es[i] + QBB - sigma) * (-delta - Es[i] + QBB + sigma))
                 / (np.sqrt(2 * np.pi) * sigma**4)
             )
             grad_PDF[4][i] = (
-                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) * exp * S
+                np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) * exp * S
             ) / (np.sqrt(2 * np.pi) * sigma)
             grad_PDF[5][i] = (
-                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
                 * exp
                 * effuncscale
                 * S
             ) / (np.sqrt(2 * np.pi) * sigma)
             grad_PDF[6][i] = (
-                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
                 * exp
                 * effunc
                 * S
             ) / (np.sqrt(2 * np.pi) * sigma)
             grad_PDF[7][i] = (
-                np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2))
+                np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
                 * (eff + effuncscale * effunc)
                 * S
             ) / (np.sqrt(2 * np.pi) * sigma) + BI
@@ -335,7 +335,7 @@ def nb_logpdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize])
+    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize])
     """
 
     # Precompute the signal and background counts
@@ -356,7 +356,7 @@ def nb_logpdf(
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
         pdf = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - QBB - delta) ** 2) / (2 * sigma**2)) + B_amp
+            S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
         )
 
         if pdf <= 0:
@@ -399,7 +399,7 @@ def nb_rvs(
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
-    Es = np.append(np.random.normal(QBB + delta, sigma, size=n_sig), np.zeros(n_bkg))
+    Es = np.append(np.random.normal(QBB - delta, sigma, size=n_sig), np.zeros(n_bkg))
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
@@ -472,7 +472,7 @@ def nb_extendedrvs(
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
-    Es = np.append(np.random.normal(QBB + delta, sigma, size=n_sig), np.zeros(n_bkg))
+    Es = np.append(np.random.normal(QBB - delta, sigma, size=n_sig), np.zeros(n_bkg))
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
