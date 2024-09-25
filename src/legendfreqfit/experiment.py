@@ -2,7 +2,6 @@
 A class that controls an experiment and calls the `Superset` class.
 """
 import logging
-import multiprocessing as mp
 
 import numpy as np
 from iminuit import Minuit
@@ -32,7 +31,7 @@ class Experiment(Superset):
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
-        self.tolerance = 0.00001 # tolerance for iminuit or other minimizer
+        self.tolerance = 0.00001  # tolerance for iminuit or other minimizer
         self.scan_bestfit = False
         self.user_gradient = (
             False  # option to use a user-specified density gradient for a model
@@ -142,7 +141,7 @@ class Experiment(Superset):
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = self.tolerance # set the tolerance
+        self.minuit.tol = self.tolerance  # set the tolerance
         self.minuit.strategy = 2
 
         # raise a RunTime error if function evaluates to NaN
@@ -266,11 +265,12 @@ class Experiment(Superset):
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
         if self.scan_bestfit:
-            grid = np.linspace(0, 0.2, 100)
+            grid = np.linspace(1.0e-9, 0.2, 200)
             args = [[{"global_S": float(xx)}] for xx in grid]
 
-            with mp.Pool(self.numcores) as pool:
-                ts = pool.starmap(self.profile, args)
+            ts = []
+            for arg in args:
+                ts.append(self.profile(arg[0]))
             best = ts[np.argmin([t["fval"] for t in ts])]
             self.best = best
             if not best["valid"]:
@@ -400,7 +400,8 @@ class Experiment(Superset):
     def toy_ts(
         self,
         parameters: dict,  # parameters and values needed to generate the toys
-        profile_parameters: dict | list,  # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict
+        | list,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seed: np.array = None,
     ):
