@@ -317,37 +317,31 @@ def toy_ts_critical_p_value(
     Returns the p-value associated with the test statistic from an experiment by comparing with the PDF generated from toys
     """
 
-    # Step one is to get the critical p-values. We can do this by using the empirical CDF and seeing where the experiment
-    # test statistic crosses it vertically, and then find the probability by looking horitzontally
+    ts_sorted = np.sort(ts)
+    p_value = len(ts_sorted[ts_sorted >= ts_exp]) / len(ts_sorted)
 
-    if isinstance(bins, int):
-        bins = np.linspace(0, np.nanmax(ts), int((np.nanmax(ts)) / step))
+    # If we want to bin the observed data for some reason... this is incorrect
+    #     cdf, binedges = emp_cdf(ts, bins) # note that the CDF is evaluated at the right bin edge
+    #     binedges = binedges[1:]
+    #     p_value = 1-cdf[np.abs(binedges-ts_exp).argmin()]
 
-    cdf, binedges = emp_cdf(
-        ts, bins
-    )  # note that the CDF is evaluated at the right bin edge
-
-    bin_crossing = (np.abs(binedges - ts_exp)).argmin()
-    p_value = 1 - cdf[bin_crossing]
+    #     if isinstance(bins, int):
+    #         bins = np.linspace(0, np.nanmax(ts), int((np.nanmax(ts))/step))
 
     if plot:
         fig = plt.figure(figsize=(11, 6))
 
-        plt.step(binedges[1::], cdf, c="C0", label="empirical CDF")
+        pdf, binedges = np.histogram(ts, bins=bins)
 
-        plt.axvline(ts_exp, color="g", alpha=0.75, label="Observed Test Statistic")
+        plt.stairs(pdf, binedges, color="C0", label="PDF")
 
-        plt.axhline(
-            cdf[bin_crossing],
-            color="orange",
-            alpha=0.75,
-            label=rf"actual CL: ${p_value*100:0.1f}$%",
+        plt.axvline(
+            ts_exp, color="g", alpha=0.75, label=rf"p-value: ${p_value*100:0.1f}$%"
         )
+
         plt.xlabel(r"$t$")
-        plt.ylabel(r"CDF$(t)$")
+        plt.ylabel(r"PDF$(t)$")
         plt.legend()
-        plt.ylim([0, 1])
-        plt.xlim([0, None])
         plt.grid()
 
         plt.suptitle(plot_title)
