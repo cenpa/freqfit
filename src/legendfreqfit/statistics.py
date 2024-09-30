@@ -35,9 +35,10 @@ def emp_cdf(
 
     return np.cumsum(h) / np.sum(h), b
 
+
 def percentile(
-    data: np.array, # the data to make a cdf out of
-    percentiles: np.array  # which percentiles to find; should be in [0, 1]
+    data: np.array,  # the data to make a cdf out of
+    percentiles: np.array,  # which percentiles to find; should be in [0, 1]
 ):
     """
     Returns the test statistic, linearly interpolated, that defines the percentiles in `percentiles`
@@ -49,9 +50,9 @@ def percentile(
         percentiles = np.array([percentiles])
     results = np.zeros_like(percentiles)
     for i, p in enumerate(percentiles):
-        p_idx = int(p*nevts)
-        p_rem = p*nevts - p_idx
-        results[i] = data[p_idx] + p_rem*(data[p_idx+1] - data[p_idx])
+        p_idx = int(p * nevts)
+        p_rem = p * nevts - p_idx
+        results[i] = data[p_idx] + p_rem * (data[p_idx + 1] - data[p_idx])
     return results
 
 
@@ -115,31 +116,39 @@ def test_statistic_asymptotic_limit(
             + (np.exp(-0.5 * (np.sqrt(t_mus) - np.sqrt(non_centrality)) ** 2))
         )
 
+
 def toy_ts_critical(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
     threshold: float = 0.9,  # critical threshold for test statistic
-    confidence: float = 0.68,  # width of confidence interval on the CDF 
+    confidence: float = 0.68,  # width of confidence interval on the CDF
     plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
-    bins = None,  # int or array, number of bins or list of bin edges for CDF
+    bins=None,  # int or array, number of bins or list of bin edges for CDF
     step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
     plot_dir: str = "",  # directory where to save plots
     plot_title: str = "",
 ):
-
     # TODO: Deprecate
-    msg = ("`toy_ts_critical` is deprecated and will be removed at a random point in the future. Use `ts_critical` instead.")
+    msg = "`toy_ts_critical` is deprecated and will be removed at a random point in the future. Use `ts_critical` instead."
     logging.warning(msg)
-    print(msg)
 
-    return ts_critical(ts=ts, threshold=threshold, confidence=confidence, plot=plot, bins=bins, step=step, 
-        plot_dir=plot_dir, plot_title=plot_title)
+    return ts_critical(
+        ts=ts,
+        threshold=threshold,
+        confidence=confidence,
+        plot=plot,
+        bins=bins,
+        step=step,
+        plot_dir=plot_dir,
+        plot_title=plot_title,
+    )
+
 
 def ts_critical(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
     threshold: float = 0.9,  # critical threshold for test statistic
-    confidence: float = 0.68,  # width of confidence interval on the CDF 
+    confidence: float = 0.68,  # width of confidence interval on the CDF
     plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
-    bins = None,  # int or array, number of bins or list of bin edges for CDF
+    bins=None,  # int or array, number of bins or list of bin edges for CDF
     step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
     plot_dir: str = "",  # directory where to save plots
     plot_title: str = "",
@@ -154,13 +163,17 @@ def ts_critical(
     lo_binom_percentile = binom_interval[0] / nevts
     hi_binom_percentile = binom_interval[1] / nevts
 
-    ts_crit, ts_lo, ts_hi = percentile(data=ts, percentiles=[threshold, lo_binom_percentile, hi_binom_percentile])
+    ts_crit, ts_lo, ts_hi = percentile(
+        data=ts, percentiles=[threshold, lo_binom_percentile, hi_binom_percentile]
+    )
 
     if plot:
         if isinstance(bins, int):
             bins = np.linspace(np.floor(np.nanmin(ts)), np.nanmax(ts), bins)
         elif not isinstance(bins, np.ndarray):
-            bins = np.linspace(np.floor(np.nanmin(ts)), np.nanmax(ts), int(np.nanmax(ts) / step) )
+            bins = np.linspace(
+                np.floor(np.nanmin(ts)), np.nanmax(ts), int(np.nanmax(ts) / step)
+            )
 
         cdf, binedges = emp_cdf(
             ts, bins
@@ -208,7 +221,9 @@ def ts_critical(
             alpha=0.75,
             label=rf"actual CL: ${100*threshold:0.1f} \pm {100*(hi_binom_percentile-lo_binom_percentile)/2.0:0.1f}$%",
         )
-        axs[0].axhspan(lo_binom_percentile, hi_binom_percentile, color="orange", alpha=0.25)
+        axs[0].axhspan(
+            lo_binom_percentile, hi_binom_percentile, color="orange", alpha=0.25
+        )
         axs[0].set_xlabel(r"$t$")
         axs[0].set_ylabel(r"CDF$(t)$")
         axs[0].legend()
@@ -261,26 +276,33 @@ def ts_critical(
         plt.suptitle(plot_title)
         plt.savefig(plot_dir + f"ts_critical_{int_thresh}.pdf", dpi=300)
 
-        return (ts_crit, ts_lo, ts_hi), (threshold, lo_binom_percentile, hi_binom_percentile), fig
+        return (
+            (ts_crit, ts_lo, ts_hi),
+            (threshold, lo_binom_percentile, hi_binom_percentile),
+            fig,
+        )
 
-    return (ts_crit, ts_lo, ts_hi), (threshold, lo_binom_percentile, hi_binom_percentile)
+    return (ts_crit, ts_lo, ts_hi), (
+        threshold,
+        lo_binom_percentile,
+        hi_binom_percentile,
+    )
 
-def p_value(
-    ts: np.array,
-    ts_exp: float
-):
+
+def p_value(ts: np.array, ts_exp: float):
     """
-    Returns p-value and uncertainty of an experimental test statistic and distribution of toy test statistics. 
+    Returns p-value and uncertainty of an experimental test statistic and distribution of toy test statistics.
     """
     tot = 1.0 * len(ts)
     hi = np.sum(ts > ts_exp)
 
-    pval = hi/tot
+    pval = hi / tot
 
     # binomial uncertainty at 1 sigma
     unc = 1.0 / np.sqrt(tot) * np.sqrt(pval * (1.0 - pval))
 
     return pval, unc
+
 
 def toy_ts_critical_p_value(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
