@@ -41,7 +41,7 @@ def percentile(
     percentiles: np.array,  # which percentiles to find; should be in [0, 1]
 ):
     """
-    Returns the test statistic, linearly interpolated, that defines the percentiles in `percentiles`
+    Returns the test statistic that defines the percentiles in `percentiles`
     for the given data
     """
     nevts = len(data)
@@ -52,7 +52,7 @@ def percentile(
     for i, p in enumerate(percentiles):
         p_idx = int(p * nevts)
         p_rem = p * nevts - p_idx
-        results[i] = data[p_idx] + p_rem * (data[p_idx + 1] - data[p_idx])
+        results[i] = data[p_idx] 
     return results
 
 
