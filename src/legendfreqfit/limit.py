@@ -10,7 +10,6 @@ import numpy as np
 from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
-from legendfreqfit.statistics import toy_ts_critical
 from legendfreqfit.models import constants
 
 NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
@@ -273,43 +272,6 @@ class SetLimit(Experiment):
             num_drawn_to_return_flat,
             seeds,
         )
-
-    def run_toys(
-        self,
-        scan_point,
-        num_toys,
-        threshold: float = 0.9,
-        confidence: float = 0.68,
-        step: float = 0.01,
-        scan_point_override=None,
-    ) -> list[np.array, np.array]:
-        """
-        Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
-        """
-        # TODO: Deprecate
-        raise DeprecationWarning(
-            "This function will not work and is being deprecated. Call `run_and_save_toys` instead."
-        )
-        # First we need to profile out the variable we are scanning
-        toypars = self.profile({f"{self.var_to_profile}": scan_point})["values"]
-        if scan_point_override is not None:
-            toypars[f"{self.var_to_profile}"] = scan_point_override
-        else:
-            toypars[
-                f"{self.var_to_profile}"
-            ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
-
-        # Now we can run the toys
-        toyts, data, nuisance, num_drawn = self.toy_ts_mp(
-            toypars, {f"{self.var_to_profile}": scan_point}, num=num_toys
-        )
-
-        # Now grab the critical test statistic
-        tcrit_tuple, _ = toy_ts_critical(
-            toyts, threshold=threshold, confidence=confidence, step=step
-        )
-        t_crit, t_crit_low, t_crit_high = tcrit_tuple
-        return toyts, t_crit, t_crit_low, t_crit_high
 
     def run_and_save_toys(
         self,

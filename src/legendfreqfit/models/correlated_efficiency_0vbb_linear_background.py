@@ -1,3 +1,4 @@
+"""Like all of the functions in `correlated_efficiency_0vbb`, but with a lienar background instead of a uniform one."""
 import numba as nb
 import numpy as np
 
