@@ -66,12 +66,16 @@ class SetLimit(Experiment):
 
         return 2 * erfcinv(alpha) ** 2
 
-    def scan_ts(self, var_values: np.array) -> np.array:
+    def scan_ts(
+        self, var_values: np.array, profile_dict: dict = {}  # noqa:B006
+    ) -> np.array:
         """
         Parameters
         ----------
         var_values
             The values of the variable to scan over
+        profile_dict
+            Other values of variables the user wants fixed during a scan
 
         Returns
         -------
@@ -79,7 +83,9 @@ class SetLimit(Experiment):
             Value of the specified test statistic at the scanned values
         """
         # Create the arguments to multiprocess over
-        args = [[{f"{self.var_to_profile}": float(xx)}] for xx in var_values]
+        args = [
+            [{f"{self.var_to_profile}": float(xx), **profile_dict}] for xx in var_values
+        ]
 
         with mp.Pool(self.numcores) as pool:
             ts = pool.starmap(self.ts, args)
@@ -276,13 +282,16 @@ class SetLimit(Experiment):
     def run_and_save_toys(
         self,
         scan_point,
+        profile_dict: dict = {},  # noqa:B006
         scan_point_override=None,
     ) -> list[np.array, np.array]:
         """
         Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
         """
         # First we need to profile out the variable we are scanning
-        toypars = self.profile({f"{self.var_to_profile}": scan_point})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": scan_point, **profile_dict})[
+            "values"
+        ]
         if scan_point_override is not None:
             toypars[f"{self.var_to_profile}"] = scan_point_override
         else:
@@ -292,7 +301,9 @@ class SetLimit(Experiment):
 
         # Now we can run the toys
         toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
-            toypars, {f"{self.var_to_profile}": scan_point}, num=self.numtoy
+            toypars,
+            {f"{self.var_to_profile}": scan_point, **profile_dict},
+            num=self.numtoy,
         )
 
         # Now, save the toys to a file
