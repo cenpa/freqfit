@@ -83,8 +83,8 @@ def zero_nu_initial_guess(experiment):
     minuit.fixed["global_S"] = False
     minuit.limits["global_S"] = (1e-9, None)
 
-    minuit.fixed["global_effuncscale"] = True
-    minuit.limits["global_effuncscale"] = (-100, 100)
+    # minuit.fixed["global_effuncscale"] = True
+    # minuit.limits["global_effuncscale"] = (-100, 100)
     for BI in BI_list:
         minuit.fixed[f"{BI}"] = False
         minuit.limits[f"{BI}"] = (1e-9, None)

@@ -1,6 +1,7 @@
 """
 A class that holds a collection of fake datasets and associated hardware
 """
+import itertools
 import logging
 from copy import deepcopy
 
@@ -54,6 +55,8 @@ class Toy:
         self.seed = seed
         self.user_gradient = self.experiment.user_gradient
         self.scan_bestfit = self.experiment.scan_bestfit
+        self.scan = self.experiment.scan
+        self.scan_grid = self.experiment.scan_grid
         self.data = (
             []
         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
@@ -269,6 +272,10 @@ class Toy:
         # Dataset that has data
         self.minuit_reset()
 
+        # If scan is not none, initialize the hypercube grid
+        if (self.scan) and (self.scan_grid is not None):
+            self.hypercube_grid = self.create_hypercube(self.scan_grid)
+
     def initialguess(
         self,
     ) -> dict:
@@ -341,6 +348,22 @@ class Toy:
                 msg = "`Experiment` has invalid best fit"
                 logging.warning(msg)
 
+        elif self.scan:
+            y = np.empty(len(self.hypercube_grid))
+            for i in range(len(self.hypercube_grid)):
+                y[i] = self.minuit._fcn(self.hypercube_grid[i])
+
+            best = np.min(y)
+            ibest = np.argmin(y)
+
+            self.best = {
+                "fval": best,
+                "values": {},
+                "valid": True,
+            }  # TODO: add the rest of return values of interest, like parameter names at minimum
+            for par in self.minuit.parameters:
+                ipar, vpar = self.minuit._normalize_key(par)
+                self.best["values"][par] = self.hypercube_grid[ibest][ipar]
         else:
             try:
                 if self.experiment.backend == "minuit":
@@ -385,24 +408,49 @@ class Toy:
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        try:
-            if self.experiment.backend == "minuit":
-                self.minuit.migrad()
-            elif self.experiment.backend == "scipy":
-                self.minuit.scipy(method=self.experiment.scipy_minimizer)
-            else:
-                raise NotImplementedError(
-                    "Iminuit backend is not set to `minuit` or `scipy`"
-                )
-        except RuntimeError:
-            msg = f"`Toy` with seed {self.seed} has profile raising NaN with parameters {parameters}"
-            logging.warning(msg)
+        if self.scan:
+            # need to remake the hypercube because there are now fewer parameters
+            # pop the fixed parameters from the supplied scan_grid
+            new_grid_dict = deepcopy(self.scan_grid)
+            for parname in parameters.keys():
+                if parname in new_grid_dict.keys():
+                    new_grid_dict.pop(parname)
+            hypercube_grid = self.create_hypercube(new_grid_dict)
 
-        if not self.minuit.valid:
-            msg = f"`Toy` with seed {self.seed} has invalid profile"
-            logging.warning(msg)
+            y = np.empty(len(hypercube_grid))
+            for i in range(len(hypercube_grid)):
+                y[i] = self.minuit._fcn(hypercube_grid[i])
 
-        results = grab_results(self.minuit)
+            best = np.min(y)
+            ibest = np.argmin(y)
+            results = {
+                "fval": best,
+                "values": {},
+                "valid": True,
+            }  # TODO: add the rest of return values of interest
+            for par in self.minuit.parameters:
+                ipar, vpar = self.minuit._normalize_key(par)
+                results["values"][par] = hypercube_grid[ibest][ipar]
+
+        else:
+            try:
+                if self.experiment.backend == "minuit":
+                    self.minuit.migrad()
+                elif self.experiment.backend == "scipy":
+                    self.minuit.scipy(method=self.experiment.scipy_minimizer)
+                else:
+                    raise NotImplementedError(
+                        "Iminuit backend is not set to `minuit` or `scipy`"
+                    )
+            except RuntimeError:
+                msg = f"`Toy` with seed {self.seed} has profile raising NaN with parameters {parameters}"
+                logging.warning(msg)
+
+            if not self.minuit.valid:
+                msg = f"`Toy` with seed {self.seed} has invalid profile"
+                logging.warning(msg)
+
+            results = grab_results(self.minuit)
 
         if self.guess == results["values"]:
             msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"
@@ -524,3 +572,34 @@ class Toy:
             plt.sca(ax[i])
             comp.visualize(cargs, **kwargs)
             i += 1
+
+    def create_hypercube(self, scan_grid) -> list:
+        """
+        Parameters
+        ----------
+        m
+            Minuit object that holds that parameters and parameter names
+        scan_grid
+            The dictionary object that holds the points in each dimension to scan
+        """
+        scan_pars = list(scan_grid.keys())
+        scan_list_of_lists = [list(scan_grid[scan_par]) for scan_par in scan_pars]
+        hypercube_missing_other_values = itertools.product(
+            *scan_list_of_lists
+        )  # This list is missing all of the other function values that the minuit object needs, let's add them back in!
+
+        # get the indices within the minuit object of all of parameters on the grid
+        ipar_list = []
+        for scan_par in scan_pars:
+            ipar_list.append(self.minuit._normalize_key(scan_par)[0])
+        ipar_list = np.array(ipar_list)
+        values = deepcopy(
+            np.array(self.minuit.values)
+        )  # Get all the values, don't mutate them
+
+        hypercube = []
+        for par in hypercube_missing_other_values:
+            values[ipar_list] = par
+            hypercube.append(deepcopy(values))
+
+        return hypercube

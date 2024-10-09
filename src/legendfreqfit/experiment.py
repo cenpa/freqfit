@@ -1,7 +1,9 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
+import itertools
 import logging
+from copy import deepcopy
 
 import numpy as np
 from iminuit import Minuit
@@ -32,7 +34,9 @@ class Experiment(Superset):
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
         self.tolerance = 0.00001  # tolerance for iminuit or other minimizer
+        self.scan = False
         self.scan_bestfit = False
+        self.scan_grid = None  # this is a dictionary, each key is a fit parameter and its values are the parameter values to scan along in one dimension
         self.user_gradient = (
             False  # option to use a user-specified density gradient for a model
         )
@@ -94,8 +98,11 @@ class Experiment(Superset):
             if "user_gradient" in config["options"]:
                 self.user_gradient = config["options"]["user_gradient"]
 
-            if "scan_bestfit" in config["options"]:
-                self.scan_bestfit = config["options"]["scan_bestfit"]
+            if "scan" in config["options"]:
+                self.scan = config["options"]["scan"]
+
+                if "scan_grid" in config["options"]:
+                    self.scan_grid = config["options"]["scan_grid"]
 
             if "initial_guess_function" in config["options"]:
                 if config["options"]["initial_guess_function"] in ["None", "none"]:
@@ -174,6 +181,10 @@ class Experiment(Superset):
         # this function will also fix those fit parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
+
+        # If scan is not none, initialize the hypercube grid
+        if (self.scan) and (self.scan_grid is not None):
+            self.hypercube_grid = self.create_hypercube(self.scan_grid)
 
     @classmethod
     def file(
@@ -277,6 +288,23 @@ class Experiment(Superset):
                 msg = "`Experiment` has invalid best fit"
                 logging.warning(msg)
 
+        elif self.scan:
+            y = np.empty(len(self.hypercube_grid))
+            for i in range(len(self.hypercube_grid)):
+                y[i] = self.minuit._fcn(self.hypercube_grid[i])
+
+            best = np.min(y)
+            ibest = np.argmin(y)
+
+            self.best = {
+                "fval": best,
+                "values": {},
+                "valid": True,
+            }  # TODO: add the rest of return values of interest, like parameter names at minimum
+            for par in self.minuit.parameters:
+                ipar, vpar = self.minuit._normalize_key(par)
+                self.best["values"][par] = self.hypercube_grid[ibest][ipar]
+
         else:
             try:
                 if self.backend == "minuit":
@@ -321,24 +349,49 @@ class Experiment(Superset):
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        try:
-            if self.backend == "minuit":
-                self.minuit.migrad()
-            elif self.backend == "scipy":
-                self.minuit.scipy(method=self.scipy_minimizer)
-            else:
-                raise NotImplementedError(
-                    "Iminuit backend is not set to `minuit` or `scipy`"
-                )
-        except RuntimeError:
-            msg = f"`Experiment` throwing NaN has invalid profile at {parameters}"
-            logging.warning(msg)
+        if self.scan:
+            # need to remake the hypercube because there are now fewer parameters
+            # pop the fixed parameters from the supplied scan_grid
+            new_grid_dict = deepcopy(self.scan_grid)
+            for parname in parameters.keys():
+                if parname in new_grid_dict.keys():
+                    new_grid_dict.pop(parname)
+            hypercube_grid = self.create_hypercube(new_grid_dict)
 
-        if not self.minuit.valid:
-            msg = "`Experiment` has invalid profile"
-            logging.warning(msg)
+            y = np.empty(len(hypercube_grid))
+            for i in range(len(hypercube_grid)):
+                y[i] = self.minuit._fcn(hypercube_grid[i])
 
-        results = grab_results(self.minuit)
+            best = np.min(y)
+            ibest = np.argmin(y)
+            results = {
+                "fval": best,
+                "values": {},
+                "valid": True,
+            }  # TODO: add the rest of return values of interest
+            for par in self.minuit.parameters:
+                ipar, vpar = self.minuit._normalize_key(par)
+                results["values"][par] = hypercube_grid[ibest][ipar]
+
+        else:
+            try:
+                if self.backend == "minuit":
+                    self.minuit.migrad()
+                elif self.backend == "scipy":
+                    self.minuit.scipy(method=self.scipy_minimizer)
+                else:
+                    raise NotImplementedError(
+                        "Iminuit backend is not set to `minuit` or `scipy`"
+                    )
+            except RuntimeError:
+                msg = f"`Experiment` throwing NaN has invalid profile at {parameters}"
+                logging.warning(msg)
+
+            if not self.minuit.valid:
+                msg = "`Experiment` has invalid profile"
+                logging.warning(msg)
+
+            results = grab_results(self.minuit)
 
         if self.guess == results["values"]:
             msg = "`Experiment` has profile fit values very close to initial guess"
@@ -523,3 +576,34 @@ class Experiment(Superset):
             plt.sca(ax[i])
             comp.visualize(cargs, **kwargs)
             i += 1
+
+    def create_hypercube(self, scan_grid) -> list:
+        """
+        Parameters
+        ----------
+        m
+            Minuit object that holds that parameters and parameter names
+        scan_grid
+            The dictionary object that holds the points in each dimension to scan
+        """
+        scan_pars = list(scan_grid.keys())
+        scan_list_of_lists = [list(scan_grid[scan_par]) for scan_par in scan_pars]
+        hypercube_missing_other_values = itertools.product(
+            *scan_list_of_lists
+        )  # This list is missing all of the other function values that the minuit object needs, let's add them back in!
+
+        # get the indices within the minuit object of all of parameters on the grid
+        ipar_list = []
+        for scan_par in scan_pars:
+            ipar_list.append(self.minuit._normalize_key(scan_par)[0])
+        ipar_list = np.array(ipar_list)
+        values = deepcopy(
+            np.array(self.minuit.values)
+        )  # Get all the values, don't mutate them
+
+        hypercube = []
+        for par in hypercube_missing_other_values:
+            values[ipar_list] = par
+            hypercube.append(deepcopy(values))
+
+        return hypercube
