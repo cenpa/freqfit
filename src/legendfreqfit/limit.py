@@ -42,6 +42,12 @@ class SetLimit(Experiment):
         self.numcores = NUM_CORES  # default
 
     def set_var_to_profile(self, var_to_profile: str):
+        """
+        Parameters
+        ----------
+        var_to_profile
+            string -- the variable we are going to scan over to compute test-statistics at
+        """
         self.var_to_profile = var_to_profile
 
     def wilks_ts_crit(self, CL: float) -> float:
@@ -284,9 +290,14 @@ class SetLimit(Experiment):
         scan_point,
         profile_dict: dict = {},  # noqa:B006
         scan_point_override=None,
-    ) -> list[np.array, np.array]:
+    ):
         """
         Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
+
+        Parameters
+        ----------
+        profile_dict
+            An optional dictionary of values we want to fix during all of the profiles
         """
         # First we need to profile out the variable we are scanning
         toypars = self.profile({f"{self.var_to_profile}": scan_point, **profile_dict})[
@@ -307,8 +318,22 @@ class SetLimit(Experiment):
         )
 
         # Now, save the toys to a file
-        file_name = self.out_path + f"/{scan_point}_{self.jobid}.h5"
-        f = h5py.File(file_name, "a")
+        if not profile_dict:
+            file_name = self.out_path + f"/{scan_point}_{self.jobid}.h5"
+            f = h5py.File(file_name, "a")
+        else:
+            file_name = (
+                self.out_path
+                + f"/{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
+            )
+            f = h5py.File(file_name, "a")
+            dset = f.create_dataset(
+                "profile_parameters_names", data=list(profile_dict.keys())
+            )
+            dset = f.create_dataset(
+                "profile_parameters_values", data=list(profile_dict.values())
+            )
+
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_point)
         dset = f.create_dataset("Es", data=data)
@@ -346,6 +371,50 @@ class SetLimit(Experiment):
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_points)
+        dset = f.create_dataset("Es", data=data)
+        dset = f.create_dataset("nuisance", data=nuisance)
+        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        dset = f.create_dataset("seed", data=seeds_to_save)
+
+        f.close()
+
+        return None
+
+    def run_and_save_brazil_with_profile_parameters(
+        self,
+        scan_point,
+        profile_dict: dict = {},  # noqa:B006
+    ) -> None:
+        """
+        Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
+        If we are running with profile_dict parameters, the optimal job submission differs from the above and is more similar to run_and_save_toys
+        """
+        # First we need to profile out the variable we are scanning at 0 signal rate
+        toypars = self.profile({f"{self.var_to_profile}": 1.0e-9})[
+            "values"
+        ]  # TODO: does this need the profile_dict in here??
+
+        # Now we can run the toys
+        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
+            toypars,
+            {f"{self.var_to_profile}": scan_point, **profile_dict},
+            num=self.numtoy,
+        )
+
+        # Now, save the toys to a file
+        file_name = (
+            self.out_path
+            + f"/1E-9_{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
+        )
+        f = h5py.File(file_name, "a")
+        dset = f.create_dataset("ts", data=toyts)
+        dset = f.create_dataset("s", data=scan_point)
+        dset = f.create_dataset(
+            "profile_parameters_names", data=list(profile_dict.keys())
+        )
+        dset = f.create_dataset(
+            "profile_parameters_values", data=list(profile_dict.values())
+        )
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
         dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)

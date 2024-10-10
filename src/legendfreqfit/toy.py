@@ -370,6 +370,22 @@ class Toy:
                     self.minuit.migrad()
                 elif self.experiment.backend == "scipy":
                     self.minuit.scipy(method=self.experiment.scipy_minimizer)
+                elif self.experiment.backend == "minimum_minimizer":
+                    self.minuit.simplex()
+                    result1 = grab_results(self.minuit)
+                    self.minuit.migrad()
+                    result2 = grab_results(self.minuit)
+                    self.minuit.scipy(method="Powell")
+                    result3 = grab_results(self.minuit)
+                    min_fval = np.argmin(
+                        [result1["fval"], result2["fval"], result3["fval"]]
+                    )
+                    if min_fval == 0:
+                        self.minuit.simplex()
+                    elif min_fval == 1:
+                        self.minuit.migrad()
+                    else:
+                        self.minuit.scipy(method="Powell")
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
@@ -438,6 +454,23 @@ class Toy:
                     self.minuit.migrad()
                 elif self.experiment.backend == "scipy":
                     self.minuit.scipy(method=self.experiment.scipy_minimizer)
+                elif self.experiment.backend == "minimum_minimizer":
+                    # Run through 3 minimizers and pick the best of them
+                    self.minuit.simplex()
+                    result1 = grab_results(self.minuit)
+                    self.minuit.migrad()
+                    result2 = grab_results(self.minuit)
+                    self.minuit.scipy(method="Powell")
+                    result3 = grab_results(self.minuit)
+                    min_fval = np.argmin(
+                        [result1["fval"], result2["fval"], result3["fval"]]
+                    )
+                    if min_fval == 0:
+                        self.minuit.simplex()
+                    elif min_fval == 1:
+                        self.minuit.migrad()
+                    else:
+                        self.minuit.scipy(method="Powell")
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
