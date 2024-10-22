@@ -336,9 +336,9 @@ class SetLimit(Experiment):
 
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("s", data=scan_point)
-        dset = f.create_dataset("Es", data=data)
-        dset = f.create_dataset("nuisance", data=nuisance)
-        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        # dset = f.create_dataset("Es", data=data)
+        # dset = f.create_dataset("nuisance", data=nuisance)
+        # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
         dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
@@ -390,9 +390,9 @@ class SetLimit(Experiment):
         If we are running with profile_dict parameters, the optimal job submission differs from the above and is more similar to run_and_save_toys
         """
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 1.0e-9})[
+        toypars = self.profile({f"{self.var_to_profile}": 1.0e-9, **profile_dict})[
             "values"
-        ]  # TODO: does this need the profile_dict in here??
+        ]
 
         # Now we can run the toys
         toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
@@ -415,9 +415,9 @@ class SetLimit(Experiment):
         dset = f.create_dataset(
             "profile_parameters_values", data=list(profile_dict.values())
         )
-        dset = f.create_dataset("Es", data=data)
-        dset = f.create_dataset("nuisance", data=nuisance)
-        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        # dset = f.create_dataset("Es", data=data)
+        # dset = f.create_dataset("nuisance", data=nuisance)
+        # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
         dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
