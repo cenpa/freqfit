@@ -6,10 +6,14 @@ import numpy as np
 from iminuit import Minuit
 
 import legendfreqfit.models.constants as constants
+from legendfreqfit.models.box_model_0vbb import box_model_0vbb_gen
 from legendfreqfit.models.correlated_efficiency_0vbb import (
     correlated_efficiency_0vbb_gen,
 )
 from legendfreqfit.models.mjd_0vbb import mjd_0vbb_gen
+from legendfreqfit.models.truncated_correlated_efficiency_0vbb import (
+    truncated_correlated_efficiency_0vbb_gen,
+)
 
 # default analysis window and width
 # window
@@ -215,7 +219,11 @@ def poisson_initial_guess(experiment):
 
         # need to handle this differently depending on if this is a toy or not/what datasets have been combined
         for ds in ds_BI:
-            if isinstance(ds.model, correlated_efficiency_0vbb_gen):
+            if (
+                isinstance(ds.model, correlated_efficiency_0vbb_gen)
+                or isinstance(ds.model, box_model_0vbb_gen)
+                or isinstance(ds.model, truncated_correlated_efficiency_0vbb_gen)
+            ):
                 BI_totexp = BI_totexp + ds._parlist[7]
                 BI_sigma_expweighted = (
                     BI_sigma_expweighted + ds._parlist[3] * ds._parlist[7]
