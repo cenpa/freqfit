@@ -3,7 +3,17 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import interpolate, optimize
 from scipy.stats import binom, chi2
+
+from .models.constants import M76, NA
+
+# plotting colors
+NICE_BLUE = "#668DA5"
+NICE_RED = "#B4584D"
+NICE_GREEN = "#ABB1A2"
+NICE_PINK = "#CCACAD"
+
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +62,7 @@ def percentile(
     for i, p in enumerate(percentiles):
         p_idx = int(p * nevts)
         p_rem = p * nevts - p_idx
-        results[i] = data[p_idx] 
+        results[i] = data[p_idx]
     return results
 
 
@@ -307,26 +317,18 @@ def p_value(ts: np.array, ts_exp: float):
 def toy_ts_critical_p_value(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
     ts_exp: float,  # value of the test-statistic from experiment data at this s value
-    bins=100,  # int or array, number of bins or list of bin edges for CDF
-    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
+    bins=100,  # int or array, number of bins or list of bin edges for plotting
+    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed, for plotting
     plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
     plot_dir: str = "",  # directory where to save plots
     plot_title: str = "",
 ):
     """
-    Returns the p-value associated with the test statistic from an experiment by comparing with the PDF generated from toys
+    Returns the p-value associated with the observed test statistic from an experiment by comparing with the PDF generated from toys
     """
 
     ts_sorted = np.sort(ts)
     p_value = len(ts_sorted[ts_sorted >= ts_exp]) / len(ts_sorted)
-
-    # If we want to bin the observed data for some reason... this is incorrect
-    #     cdf, binedges = emp_cdf(ts, bins) # note that the CDF is evaluated at the right bin edge
-    #     binedges = binedges[1:]
-    #     p_value = 1-cdf[np.abs(binedges-ts_exp).argmin()]
-
-    #     if isinstance(bins, int):
-    #         bins = np.linspace(0, np.nanmax(ts), int((np.nanmax(ts))/step))
 
     if plot:
         fig = plt.figure(figsize=(11, 6))
@@ -352,7 +354,7 @@ def toy_ts_critical_p_value(
     return p_value
 
 
-def brazil_data(toy_ts: np.array, ts_observed: np.array):
+def get_p_values(toy_ts: np.array, ts_observed: np.array):
     """
     Parameters
     ----------
@@ -377,3 +379,215 @@ def brazil_data(toy_ts: np.array, ts_observed: np.array):
         p_values.append(toy_ts_critical_p_value(toy_ts[i], ts_exp, plot=False))
 
     return p_values
+
+
+def sensitivity(
+    toy_ts_zero_signal: list,
+    toy_ts: list,
+    s_list: list,
+    CL: float = 0.9,
+    bins=1000,  # int or array, number of bins or list of bin edges for CDF
+    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
+    plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
+    plot_dir: str = "",  # directory where to save plots
+    plot_title: str = "",
+    save: bool = False,
+):
+    """
+    Parameters
+    ----------
+    toy_ts
+        List of lists. Each list is a a list of test statistics for toys generated with non-zero signal tested against that non-zero s-value
+    toy_ts_zero_signal
+        List of lists. Each list test statistics generated with zero signal and tested against a non-zero signal hypothesis
+    s_list
+        the list of the s_values being tested against
+
+    Returns
+    -------
+    p_values
+        A list of the p-values associated with the observed data
+
+
+    Notes
+    -----
+    This function loops over the S-grid tested. At each value of S, the median of the PDF of toy_ts_zero_signal (generated with 0 signal and tested against S)
+    is projected onto the PDF toy_ts (generated at S and tested against S) and the p-value of the median is calculated.
+    """
+
+    if len(toy_ts) != len(toy_ts_zero_signal):
+        raise ValueError("input arrays must match in length!")
+
+    p_values_median = []
+    p_values_hi = []
+    p_values_lo = []
+
+    gammas = (
+        M76 * s_list / (np.log(2) * NA)
+    )  # convert from reduced s-value to half-rate
+
+    for i, ts in enumerate(toy_ts_zero_signal):
+        ts = np.array(ts)
+
+        median_ts = np.median(ts)
+        upper_ts = np.quantile(ts, 0.5 + CL / 2, method="linear")
+        lower_ts = np.quantile(ts, 0.5 - CL / 2, method="linear")
+
+        cdf, binedges = emp_cdf(
+            toy_ts[i], bins
+        )  # note that the CDF is evaluated at the right bin edge
+
+        sorted_toy_ts = np.sort(toy_ts[i])
+
+        p_values_median.append(
+            len(sorted_toy_ts[sorted_toy_ts >= median_ts]) / len(sorted_toy_ts)
+        )
+        p_values_hi.append(
+            len(sorted_toy_ts[sorted_toy_ts >= upper_ts]) / len(sorted_toy_ts)
+        )
+        p_values_lo.append(
+            len(sorted_toy_ts[sorted_toy_ts >= lower_ts]) / len(sorted_toy_ts)
+        )
+
+        if plot:
+            fig = plt.figure(figsize=(18, 10))
+
+            pdf_zero_sig, binedges_zero_sig = np.histogram(
+                ts, bins=bins, range=(-2, 25)
+            )
+            plt.stairs(
+                pdf_zero_sig,
+                binedges_zero_sig,
+                color=NICE_RED,
+                label=rf"PDF for $\Gamma$'={s_list[i]:.2e}|$\Gamma$=0",
+            )
+
+            pdf, binedges = np.histogram(toy_ts[i], bins=bins, range=(-2, 25))
+
+            plt.stairs(
+                pdf,
+                binedges,
+                color=NICE_BLUE,
+                label=rf"PDF for $\Gamma$'={s_list[i]:.2e}|$\Gamma$={s_list[i]:.2e}",
+            )
+            plt.axvline(
+                median_ts,
+                color=NICE_GREEN,
+                alpha=0.95,
+                label="Median 0-Signal Test-Statistic",
+            )
+            plt.axvline(
+                upper_ts,
+                color=NICE_GREEN,
+                ls="--",
+                alpha=0.95,
+                label=f"Upper {CL*100:.2f}%",
+            )
+            plt.axvline(
+                lower_ts,
+                color=NICE_PINK,
+                ls="--",
+                alpha=0.95,
+                label=f"Lower {CL*100:.2f}%",
+            )
+
+            plt.yscale("log")
+            plt.xlabel(r"$t$")
+            plt.ylabel(r"PDF$(t)$")
+            plt.legend()
+            plt.ylim([0.9, 1e5])
+            plt.xlim([-1, 25])
+            plt.grid()
+
+            plt.suptitle(plot_title)
+            if save:
+                fig.savefig(
+                    plot_dir + f"ts_critical_p_value_{s_list[i]:.4f}.jpg", dpi=300
+                )
+            else:
+                plt.show()
+
+    return p_values_median, p_values_hi, p_values_lo
+
+
+def find_crossing(
+    scanned_var: np.array,
+    ts: np.array,
+    t_crits: np.array,
+    method: str = "l",
+):
+    """
+    Parameters
+    ----------
+    scanned_var
+        Values of the variable that is being scanned
+    ts
+        Values of the test statistic at the scanned values
+    t_crits
+        The critical value or values of the test statistic
+    interpolation_mode
+        The mode in which to interpolate the crossing between ts and t_crits. "i" for index before crossing, "l" for linear, and "q" for quadratic are supported
+
+    Notes
+    -----
+    It is important that ts and t_crits are on the same grid!
+    This can handle two crossings in case of discovery!
+    """
+
+    # First check if t_crits is a scalar, then turn it into an array of the length of ts
+    if isinstance(t_crits, float) or isinstance(t_crits, int):
+        t_crits = np.full(len(ts), t_crits)
+
+    diff = t_crits - ts - 0  # now we can find some zeros!
+    crossing_idxs = []
+    for i in range(0, len(diff) - 1, 1):
+        if diff[i] <= 0 < diff[i + 1]:
+            crossing_idxs.append(i)
+        if diff[i] > 0 >= diff[i + 1]:
+            crossing_idxs.append(i)
+
+    # If index before crossing interpolation do the following:
+    if method == "i":
+        crossing_points = scanned_var[crossing_idxs]
+
+    # If linear mode, treat the t_crits as linear interpolation, as well as the ts
+    if (method == "l") or (method == "complex"):
+        crossing_points = []
+        for i in crossing_idxs:
+            alpha = (ts[i + 1] - ts[i]) / (scanned_var[i + 1] - scanned_var[i])
+            beta = (t_crits[i + 1] - t_crits[i]) / (scanned_var[i + 1] - scanned_var[i])
+            intersection = (ts[i] - t_crits[i] + (beta - alpha) * scanned_var[i]) / (
+                beta - alpha
+            )
+            crossing_points.append(intersection)
+
+    if method == "q":
+        raise NotImplementedError("Not yet implemented! Sorry!")
+
+    if method == "complex":  # use the first pass guesses and get crazy with it
+        f = interpolate.interp1d(scanned_var, diff)
+
+        if len(crossing_points) >= 1:
+            new_crosses = []
+            for cross in crossing_points:
+                # walk  forwards to find a change in sign
+                new_sign = -1 * np.sign(f(np.amax([cross - 0.03, scanned_var[0]])))
+                upper_limit = None
+                for s in scanned_var[
+                    scanned_var > np.amax([cross - 0.03, scanned_var[0]])
+                ]:
+                    if np.sign(f(s)) == new_sign:
+                        upper_limit = s
+                if upper_limit is None:
+                    new_crosses.append(np.nan)
+
+                sol = optimize.root_scalar(
+                    f,
+                    bracket=[np.amax([cross - 0.03, scanned_var[0]]), upper_limit],
+                    method="brentq",
+                )
+                new_crosses.append(sol.root)
+
+            crossing_points = new_crosses
+
+    return crossing_points
