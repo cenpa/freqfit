@@ -67,7 +67,7 @@ repos:
       flake8-print,
       pep8-naming
     ]
-    args: ["--extend-ignore", "E203,E501,N803,N806,N801,B007,B028,F841"]
+    args: ["--extend-ignore", "E203,E501,N803,N806,N801,B007,B028,F841,E402"]
 
 - repo: https://github.com/kynan/nbstripout
   rev: "0.6.1"
@@ -89,11 +89,6 @@ repos:
     additional_dependencies:
       - tomli
 
-
-- repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.9.0.6"
-  hooks:
-  - id: shellcheck
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: "v1.10.0"

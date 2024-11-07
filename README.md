@@ -5,7 +5,7 @@ LEGEND 0v2b frequentist analysis
 
 ### config format
 
-Config files are `.yaml` files that contain several different dictionaries, described below. There are 5 primary dictionaries at the top level: `datasets`, `combined_datasets`, `parameters`, `constraints`, and `options`. 
+Config files are `.yaml` files that contain several different dictionaries, described below. There are 5 primary dictionaries at the top level: `datasets`, `combined_datasets`, `parameters`, `constraints`, and `options`.
 
 Note that the default value for options not explicitly provided is (usually) `False`.
 
@@ -27,18 +27,18 @@ datasets: # the collection of datasets
     model: legendfreqfit.models.mymodel
     model_parameters:
       a: a_ds2
-      b: global_b 
- 
+      b: global_b
+
   ds3:
     try_to_combine: True
     combined_dataset: empty_ds
     costfunction: ExtendedUnbinnedNLL
-    data: [] 
+    data: []
     model: legendfreqfit.models.mymodel
     model_parameters:
       a: a_ds3
       b: global_b
-      
+
 combined_datasets: # details of how we should attempt to combine datasets
   empty_ds: # name of the combined datasets
     costfunction: ExtendedUnbinnedNLL
@@ -62,8 +62,8 @@ parameters: # the collection of parameters
     value_from_combine: true # will use the value from the combined datasets here, which is particularly important for fixed parameters
     includeinfit: false # in this case, we want to fix the value of this parameter after combining the datasets
   global_b:
-    value: 0.0 
-    includeinfit: true 
+    value: 0.0
+    includeinfit: true
 
 constraints: # the collection of constraints (a Gaussian constraint term in the likelihood)
   constraint_a_ds2: # name of the constraint
@@ -109,7 +109,7 @@ constraints:
 
 Constraints will be combined into a single `NormalConstraint` as this dramatically improves computation time. This takes the form of a multivariate Gaussian with central values and covariance matrix calculated from the supplied constraints. Only constraints that refer to fit parameters are used. (Parameters in a single provided constraint must all be fit parameters.)
 
-Constraints are also used to specificy how nuisance parameters should be varied for toys. All parameters in a single constraint must be included as a parameter of a dataset, but do not necessarily need to be parameters in the fit.
+Constraints are also used to specify how nuisance parameters should be varied for toys. All parameters in a single constraint must be included as a parameter of a dataset, but do not necessarily need to be parameters in the fit.
 
 You can specify independent datasets that should later be combined `combined_datasets`. This is useful for LEGEND where we have many, independent datasets with their own nuisance parameters. For our fit, it is much faster to simply combine all datasets that have no events (are empty). However, in generating our toys, we would like to vary the nuisance parameters and draw events randomly for all datasets. We therefore would like to combine datasets during our toys on the fly. Since, for each toy, we do no a prior know which datasets are empty and can be combined, we have written the code in such a way as to attempt to combine datasets. This is a very niche use case and probably only relevant for the 0vbb fit.
 
@@ -164,6 +164,11 @@ logging.basicConfig(level=logging.INFO) # or some other level
 
 ---
 
+### Job Submission on CENPA-rocks
+Job submission scripts for L200 are located in the `submission` subfolder in this repo. `submit_l200.sh` is a script that creates the S-grid to scan over by calling `l200_s_grid.py` and then submits jobs to the cluster to generate toys at those s-points by calling `run_l200.sh` which uses `l200_toys.py` to run the toys. Toys at 0-signal are generated and tested against this s-grid of alternative hypotheses using the `l200_brazil.sh` submission script which calls `l200_brazil.py` to actually run these 0-signal toys.
+
+---
+
 ### TODO
 - maybe we need some way to sanitize the inputs before sending them to the classes so we can do less error checking in the classes? to speed up a little?
 - - implement PDG Chp 40 Eq 40.16 for Asimov dataset somewhere - check how to use with unbinned data.
@@ -197,6 +202,3 @@ logging.basicConfig(level=logging.INFO) # or some other level
 - [x] ~~do we need to label parameters as both nuisance and includeinfit? ~~ removed "nuisance" label
 - [x] ~~add way to combine experiments, can separately fit the test statistics for each experiment and then combine them through a convolution of their pdfs?~~ Grace showed we should just add test statistics
 - [x] ~~need a way to run the analysis automatically for an experiment.~~ basically there?
-
-
-
