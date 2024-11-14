@@ -472,7 +472,7 @@ class Experiment(Superset):
             logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
-        return ts
+        return ts, denom, num
 
     def maketoy(
         self,
@@ -503,12 +503,16 @@ class Experiment(Superset):
                 raise ValueError("Seeds must have same length as the number of toys!")
         if isinstance(profile_parameters, dict):
             ts = np.zeros(num)
+            numerators = np.zeros(num)
+            denominators = np.zeros(num)
             data_to_return = []
             paramvalues_to_return = []
             num_drawn = []
             for i in range(num):
                 thistoy = self.maketoy(parameters=parameters, seed=seed[i])
-                ts[i] = thistoy.ts(profile_parameters=profile_parameters)
+                ts[i], denominators[i], numerators[i] = thistoy.ts(
+                    profile_parameters=profile_parameters
+                )
                 data_to_return.append(thistoy.toy_data_to_save)
                 paramvalues_to_return.append(thistoy.parameters_to_save)
                 num_drawn.append(thistoy.toy_num_drawn_to_save)
@@ -516,13 +520,17 @@ class Experiment(Superset):
         # otherwise profile parameters is a list of dicts
         else:
             ts = np.zeros((len(profile_parameters), num))
+            numerators = np.zeros((len(profile_parameters), num))
+            denominators = np.zeros((len(profile_parameters), num))
             data_to_return = []
             paramvalues_to_return = []
             num_drawn = []
             for i in range(num):
                 thistoy = self.maketoy(parameters=parameters, seed=seed[i])
                 for j in range(len(profile_parameters)):
-                    ts[j][i] = thistoy.ts(profile_parameters=profile_parameters[j])
+                    ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
+                        profile_parameters=profile_parameters[j]
+                    )
                 data_to_return.append(thistoy.toy_data_to_save)
                 paramvalues_to_return.append(thistoy.parameters_to_save)
                 num_drawn.append(thistoy.toy_num_drawn_to_save)
@@ -544,7 +552,14 @@ class Experiment(Superset):
         for i, arr in enumerate(num_drawn):
             num_drawn_to_return_flat[i, : len(arr)] = arr
 
-        return ts, data_to_return_flat, paramvalues_to_return, num_drawn_to_return_flat
+        return (
+            ts,
+            data_to_return_flat,
+            paramvalues_to_return,
+            num_drawn_to_return_flat,
+            denominators,
+            numerators,
+        )
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently

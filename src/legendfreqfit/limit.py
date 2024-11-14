@@ -258,6 +258,8 @@ class SetLimit(Experiment):
         data_to_return = [arr[1] for arr in return_args]
         nuisance_to_return = [arr[2] for arr in return_args]
         num_drawn_to_return = [arr[3] for arr in return_args]
+        ts_denom = [arr[4] for arr in return_args]
+        ts_num = [arr[5] for arr in return_args]
 
         # data_to_return is a jagged list, each element is a 2d-array filled it nans
         # First, find the maximum length of array we will need to pad to
@@ -283,6 +285,8 @@ class SetLimit(Experiment):
             np.vstack(nuisance_to_return),
             num_drawn_to_return_flat,
             seeds,
+            np.hstack(ts_denom),
+            np.hstack(ts_num),
         )
 
     def run_and_save_toys(
@@ -311,7 +315,15 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
+        (
+            toyts,
+            data,
+            nuisance,
+            num_drawn,
+            seeds_to_save,
+            toyts_denom,
+            toyts_num,
+        ) = self.toy_ts_mp(
             toypars,
             {f"{self.var_to_profile}": scan_point, **profile_dict},
             num=self.numtoy,
@@ -335,6 +347,8 @@ class SetLimit(Experiment):
             )
 
         dset = f.create_dataset("ts", data=toyts)
+        dset = f.create_dataset("ts_denom", data=toyts_denom)
+        dset = f.create_dataset("ts_num", data=toyts_num)
         dset = f.create_dataset("s", data=scan_point)
         # dset = f.create_dataset("Es", data=data)
         # dset = f.create_dataset("nuisance", data=nuisance)
@@ -360,7 +374,15 @@ class SetLimit(Experiment):
             scan_points = np.insert(scan_points, 0, 1.0e-9)
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
+        (
+            toyts,
+            data,
+            nuisance,
+            num_drawn,
+            seeds_to_save,
+            toyts_denom,
+            toyts_num,
+        ) = self.toy_ts_mp(
             toypars,
             [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
             num=self.numtoy,
@@ -370,6 +392,8 @@ class SetLimit(Experiment):
         file_name = self.out_path + f"/1E-9_{self.jobid}.h5"
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
+        dset = f.create_dataset("ts_num", data=toyts_num)
+        dset = f.create_dataset("ts_denom", data=toyts_denom)
         dset = f.create_dataset("s", data=scan_points)
         dset = f.create_dataset("Es", data=data)
         dset = f.create_dataset("nuisance", data=nuisance)
@@ -395,7 +419,15 @@ class SetLimit(Experiment):
         ]
 
         # Now we can run the toys
-        toyts, data, nuisance, num_drawn, seeds_to_save = self.toy_ts_mp(
+        (
+            toyts,
+            data,
+            nuisance,
+            num_drawn,
+            seeds_to_save,
+            toyts_denom,
+            toyts_num,
+        ) = self.toy_ts_mp(
             toypars,
             {f"{self.var_to_profile}": scan_point, **profile_dict},
             num=self.numtoy,
@@ -408,6 +440,8 @@ class SetLimit(Experiment):
         )
         f = h5py.File(file_name, "a")
         dset = f.create_dataset("ts", data=toyts)
+        dset = f.create_dataset("ts_num", data=toyts_num)
+        dset = f.create_dataset("ts_denom", data=toyts_denom)
         dset = f.create_dataset("s", data=scan_point)
         dset = f.create_dataset(
             "profile_parameters_names", data=list(profile_dict.keys())
