@@ -29,6 +29,7 @@ class Experiment(Superset):
         self.test_statistic = "t_mu"
         self.backend = "minuit"
         self.scipy_minimizer = None
+        self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
         self.toy = None  # the last Toy from this experiment
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
@@ -98,6 +99,9 @@ class Experiment(Superset):
             if "user_gradient" in config["options"]:
                 self.user_gradient = config["options"]["user_gradient"]
 
+            if "use_log" in config["options"]:
+                self.use_log = config["options"]["use_log"]
+
             if "scan" in config["options"]:
                 self.scan = config["options"]["scan"]
 
@@ -143,6 +147,7 @@ class Experiment(Superset):
             name=name,
             try_to_combine_datasets=self.options["try_to_combine_datasets"],
             user_gradient=self.user_gradient,
+            use_log=self.use_log,
         )
 
         # get the fit parameters and set the parameter initial values
