@@ -23,6 +23,7 @@ class Dataset:
         try_combine: bool = False,
         combined_dataset: str = None,
         user_gradient: bool = False,
+        use_log: bool = False,
     ) -> None:
         """
         Parameters
@@ -65,6 +66,8 @@ class Dataset:
             `str` name for the `Dataset`
         user_gradient
             If true use the user's gradient in the costfunction
+        use_log
+            If true, use the log of the PDF instead of the PDF within the Iminuit cost function
 
         Notes
         -----
@@ -103,6 +106,7 @@ class Dataset:
             None  # name of the combined_dataset that this Dataset is part of
         )
         self.user_gradient = user_gradient
+        self.use_log = use_log
 
         self._toy_data = None  # place to hold Toy data for this Dataset
         self._toy_num_drawn = None  # place to hold the number of signal and number of background events drawn for a toy
@@ -140,6 +144,12 @@ class Dataset:
                 self.costfunction = costfunction(
                     self.data, self.density, grad=self.density_gradient
                 )
+            elif use_log:
+                self.costfunction = costfunction(
+                    self.data,
+                    self.log_density,
+                    log=True,
+                )
             else:
                 self.costfunction = costfunction(self.data, self.density)
         else:
@@ -153,7 +163,7 @@ class Dataset:
             # if not passed, use default value (already checked that required parameters passed)
             if par not in model_parameters:
                 self._parlist.append(defaultvalue)
-                break # no constraints on non-passed parameters
+                break  # no constraints on non-passed parameters
 
             # parameter was passed and should be included in the fit
             elif ("includeinfit" in parameters[model_parameters[par]]) and (
@@ -206,6 +216,18 @@ class Dataset:
             self._parlist[self._parlist_indices[i]] = par[i]
 
         return self.model.density(data, *self._parlist)
+
+    def log_density(
+        self,
+        data,
+        *par,  # DO NOT DELETE THE * - NEEDED FOR IMINUIT
+    ) -> np.array:
+        # par should be 1D array like
+        # assign the positional parameters to the correct places in the model parameter list
+        for i in range(len(par)):
+            self._parlist[self._parlist_indices[i]] = par[i]
+
+        return self.model.log_density(data, *self._parlist)
 
     def density_gradient(
         self,
@@ -273,6 +295,7 @@ def combine_datasets(
     name: str = "",
     use_toy_data: bool = False,
     user_gradient: bool = False,
+    use_log: bool = False,
 ) -> Dataset:
     """
     Parameters
@@ -292,6 +315,8 @@ def combine_datasets(
         name of the combined `Dataset`
     user_gradient
         If true, use the user gradient in the combined dataset costfunction
+    use_log
+        If true, use the log of the PDF in the combined dataset costfunction
     """
 
     if not isinstance(datasets, list) or not all(
@@ -382,6 +407,7 @@ def combine_datasets(
             costfunction,
             name,
             user_gradient=user_gradient,
+            use_log=use_log,
         )
 
     return combined_dataset, included_datasets

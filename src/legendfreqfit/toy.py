@@ -54,6 +54,7 @@ class Toy:
         self.included_in_combined_datasets = {}
         self.seed = seed
         self.user_gradient = self.experiment.user_gradient
+        self.use_log = self.experiment.use_log
         self.scan_bestfit = self.experiment.scan_bestfit
         self.scan = self.experiment.scan
         self.scan_grid = self.experiment.scan_grid
@@ -170,6 +171,8 @@ class Toy:
                     ],
                     name=cdsname,
                     use_toy_data=True,
+                    user_gradient=self.user_gradient,
+                    use_log=self.use_log,
                 )
 
                 # now to see what datasets actually got included in the combined_dataset
@@ -190,7 +193,12 @@ class Toy:
             if ds._toy_is_combined:
                 continue
             # make the cost function for this particular dataset
-            thiscostfunction = ds._costfunctioncall(ds._toy_data, ds.density)
+            if self.use_log:
+                thiscostfunction = ds._costfunctioncall(
+                    ds._toy_data, ds.log_density, log=True
+                )
+            else:
+                thiscostfunction = ds._costfunctioncall(ds._toy_data, ds.density)
             # tell the cost function which parameters to use
             thiscostfunction._parameters = ds.costfunction._parameters
             if first:
@@ -209,7 +217,12 @@ class Toy:
 
         for cdsname, cds in self.combined_datasets.items():
             # make the cost function for this particular combined_dataset
-            thiscostfunction = cds._costfunctioncall(cds.data, cds.density)
+            if self.use_log:
+                thiscostfunction = cds._costfunctioncall(
+                    cds.data, cds.log_density, log=True
+                )
+            else:
+                thiscostfunction = cds._costfunctioncall(cds.data, cds.density)
             # tell the cost function which parameters to use
             thiscostfunction._parameters = cds.costfunction._parameters
             if first:

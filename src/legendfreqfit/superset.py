@@ -24,6 +24,7 @@ class Superset:
         name: str = "",
         try_to_combine_datasets: bool = False,
         user_gradient: bool = False,
+        use_log: bool = False,
     ) -> None:
         """
         Parameters
@@ -36,6 +37,8 @@ class Superset:
             `dict`
         user_gradient
             If true, use the user's gradient in dataset costfunction
+        use_log
+            Use the logpdf in the cost function if true
         """
 
         self.name = name  # name of the Superset
@@ -103,6 +106,7 @@ class Superset:
                 try_combine=try_combine,
                 combined_dataset=combined_dataset,
                 user_gradient=user_gradient,
+                use_log=use_log,
             )
 
             for par in datasets[dsname]["model_parameters"].values():
@@ -133,6 +137,7 @@ class Superset:
                     costfunction=combined_datasets[cdsname]["costfunction"],
                     name=cdsname,
                     user_gradient=user_gradient,
+                    use_log=use_log,
                 )
 
                 if len(included_datasets) > 0:

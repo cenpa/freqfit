@@ -171,6 +171,85 @@ def nb_density(
 
 
 @nb.jit(**nb_kwd)
+def nb_log_density(
+    Es: np.array,
+    S: float,
+    BI: float,
+    delta: float,
+    sigma: float,
+    eff: float,
+    effunc: float,
+    effuncscale: float,
+    exp: float,
+) -> np.array:
+    """
+    Parameters
+    ----------
+    Es
+        Energies at which this function is evaluated, in keV
+    S
+        The signal rate, in units of counts/(kg*yr)
+    BI
+        The background index rate, in counts/(kg*yr*keV)
+    delta
+        Systematic energy offset from QBB, in keV
+    sigma
+        The energy resolution at QBB, in keV
+    eff
+        The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
+    exp
+        The exposure, in kg*yr
+
+    Notes
+    -----
+    This function computes the following, faster than without a numba wrapper:
+    mu_S = (eff + effuncscale * effunc) * exp * S
+    mu_B = exp * BI * windowsize
+    CDF(E) = mu_S + mu_B
+    pdf(E) =[mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
+    """
+
+    # Precompute the signal and background counts
+    # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
+    # S *= 0.01
+    # BI *= 0.0001
+    mu_S = S * (eff + effuncscale * effunc) * exp
+    mu_B = exp * BI * WINDOWSIZE
+
+    if sigma == 0:
+        return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
+
+    if mu_S + mu_B < 0:
+        return 0, np.full_like(Es, -np.inf)
+
+    # Precompute the prefactors so that way we save multiplications in the for loop
+    B_amp = exp * BI
+    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
+
+    # Initialize and execute the for loop
+    y = np.empty_like(Es, dtype=np.float64)
+    for i in nb.prange(Es.shape[0]):
+        pdf = S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
+
+        if pdf <= 0:
+            y[i] = -np.inf
+
+        # Make an approximation based on machine precision, following J. Detwiler's suggestion
+        u = (S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))) / B_amp
+
+        if u <= 1e-8:
+            y[i] = np.log(B_amp) + u
+        else:
+            y[i] = np.log(pdf)
+
+    return mu_S + mu_B, y
+
+
+@nb.jit(**nb_kwd)
 def nb_density_gradient(
     Es: np.array,
     S: float,
@@ -577,18 +656,7 @@ class correlated_efficiency_0vbb_gen:
         effuncscale: float,
         exp: float,
     ) -> np.array:
-        mu_S = S * (eff + effuncscale * effunc) * exp
-        mu_B = exp * BI * WINDOWSIZE
-
-        # Do a quick check and return -inf if log args are negative
-        if (mu_S + mu_B <= 0) or np.isnan(np.array([mu_S, mu_B])).any():
-            return mu_S + mu_B, np.full(Es.shape[0], -np.inf)
-        else:
-            return (
-                mu_S + mu_B,
-                np.log(mu_S + mu_B)
-                + nb_logpdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp),
-            )
+        return nb_log_density(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
