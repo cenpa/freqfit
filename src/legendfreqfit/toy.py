@@ -537,7 +537,7 @@ class Toy:
             logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
-        return ts
+        return ts, denom, num
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
