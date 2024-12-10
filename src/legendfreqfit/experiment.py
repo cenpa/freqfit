@@ -34,9 +34,12 @@ class Experiment(Superset):
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
-        self.tolerance = 1e-100  # tolerance for iminuit or other minimizer
-        self.precision = 1e-120  # precision for the Iminuit minimizer, especially important for scipy minimizers
-        self.scipy_options = None
+        self.iminuit_tolerance = 1e-100  # tolerance for iminuit or other minimizer
+        self.iminuit_precision = 1e-120  # precision for the Iminuit minimizer, especially important for scipy minimizers
+        self.iminuit_strategy = 0
+        self.minimizer_options = (
+            None  # dict of options to pass to the iminuit minimizer
+        )
         self.scan = False
         self.scan_bestfit = False
         self.scan_grid = None  # this is a dictionary, each key is a fit parameter and its values are the parameter values to scan along in one dimension
@@ -69,17 +72,17 @@ class Experiment(Superset):
             if "backend" in config["options"]:
                 self.backend = config["options"]["backend"]
 
-            if "tolerance" in config["options"]:
-                self.tolerance = config["options"]["tolerance"]
+            if "iminuit_tolerance" in config["options"]:
+                self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
 
-            if "precision" in config["options"]:
-                self.precision = config["options"]["precision"]
+            if "iminuit_precision" in config["options"]:
+                self.iminuit_precision = config["options"]["iminuit_precision"]
 
-            if "scipy_options" in config["options"]:
-                self.scipy_options = config["options"]["scipy_options"]
+            if "minimizer_options" in config["options"]:
+                self.minimizer_options = config["options"]["minimizer_options"]
 
-                if not isinstance(self.scipy_options, dict):
-                    raise ValueError("scipy_options must be a dictionary")
+                if not isinstance(self.minimizer_options, dict):
+                    raise ValueError("minimizer_options must be a dictionary")
 
             if "scipy_minimizer" in config["options"]:
                 if config["options"]["scipy_minimizer"] in ["None", "none"]:
@@ -164,9 +167,9 @@ class Experiment(Superset):
         # get the fit parameters and set the parameter initial values
         self.guess = self.initialguess()
         self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = self.tolerance  # set the tolerance
-        self.minuit.precision = self.precision
-        self.minuit.strategy = 2
+        self.minuit.tol = self.iminuit_tolerance  # set the tolerance
+        self.minuit.precision = self.iminuit_precision
+        self.minuit.strategy = self.iminuit_strategy
 
         # raise a RunTime error if function evaluates to NaN
         self.minuit.throw_nan = True
@@ -325,18 +328,18 @@ class Experiment(Superset):
         else:
             try:
                 if self.backend == "minuit":
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                 elif self.backend == "scipy":
                     self.minuit.scipy(
-                        method=self.scipy_minimizer, options=self.scipy_options
+                        method=self.scipy_minimizer, options=self.minimizer_options
                     )
                 elif self.backend == "minimum_minimizer":
                     # Run through 3 minimizers and pick the best of them
                     self.minuit.simplex()
                     result1 = grab_results(self.minuit)
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                     result2 = grab_results(self.minuit)
-                    self.minuit.scipy(method="Powell", options=self.scipy_options)
+                    self.minuit.scipy(method="Powell", options=self.minimizer_options)
                     result3 = grab_results(self.minuit)
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
@@ -344,9 +347,11 @@ class Experiment(Superset):
                     if min_fval == 0:
                         self.minuit.simplex()
                     elif min_fval == 1:
-                        self.minuit.migrad()
+                        self.minuit.migrad(**self.minimizer_options)
                     else:
-                        self.minuit.scipy(method="Powell", options=self.scipy_options)
+                        self.minuit.scipy(
+                            method="Powell", options=self.minimizer_options
+                        )
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
@@ -412,17 +417,17 @@ class Experiment(Superset):
         else:
             try:
                 if self.backend == "minuit":
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                 elif self.backend == "scipy":
                     self.minuit.scipy(
-                        method=self.scipy_minimizer, options=self.scipy_options
+                        method=self.scipy_minimizer, options=self.minimizer_options
                     )
                 elif self.backend == "minimum_minimizer":
                     self.minuit.simplex()
                     result1 = grab_results(self.minuit)
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                     result2 = grab_results(self.minuit)
-                    self.minuit.scipy(method="Powell", options=self.scipy_options)
+                    self.minuit.scipy(method="Powell", options=self.minimizer_options)
                     result3 = grab_results(self.minuit)
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
@@ -430,9 +435,11 @@ class Experiment(Superset):
                     if min_fval == 0:
                         self.minuit.simplex()
                     elif min_fval == 1:
-                        self.minuit.migrad()
+                        self.minuit.migrad(**self.minimizer_options)
                     else:
-                        self.minuit.scipy(method="Powell", options=self.scipy_options)
+                        self.minuit.scipy(
+                            method="Powell", options=self.minimizer_options
+                        )
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
