@@ -37,9 +37,8 @@ class Experiment(Superset):
         self.iminuit_tolerance = 1e-100  # tolerance for iminuit or other minimizer
         self.iminuit_precision = 1e-120  # precision for the Iminuit minimizer, especially important for scipy minimizers
         self.iminuit_strategy = 0
-        self.minimizer_options = (
-            None  # dict of options to pass to the iminuit minimizer
-        )
+        self.minimizer_options = {}  # dict of options to pass to the iminuit minimizer
+
         self.scan = False
         self.scan_bestfit = False
         self.scan_grid = None  # this is a dictionary, each key is a fit parameter and its values are the parameter values to scan along in one dimension
