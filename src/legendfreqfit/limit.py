@@ -48,6 +48,11 @@ class SetLimit(Experiment):
         var_to_profile
             string -- the variable we are going to scan over to compute test-statistics at
         """
+
+        if var_to_profile not in self.fitparameters:
+            msg = f"variable '{var_to_profile}' not found in fit parameters"
+            logging.error(msg)
+            raise ValueError(msg)
         self.var_to_profile = var_to_profile
 
     def wilks_ts_crit(self, CL: float) -> float:
