@@ -23,6 +23,12 @@ datasets:
       "eff": "eff_datasetname2"
       "exp": "exp_datasetname2"
 
+options:
+  minimizer_options:
+    ncall: 100000000
+  iminuit_precision: 1.0e-30
+  iminuit_tolerance: 1.0e-100
+
 parameters:
   "global_S":
     includeinfit: True
