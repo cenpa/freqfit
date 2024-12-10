@@ -68,7 +68,7 @@ class Experiment(Superset):
                     msg = "found 'combined_datasets' in config"
                     logging.info(msg)
 
-            if "name" in config["options"] and (name is ""):
+            if "name" in config["options"] and (name == ""):
                 name = config["options"]["name"]
 
             if "backend" in config["options"]:
