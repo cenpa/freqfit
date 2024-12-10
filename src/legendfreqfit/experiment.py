@@ -72,10 +72,22 @@ class Experiment(Superset):
                 self.backend = config["options"]["backend"]
 
             if "iminuit_tolerance" in config["options"]:
-                self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
+                if config["options"]["iminuit_tolerance"] in [
+                    "none",
+                    "None",
+                ]:  # yaml can't interpret None
+                    self.iminuit_tolerance = None
+                else:
+                    self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
 
             if "iminuit_precision" in config["options"]:
-                self.iminuit_precision = config["options"]["iminuit_precision"]
+                if config["options"]["iminuit_precision"] in [
+                    "none",
+                    "None",
+                ]:  # yaml can't interpret None
+                    self.iminuit_precision = None
+                else:
+                    self.iminuit_precision = config["options"]["iminuit_precision"]
 
             if "minimizer_options" in config["options"]:
                 self.minimizer_options = config["options"]["minimizer_options"]
