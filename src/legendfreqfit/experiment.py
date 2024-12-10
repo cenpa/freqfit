@@ -24,16 +24,19 @@ class Experiment(Superset):
         config: dict,
         name: str = None,
     ) -> None:
-        self.options = {}
-        self.options["try_to_combine_datasets"] = False
-        self.test_statistic = "t_mu"
-        self.backend = "minuit"
-        self.scipy_minimizer = None
-        self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
+
         self.toy = None  # the last Toy from this experiment
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
+
+        self.try_to_combine_datasets = False
+        self.test_statistic = "t_mu"
+
+        # minimization options
+        self.backend = "minuit" # "minuit" or "scipy"
+        self.scipy_minimizer = None
+        self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
         self.iminuit_tolerance = 1e-100  # tolerance for iminuit or other minimizer
         self.iminuit_precision = 1e-120  # precision for the Iminuit minimizer, especially important for scipy minimizers
         self.iminuit_strategy = 0
@@ -57,7 +60,7 @@ class Experiment(Superset):
         combined_datasets = None
         if "options" in config:
             if "try_to_combine_datasets" in config["options"]:
-                self.options["try_to_combine_datasets"] = config["options"][
+                self.try_to_combine_datasets = config["options"][
                     "try_to_combine_datasets"
                 ]
                 if "combined_datasets" in config:
@@ -84,7 +87,7 @@ class Experiment(Superset):
                     raise ValueError("minimizer_options must be a dictionary")
 
             if "scipy_minimizer" in config["options"]:
-                if config["options"]["scipy_minimizer"] in ["None", "none"]:
+                if config["options"]["scipy_minimizer"] in ["None", "none", None]:
                     self.scipy_minimizer = None
                 else:
                     self.scipy_minimizer = config["options"]["scipy_minimizer"]
@@ -122,7 +125,7 @@ class Experiment(Superset):
                     self.scan_grid = config["options"]["scan_grid"]
 
             if "initial_guess_function" in config["options"]:
-                if config["options"]["initial_guess_function"] in ["None", "none"]:
+                if config["options"]["initial_guess_function"] in ["None", "none", None]:
                     self.initial_guess_function = None
                 else:
                     self.initial_guess_function = config["options"][
@@ -158,7 +161,7 @@ class Experiment(Superset):
             constraints=constraints,
             combined_datasets=combined_datasets,
             name=name,
-            try_to_combine_datasets=self.options["try_to_combine_datasets"],
+            try_to_combine_datasets=self.try_to_combine_datasets,
             user_gradient=self.user_gradient,
             use_log=self.use_log,
         )

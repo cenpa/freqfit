@@ -150,7 +150,7 @@ class Toy:
             )  # also save the number of signal and background counts drawn
 
         # combine datasets
-        if self.experiment.options["try_to_combine_datasets"]:
+        if self.experiment.try_to_combine_datasets:
             # maybe there's more than one combined_dataset group
             for cdsname in self.experiment._combined_datasets_config:
                 # find the Datasets to try to combine
