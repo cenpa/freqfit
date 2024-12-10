@@ -316,6 +316,9 @@ class Toy:
         # 2024/08/09: This no longer seems to be true? Not sure if something changed in iminuit or if I was wrong?
         self.minuit.reset()
 
+        # Restore the first initial guess
+        self.minuit.values[:] = list(self.guess.values())
+
         # overwrite the limits
         # note that this information can also be contained in a Dataset when instantiated
         # and is overwritten here
