@@ -22,7 +22,7 @@ class Experiment(Superset):
     def __init__(
         self,
         config: dict,
-        name: str = None,
+        name: str = "",
     ) -> None:
 
         self.toy = None  # the last Toy from this experiment
@@ -68,7 +68,7 @@ class Experiment(Superset):
                     msg = "found 'combined_datasets' in config"
                     logging.info(msg)
 
-            if "name" in config["options"] and (name is None):
+            if "name" in config["options"] and (name is ""):
                 name = config["options"]["name"]
 
             if "backend" in config["options"]:
@@ -224,7 +224,7 @@ class Experiment(Superset):
     def file(
         cls,
         file: str,
-        name: str = None,
+        name: str = "",
     ):
         config = load_config(file=file)
         return cls(config=config, name=name)
