@@ -44,9 +44,10 @@ class Toy:
         self.costfunction = None  # costfunction for this Toy
         self.fitparameters = None  # fit parameters from the costfunction, reference to self.costfunction._parameters
         self.minuit = None  # Minuit object
-        self.tolerance = self.experiment.tolerance
-        self.precision = self.experiment.precision
-        self.scipy_options = self.experiment.scipy_options
+        self.iminuit_tolerance = self.experiment.iminuit_tolerance
+        self.iminuit_precision = self.experiment.iminuit_precision
+        self.minimizer_options = self.experiment.minimizer_options
+        self.iminuit_strategy = self.experiment.iminuit_strategy
         self.guess = None  # initial guess for minuit
         self.best = None  # best fit
         self.fixed_bc_no_data = (
@@ -260,9 +261,9 @@ class Toy:
         self.guess = self.initialguess()
 
         self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = self.tolerance  # set the tolerance
-        self.minuit.precision = self.precision
-        self.minuit.strategy = 2
+        self.minuit.tol = self.iminuit_tolerance  # set the tolerance
+        self.minuit.precision = self.iminuit_precision
+        self.minuit.strategy = self.iminuit_strategy
 
         # raise a RunTime error if function evaluates to NaN
         self.minuit.throw_nan = True
@@ -383,18 +384,18 @@ class Toy:
         else:
             try:
                 if self.experiment.backend == "minuit":
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                 elif self.experiment.backend == "scipy":
                     self.minuit.scipy(
                         method=self.experiment.scipy_minimizer,
-                        options=self.scipy_options,
+                        options=self.minimizer_options,
                     )
                 elif self.experiment.backend == "minimum_minimizer":
                     self.minuit.simplex()
                     result1 = grab_results(self.minuit)
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                     result2 = grab_results(self.minuit)
-                    self.minuit.scipy(method="Powell", options=self.scipy_options)
+                    self.minuit.scipy(method="Powell", options=self.minimizer_options)
                     result3 = grab_results(self.minuit)
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
@@ -402,9 +403,11 @@ class Toy:
                     if min_fval == 0:
                         self.minuit.simplex()
                     elif min_fval == 1:
-                        self.minuit.migrad()
+                        self.minuit.migrad(**self.minimizer_options)
                     else:
-                        self.minuit.scipy(method="Powell", options=self.scipy_options)
+                        self.minuit.scipy(
+                            method="Powell", options=self.minimizer_options
+                        )
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
@@ -470,19 +473,19 @@ class Toy:
         else:
             try:
                 if self.experiment.backend == "minuit":
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                 elif self.experiment.backend == "scipy":
                     self.minuit.scipy(
                         method=self.experiment.scipy_minimizer,
-                        options=self.scipy_options,
+                        options=self.minimizer_options,
                     )
                 elif self.experiment.backend == "minimum_minimizer":
                     # Run through 3 minimizers and pick the best of them
                     self.minuit.simplex()
                     result1 = grab_results(self.minuit)
-                    self.minuit.migrad()
+                    self.minuit.migrad(**self.minimizer_options)
                     result2 = grab_results(self.minuit)
-                    self.minuit.scipy(method="Powell", options=self.scipy_options)
+                    self.minuit.scipy(method="Powell", options=self.minimizer_options)
                     result3 = grab_results(self.minuit)
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
@@ -490,9 +493,11 @@ class Toy:
                     if min_fval == 0:
                         self.minuit.simplex()
                     elif min_fval == 1:
-                        self.minuit.migrad()
+                        self.minuit.migrad(**self.minimizer_options)
                     else:
-                        self.minuit.scipy(method="Powell", options=self.scipy_options)
+                        self.minuit.scipy(
+                            method="Powell", options=self.minimizer_options
+                        )
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
