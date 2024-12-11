@@ -323,7 +323,7 @@ class Experiment(Superset):
             self.best = best
             if not best["valid"]:
                 msg = "`Experiment` has invalid best fit"
-                logging.warning(msg)
+                logging.debug(msg)
 
         elif self.scan:
             y = np.empty(len(self.hypercube_grid))
@@ -375,17 +375,17 @@ class Experiment(Superset):
                     )
             except RuntimeError:
                 msg = "`Experiment` has invalid best fit"
-                logging.warning(msg)
+                logging.debug(msg)
 
             if not self.minuit.valid:
                 msg = "`Experiment` has invalid best fit"
-                logging.warning(msg)
+                logging.debug(msg)
 
             self.best = grab_results(self.minuit)
 
         if self.guess == self.best["values"]:
             msg = "`Experiment` has best fit values very close to initial guess"
-            logging.warning(msg)
+            logging.debug(msg)
 
         return self.best
 
@@ -463,17 +463,17 @@ class Experiment(Superset):
                     )
             except RuntimeError:
                 msg = f"`Experiment` throwing NaN has invalid profile at {parameters}"
-                logging.warning(msg)
+                logging.debug(msg)
 
             if not self.minuit.valid:
                 msg = "`Experiment` has invalid profile"
-                logging.warning(msg)
+                logging.debug(msg)
 
             results = grab_results(self.minuit)
 
         if self.guess == results["values"]:
             msg = "`Experiment` has profile fit values very close to initial guess"
-            logging.warning(msg)
+            logging.debug(msg)
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():
@@ -514,7 +514,7 @@ class Experiment(Superset):
 
         if ts < 0:
             msg = f"`Experiment` gave test statistic below zero: {ts}"
-            logging.warning(msg)
+            logging.debug(msg)
 
         # because these are already -2*ln(L) from iminuit
         return ts, denom, num
