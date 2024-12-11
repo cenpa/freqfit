@@ -127,32 +127,6 @@ def test_statistic_asymptotic_limit(
         )
 
 
-def toy_ts_critical(
-    ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
-    threshold: float = 0.9,  # critical threshold for test statistic
-    confidence: float = 0.68,  # width of confidence interval on the CDF
-    plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
-    bins=None,  # int or array, number of bins or list of bin edges for CDF
-    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
-    plot_dir: str = "",  # directory where to save plots
-    plot_title: str = "",
-):
-    # TODO: Deprecate
-    msg = "`toy_ts_critical` is deprecated and will be removed at a random point in the future. Use `ts_critical` instead."
-    logging.warning(msg)
-
-    return ts_critical(
-        ts=ts,
-        threshold=threshold,
-        confidence=confidence,
-        plot=plot,
-        bins=bins,
-        step=step,
-        plot_dir=plot_dir,
-        plot_title=plot_title,
-    )
-
-
 def ts_critical(
     ts: np.array,  # list of test statistics (output of Experiment.toy_ts)
     threshold: float = 0.9,  # critical threshold for test statistic
