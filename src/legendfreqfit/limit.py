@@ -27,6 +27,7 @@ class SetLimit(Experiment):
         numtoy: int = 0,
         out_path: str = ".",
         name: str = "",
+        overwrite_files: bool = False,
     ) -> None:
         """
         This class inherits from `Experiment`, and also holds the name of the variable to profile
@@ -41,6 +42,7 @@ class SetLimit(Experiment):
         self.numtoy = numtoy
         self.out_path = out_path
         self.numcores = NUM_CORES  # default
+        self.overwrite_files = overwrite_files
 
     def set_var_to_profile(self, var_to_profile: str):
         """
@@ -300,7 +302,7 @@ class SetLimit(Experiment):
         scan_point,
         profile_dict: dict = {},  # noqa:B006
         scan_point_override=None,
-        overwrite_files: bool = False,
+        overwrite_files: bool = None,
     ):
         """
         Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
@@ -310,10 +312,27 @@ class SetLimit(Experiment):
         profile_dict
             An optional dictionary of values we want to fix during all of the profiles
         
-        overwrite_files: bool, optional (default: False)
-            whether to overwrite result files if found
+        overwrite_files: bool, optional 
+            whether to overwrite result files if found, uses global option of SetLimit as default
 
         """
+
+        if overwrite_files is None:
+            overwrite_files = self.overwrite_files
+
+        filename = ''
+        if not profile_dict:
+            filename = self.out_path + f"/{scan_point}_{self.jobid}.h5"
+        else:
+            filename = (
+                self.out_path
+                + f"/{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
+            )
+
+        if os.path.exists(filename) and not overwrite_files:
+            msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
+            raise RuntimeError(msg)
+
         # First we need to profile out the variable we are scanning
         toypars = self.profile({f"{self.var_to_profile}": scan_point, **profile_dict})[
             "values"
@@ -341,27 +360,15 @@ class SetLimit(Experiment):
         )
 
         # Now, save the toys to a file
-        if not profile_dict:
-            file_name = self.out_path + f"/{scan_point}_{self.jobid}.h5"
 
-            if overwrite_files and os.path.exists(file_name):
-                msg = f"overwriting existing file {file_name}"
-                logging.warn(msg)
-                os.remove(file_name)
+        if overwrite_files and os.path.exists(filename):
+            msg = f"overwriting existing file {filename}"
+            logging.warn(msg)
+            os.remove(filename)
+            
+        f = h5py.File(filename, "a")
 
-            f = h5py.File(file_name, "a")
-        else:
-            file_name = (
-                self.out_path
-                + f"/{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
-            )
-
-            if overwrite_files and os.path.exists(file_name):
-                msg = f"overwriting existing file {file_name}"
-                logging.warn(msg)
-                os.remove(file_name)
-
-            f = h5py.File(file_name, "a")
+        if profile_dict:
             dset = f.create_dataset(
                 "profile_parameters_names", data=list(profile_dict.keys())
             )
@@ -385,10 +392,21 @@ class SetLimit(Experiment):
     def run_and_save_brazil(
         self,
         scan_points,
+        overwrite_files: bool = None,
     ) -> None:
         """
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         """
+
+        if overwrite_files is None:
+            overwrite_files = self.overwrite_files
+
+        filename = self.out_path + f"/1E-9_{self.jobid}.h5"
+
+        if os.path.exists(filename) and not overwrite_files:
+            msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
+            raise RuntimeError(msg)
+
         # First we need to profile out the variable we are scanning at 0 signal rate
         toypars = self.profile({f"{self.var_to_profile}": 1.0e-9})["values"]
 
@@ -412,8 +430,12 @@ class SetLimit(Experiment):
         )
 
         # Now, save the toys to a file
-        file_name = self.out_path + f"/1E-9_{self.jobid}.h5"
-        f = h5py.File(file_name, "a")
+        if overwrite_files and os.path.exists(filename):
+            msg = f"overwriting existing file {filename}"
+            logging.warn(msg)
+            os.remove(filename)
+
+        f = h5py.File(filename, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("ts_num", data=toyts_num)
         dset = f.create_dataset("ts_denom", data=toyts_denom)
@@ -431,11 +453,25 @@ class SetLimit(Experiment):
         self,
         scan_point,
         profile_dict: dict = {},  # noqa:B006
+        overwrite_files: bool = None,
     ) -> None:
         """
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         If we are running with profile_dict parameters, the optimal job submission differs from the above and is more similar to run_and_save_toys
         """
+
+        if overwrite_files is None:
+            overwrite_files = self.overwrite_files
+
+        filename = (
+            self.out_path
+            + f"/1E-9_{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
+        )
+
+        if os.path.exists(filename) and not overwrite_files:
+            msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
+            raise RuntimeError(msg)
+
         # First we need to profile out the variable we are scanning at 0 signal rate
         toypars = self.profile({f"{self.var_to_profile}": 1.0e-9, **profile_dict})[
             "values"
@@ -457,11 +493,12 @@ class SetLimit(Experiment):
         )
 
         # Now, save the toys to a file
-        file_name = (
-            self.out_path
-            + f"/1E-9_{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
-        )
-        f = h5py.File(file_name, "a")
+        if overwrite_files and os.path.exists(filename):
+            msg = f"overwriting existing file {filename}"
+            logging.warn(msg)
+            os.remove(filename)
+            
+        f = h5py.File(filename, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("ts_num", data=toyts_num)
         dset = f.create_dataset("ts_denom", data=toyts_denom)
