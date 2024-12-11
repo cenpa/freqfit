@@ -7,6 +7,7 @@ import multiprocessing as mp
 
 import h5py
 import numpy as np
+import os
 from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
@@ -299,6 +300,7 @@ class SetLimit(Experiment):
         scan_point,
         profile_dict: dict = {},  # noqa:B006
         scan_point_override=None,
+        overwrite_files: bool = False,
     ):
         """
         Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
@@ -307,6 +309,10 @@ class SetLimit(Experiment):
         ----------
         profile_dict
             An optional dictionary of values we want to fix during all of the profiles
+        
+        overwrite_files: bool, optional (default: False)
+            whether to overwrite result files if found
+
         """
         # First we need to profile out the variable we are scanning
         toypars = self.profile({f"{self.var_to_profile}": scan_point, **profile_dict})[
@@ -337,12 +343,24 @@ class SetLimit(Experiment):
         # Now, save the toys to a file
         if not profile_dict:
             file_name = self.out_path + f"/{scan_point}_{self.jobid}.h5"
+
+            if overwrite_files and os.path.exists(file_name):
+                msg = f"overwriting existing file {file_name}"
+                logging.warn(msg)
+                os.remove(file_name)
+
             f = h5py.File(file_name, "a")
         else:
             file_name = (
                 self.out_path
                 + f"/{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
             )
+
+            if overwrite_files and os.path.exists(file_name):
+                msg = f"overwriting existing file {file_name}"
+                logging.warn(msg)
+                os.remove(file_name)
+
             f = h5py.File(file_name, "a")
             dset = f.create_dataset(
                 "profile_parameters_names", data=list(profile_dict.keys())
