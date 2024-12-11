@@ -365,8 +365,8 @@ class Toy:
             best = ts[np.argmin([t["fval"] for t in ts])]
             self.best = best
             if not best["valid"]:
-                msg = "`Experiment` has invalid best fit"
-                logging.warning(msg)
+                msg = f"`Toy` with seed {self.seed} has invalid best fit"
+                logging.debug(msg)
 
         elif self.scan:
             y = np.empty(len(self.hypercube_grid))
@@ -422,13 +422,13 @@ class Toy:
 
             if not self.minuit.valid:
                 msg = f"`Toy` with seed {self.seed} has invalid best fit"
-                logging.warning(msg)
+                logging.debug(msg)
 
             self.best = grab_results(self.minuit)
 
         if self.guess == self.best["values"]:
             msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"
-            logging.warning(msg)
+            logging.debug(msg)
 
         return self.best
 
@@ -511,13 +511,13 @@ class Toy:
 
             if not self.minuit.valid:
                 msg = f"`Toy` with seed {self.seed} has invalid profile"
-                logging.warning(msg)
+                logging.debug(msg)
 
             results = grab_results(self.minuit)
 
         if self.guess == results["values"]:
             msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"
-            logging.warning(msg)
+            logging.debug(msg)
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():
@@ -564,7 +564,7 @@ class Toy:
 
         if ts < 0:
             msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
-            logging.warning(msg)
+            logging.debug(msg)
 
         # because these are already -2*ln(L) from iminuit
         return ts, denom, num
