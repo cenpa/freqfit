@@ -4,10 +4,10 @@ This class inherits from `Experiment`, and also holds the name of the variable t
 
 import logging
 import multiprocessing as mp
+import os
 
 import h5py
 import numpy as np
-import os
 from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
@@ -311,8 +311,8 @@ class SetLimit(Experiment):
         ----------
         profile_dict
             An optional dictionary of values we want to fix during all of the profiles
-        
-        overwrite_files: bool, optional 
+
+        overwrite_files: bool, optional
             whether to overwrite result files if found, uses global option of SetLimit as default
 
         """
@@ -320,7 +320,7 @@ class SetLimit(Experiment):
         if overwrite_files is None:
             overwrite_files = self.overwrite_files
 
-        filename = ''
+        filename = ""
         if not profile_dict:
             filename = self.out_path + f"/{scan_point}_{self.jobid}.h5"
         else:
@@ -363,9 +363,9 @@ class SetLimit(Experiment):
 
         if overwrite_files and os.path.exists(filename):
             msg = f"overwriting existing file {filename}"
-            logging.warn(msg)
+            logging.warning(msg)
             os.remove(filename)
-            
+
         f = h5py.File(filename, "a")
 
         if profile_dict:
@@ -401,18 +401,18 @@ class SetLimit(Experiment):
         if overwrite_files is None:
             overwrite_files = self.overwrite_files
 
-        filename = self.out_path + f"/1E-9_{self.jobid}.h5"
+        filename = self.out_path + f"/0_{self.jobid}.h5"
 
         if os.path.exists(filename) and not overwrite_files:
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
             raise RuntimeError(msg)
 
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 1.0e-9})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": 0.0})["values"]
 
         # Add 0 to the scan points if it is not there
-        if 1.0e-9 not in scan_points:
-            scan_points = np.insert(scan_points, 0, 1.0e-9)
+        if 0.0 not in scan_points:
+            scan_points = np.insert(scan_points, 0, 0.0)
 
         # Now we can run the toys
         (
@@ -432,7 +432,7 @@ class SetLimit(Experiment):
         # Now, save the toys to a file
         if overwrite_files and os.path.exists(filename):
             msg = f"overwriting existing file {filename}"
-            logging.warn(msg)
+            logging.warning(msg)
             os.remove(filename)
 
         f = h5py.File(filename, "a")
@@ -465,7 +465,7 @@ class SetLimit(Experiment):
 
         filename = (
             self.out_path
-            + f"/1E-9_{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
+            + f"/0_{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
         )
 
         if os.path.exists(filename) and not overwrite_files:
@@ -473,7 +473,7 @@ class SetLimit(Experiment):
             raise RuntimeError(msg)
 
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 1.0e-9, **profile_dict})[
+        toypars = self.profile({f"{self.var_to_profile}": 0.0, **profile_dict})[
             "values"
         ]
 
@@ -495,9 +495,9 @@ class SetLimit(Experiment):
         # Now, save the toys to a file
         if overwrite_files and os.path.exists(filename):
             msg = f"overwriting existing file {filename}"
-            logging.warn(msg)
+            logging.warning(msg)
             os.remove(filename)
-            
+
         f = h5py.File(filename, "a")
         dset = f.create_dataset("ts", data=toyts)
         dset = f.create_dataset("ts_num", data=toyts_num)
