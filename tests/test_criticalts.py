@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import chi2
 
 from legendfreqfit import Experiment
-from legendfreqfit.statistics import dkw_band, emp_cdf, toy_ts_critical
+from legendfreqfit.statistics import dkw_band, emp_cdf, ts_critical
 
 
 def test_dkw():
@@ -127,17 +127,17 @@ def test_criticalts():
     toyts = p.toy_ts(toypars, {"global_S": true_S}, num=numtoys)[0]
     nbins = 500
 
-    (crit95, lo95, hi95), _ = toy_ts_critical(
+    (crit95, lo95, hi95), _ = ts_critical(
         toyts, bins=nbins, confidence=0.99, threshold=0.95
     )
     assert lo95 < chi2.ppf(0.95, df=1) and chi2.ppf(0.95, df=1) < hi95
 
-    (crit90, lo90, hi90), _ = toy_ts_critical(
+    (crit90, lo90, hi90), _ = ts_critical(
         toyts, bins=nbins, confidence=0.99, threshold=0.9
     )
     assert lo90 < chi2.ppf(0.9, df=1) and chi2.ppf(0.9, df=1) < hi90
 
-    (crit68, lo68, hi68), _ = toy_ts_critical(
+    (crit68, lo68, hi68), _ = ts_critical(
         toyts, bins=nbins, confidence=0.99, threshold=0.68
     )
     assert lo68 < chi2.ppf(0.68, df=1) and chi2.ppf(0.68, df=1) < hi68
