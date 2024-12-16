@@ -24,7 +24,6 @@ class Experiment(Superset):
         config: dict,
         name: str = "",
     ) -> None:
-
         self.toy = None  # the last Toy from this experiment
         self.best = None  # to store the best fit result
         self.guess = None  # store the initial guess
@@ -34,7 +33,7 @@ class Experiment(Superset):
         self.test_statistic = "t_mu"
 
         # minimization options
-        self.backend = "minuit" # "minuit" or "scipy"
+        self.backend = "minuit"  # "minuit" or "scipy"
         self.scipy_minimizer = None
         self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
         self.iminuit_tolerance = 1e-100  # tolerance for iminuit or other minimizer
@@ -137,7 +136,11 @@ class Experiment(Superset):
                     self.scan_grid = config["options"]["scan_grid"]
 
             if "initial_guess_function" in config["options"]:
-                if config["options"]["initial_guess_function"] in ["None", "none", None]:
+                if config["options"]["initial_guess_function"] in [
+                    "None",
+                    "none",
+                    None,
+                ]:
                     self.initial_guess_function = None
                 else:
                     self.initial_guess_function = config["options"][
@@ -382,6 +385,10 @@ class Experiment(Superset):
                 logging.debug(msg)
 
             self.best = grab_results(self.minuit)
+
+        if "global_S" in self.best["values"]:
+            if self.best["values"]["global_S"] < 1e-20:
+                self.best = self.profile({"global_S": 0.0})
 
         if self.guess == self.best["values"]:
             msg = "`Experiment` has best fit values very close to initial guess"

@@ -71,7 +71,7 @@ def load_config(
         else:
             msg = f"dataset `{datasetname}` has no `costfunction`"
             raise KeyError(msg)
-        
+
     if "constraints" in config:
         for constraintname, constraint in config["constraints"].items():
             if "parameters" not in constraint:
@@ -83,9 +83,13 @@ def load_config(
                     constraint["parameters"] = [constraint["parameters"]]
                 if not isinstance(constraint["values"], list):
                     constraint["values"] = [constraint["values"]]
-                if "uncertainty" in constraint and not isinstance(constraint["uncertainty"], list):
+                if "uncertainty" in constraint and not isinstance(
+                    constraint["uncertainty"], list
+                ):
                     constraint["uncertainty"] = [constraint["uncertainty"]]
-                if "covariance" in constraint and not isinstance(constraint["covariance"], np.ndarray):
+                if "covariance" in constraint and not isinstance(
+                    constraint["covariance"], np.ndarray
+                ):
                     constraint["covariance"] = np.asarray(constraint["covariance"])
 
     if "combined_datasets" in config:
@@ -135,7 +139,7 @@ def load_config(
     for par, pardict in config["parameters"].items():
         if "limits" in pardict and type(pardict["limits"]) is str:
             pardict["limits"] = eval(pardict["limits"])
-        
+
         if "physical_limits" in pardict and type(pardict["physical_limits"]) is str:
             pardict["physical_limits"] = eval(pardict["physical_limits"])
 
@@ -157,6 +161,8 @@ def grab_results(
     toreturn["tol"] = minuit.tol  # returns float
     toreturn["valid"] = minuit.valid  # returns bool
     toreturn["values"] = minuit.values.to_dict()  # returns dict
+    # toreturn["values"] = {key: np.around(value, 6) for key, value in minuit.values.to_dict().items()}  # returns dict
+    # toreturn["fval"] = minuit._fcn(toreturn["values"].values()) # overwrite the fval with the truncated params
 
     return toreturn
 

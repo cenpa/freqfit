@@ -426,6 +426,10 @@ class Toy:
 
             self.best = grab_results(self.minuit)
 
+        if "global_S" in self.best["values"]:
+            if self.best["values"]["global_S"] < 1e-20:
+                self.best = self.profile({"global_S": 0.0})
+
         if self.guess == self.best["values"]:
             msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"
             logging.debug(msg)
