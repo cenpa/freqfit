@@ -513,7 +513,7 @@ class Experiment(Superset):
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():
-            results[parname] = parvalue
+            results["values"][parname] = parvalue
 
         return results
 
