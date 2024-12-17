@@ -190,3 +190,8 @@ class UniqueKeyLoader(yaml.SafeLoader):
                 )
             mapping.add(each_key)
         return super().construct_mapping(node, deep)
+
+# negative of the exponent of scientific notation of a number
+def negexpscinot(number):
+    base10 = np.log10(abs(number))
+    return int(-1 * np.floor(base10))
