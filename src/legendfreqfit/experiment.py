@@ -39,7 +39,9 @@ class Experiment(Superset):
         self.iminuit_tolerance = 1e-100  # tolerance for iminuit or other minimizer
         self.iminuit_precision = 1e-120  # precision for the Iminuit minimizer, especially important for scipy minimizers
         self.iminuit_strategy = 0
-        self.minimizer_options = {}  # dict of options to pass to the iminuit minimizer
+        self.minimizer_options = {}  # dict of options to pass to the iminuit minimizer        
+        self.use_grid_rounding = False # whether to stick parameters on a grid when evaluating the test statistic after minimizing
+        self.grid_rounding_num_decimals = {} # dict telling us how many decimals to round the parameters to when grid rounding
 
         self.scan = False
         self.scan_bestfit = False
@@ -124,6 +126,10 @@ class Experiment(Superset):
 
             if "initial_guess_function" in config["options"]:
                 self.initial_guess_function = config["options"]["initial_guess_function"]
+            
+            if "use_grid_rounding" in config["options"]:
+                self.use_grid_rounding = config["options"]["use_grid_rounding"]
+                logging.info("using grid rounding")
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
@@ -135,9 +141,9 @@ class Experiment(Superset):
                     self.test_statistic = config["options"]["test_statistic"]
                     msg = f"setting test statistic: {self.test_statistic}"
                     logging.info(msg)
-        else:
-            msg = "setting test statistic to default: t_mu"
-            logging.info(msg)
+            else:
+                msg = "setting test statistic to default: t_mu"
+                logging.info(msg)
 
         constraints = None
         if "constraints" in config:
@@ -191,6 +197,13 @@ class Experiment(Superset):
                 # check if this parameter is part of a Dataset that has data
                 if parname not in parstofitthathavedata:
                     self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]
+            
+        for parname in self.fitparameters:
+            if self.use_grid_rounding:
+                if "grid_rounding_num_decimals" in self.parameters[parname]:
+                    self.grid_rounding_num_decimals[parname] = self.parameters[parname]["grid_rounding_num_decimals"]
+                else:
+                    self.grid_rounding_num_decimals[parname] = 128 # something big
 
         # to set limits and fixed variables
         # this function will also fix those fit parameters which can be fixed because they are not part of a
@@ -334,11 +347,26 @@ class Experiment(Superset):
                 elif self.backend == "minimum_minimizer":
                     # Run through 3 minimizers and pick the best of them
                     self.minuit.simplex()
-                    result1 = grab_results(self.minuit)
+                    result1 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.use_grid_rounding,
+                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.migrad(**self.minimizer_options)
-                    result2 = grab_results(self.minuit)
+                    result2 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.use_grid_rounding,
+                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.scipy(method="Powell", options=self.minimizer_options)
-                    result3 = grab_results(self.minuit)
+                    result3 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.use_grid_rounding,
+                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                        )
+
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
                     )
@@ -362,7 +390,11 @@ class Experiment(Superset):
                 msg = "`Experiment` has invalid best fit"
                 logging.debug(msg)
 
-            self.best = grab_results(self.minuit)
+            self.best = grab_results(
+                self.minuit, 
+                use_grid_rounding=self.use_grid_rounding,
+                grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                )
 
         if "global_S" in self.best["values"]:
             if self.best["values"]["global_S"] < 1e-20:
@@ -426,11 +458,26 @@ class Experiment(Superset):
                     )
                 elif self.backend == "minimum_minimizer":
                     self.minuit.simplex()
-                    result1 = grab_results(self.minuit)
+                    result1 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.use_grid_rounding,
+                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.migrad(**self.minimizer_options)
-                    result2 = grab_results(self.minuit)
+                    result2 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.use_grid_rounding,
+                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.scipy(method="Powell", options=self.minimizer_options)
-                    result3 = grab_results(self.minuit)
+                    result3 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.use_grid_rounding,
+                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                        )
+
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
                     )
@@ -454,7 +501,11 @@ class Experiment(Superset):
                 msg = "`Experiment` has invalid profile"
                 logging.debug(msg)
 
-            results = grab_results(self.minuit)
+            results = grab_results(
+                self.minuit, 
+                use_grid_rounding=self.use_grid_rounding,
+                grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+                )
 
         if self.guess == results["values"]:
             msg = "`Experiment` has profile fit values very close to initial guess"

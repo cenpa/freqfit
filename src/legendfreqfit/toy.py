@@ -395,11 +395,26 @@ class Toy:
                     )
                 elif self.experiment.backend == "minimum_minimizer":
                     self.minuit.simplex()
-                    result1 = grab_results(self.minuit)
+                    result1 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.experiment.use_grid_rounding,
+                        grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.migrad(**self.minimizer_options)
-                    result2 = grab_results(self.minuit)
+                    result2 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.experiment.use_grid_rounding,
+                        grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.scipy(method="Powell", options=self.minimizer_options)
-                    result3 = grab_results(self.minuit)
+                    result3 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.experiment.use_grid_rounding,
+                        grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                        )
+
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
                     )
@@ -424,7 +439,11 @@ class Toy:
                 msg = f"`Toy` with seed {self.seed} has invalid best fit"
                 logging.debug(msg)
 
-            self.best = grab_results(self.minuit)
+            self.best = grab_results(
+                self.minuit, 
+                use_grid_rounding=self.experiment.use_grid_rounding,
+                grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                )
 
         if "global_S" in self.best["values"]:
             if self.best["values"]["global_S"] < 1e-20:
@@ -489,11 +508,26 @@ class Toy:
                 elif self.experiment.backend == "minimum_minimizer":
                     # Run through 3 minimizers and pick the best of them
                     self.minuit.simplex()
-                    result1 = grab_results(self.minuit)
+                    result1 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.experiment.use_grid_rounding,
+                        grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.migrad(**self.minimizer_options)
-                    result2 = grab_results(self.minuit)
+                    result2 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.experiment.use_grid_rounding,
+                        grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                        )
+
                     self.minuit.scipy(method="Powell", options=self.minimizer_options)
-                    result3 = grab_results(self.minuit)
+                    result3 = grab_results(
+                        self.minuit, 
+                        use_grid_rounding=self.experiment.use_grid_rounding,
+                        grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                        )
+
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
                     )
@@ -517,7 +551,11 @@ class Toy:
                 msg = f"`Toy` with seed {self.seed} has invalid profile"
                 logging.debug(msg)
 
-            results = grab_results(self.minuit)
+            results = grab_results(
+                self.minuit, 
+                use_grid_rounding=self.experiment.use_grid_rounding,
+                grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
+                )
 
         if self.guess == results["values"]:
             msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"

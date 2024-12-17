@@ -143,11 +143,18 @@ def load_config(
         if "physical_limits" in pardict and type(pardict["physical_limits"]) is str:
             pardict["physical_limits"] = eval(pardict["physical_limits"])
 
+    if "options" in config:
+        for option, optionval in config["options"].items():
+            if optionval in ["none", "None"]:
+                config["options"][option] = None
+
     return config
 
 
 def grab_results(
     minuit,
+    use_grid_rounding: bool = False,
+    grid_rounding_num_decimals: dict = {},
 ) -> dict:
     # I checked whether we need to shallow/deep copy these and it seems like we do not
 
@@ -161,8 +168,13 @@ def grab_results(
     toreturn["tol"] = minuit.tol  # returns float
     toreturn["valid"] = minuit.valid  # returns bool
     toreturn["values"] = minuit.values.to_dict()  # returns dict
-    # toreturn["values"] = {key: np.around(value, 6) for key, value in minuit.values.to_dict().items()}  # returns dict
-    # toreturn["fval"] = minuit._fcn(toreturn["values"].values()) # overwrite the fval with the truncated params
+
+    if use_grid_rounding:
+        print(grid_rounding_num_decimals)
+        toreturn["values"] = {key: np.around(value, grid_rounding_num_decimals[key]) for key, value in minuit.values.to_dict().items()}  # returns dict
+        toreturn["fval"] = minuit._fcn(toreturn["values"].values()) # overwrite the fval with the truncated params
+
+    print(toreturn)
 
     return toreturn
 
