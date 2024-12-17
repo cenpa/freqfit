@@ -74,22 +74,10 @@ class Experiment(Superset):
                 self.backend = config["options"]["backend"]
 
             if "iminuit_tolerance" in config["options"]:
-                if config["options"]["iminuit_tolerance"] in [
-                    "none",
-                    "None",
-                ]:  # yaml can't interpret None
-                    self.iminuit_tolerance = None
-                else:
-                    self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
+                self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
 
             if "iminuit_precision" in config["options"]:
-                if config["options"]["iminuit_precision"] in [
-                    "none",
-                    "None",
-                ]:  # yaml can't interpret None
-                    self.iminuit_precision = None
-                else:
-                    self.iminuit_precision = config["options"]["iminuit_precision"]
+                self.iminuit_precision = config["options"]["iminuit_precision"]
 
             if "minimizer_options" in config["options"]:
                 self.minimizer_options = config["options"]["minimizer_options"]
@@ -97,10 +85,8 @@ class Experiment(Superset):
                 if not isinstance(self.minimizer_options, dict):
                     raise ValueError("minimizer_options must be a dictionary")
 
-            if "scipy_minimizer" in config["options"]:
-                if config["options"]["scipy_minimizer"] in ["None", "none", None]:
-                    self.scipy_minimizer = None
-                else:
+            if self.backend == "scipy":
+                if "scipy_minimizer" in config["options"]:
                     self.scipy_minimizer = config["options"]["scipy_minimizer"]
                     if self.scipy_minimizer not in [
                         "Nelder-Mead",
@@ -118,6 +104,7 @@ class Experiment(Superset):
                         "trust-ncg",
                         "trust-exact",
                         "trust-krylov",
+                        None,
                     ]:
                         raise NotImplementedError(
                             f"{self.scipy_minimizer} is not a valid minimizer"
@@ -136,16 +123,7 @@ class Experiment(Superset):
                     self.scan_grid = config["options"]["scan_grid"]
 
             if "initial_guess_function" in config["options"]:
-                if config["options"]["initial_guess_function"] in [
-                    "None",
-                    "none",
-                    None,
-                ]:
-                    self.initial_guess_function = None
-                else:
-                    self.initial_guess_function = config["options"][
-                        "initial_guess_function"
-                    ]
+                self.initial_guess_function = config["options"]["initial_guess_function"]
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
