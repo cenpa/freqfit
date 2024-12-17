@@ -170,11 +170,8 @@ def grab_results(
     toreturn["values"] = minuit.values.to_dict()  # returns dict
 
     if use_grid_rounding:
-        print(grid_rounding_num_decimals)
         toreturn["values"] = {key: np.around(value, grid_rounding_num_decimals[key]) for key, value in minuit.values.to_dict().items()}  # returns dict
         toreturn["fval"] = minuit._fcn(toreturn["values"].values()) # overwrite the fval with the truncated params
-
-    print(toreturn)
 
     return toreturn
 
