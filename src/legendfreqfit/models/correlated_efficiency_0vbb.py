@@ -1,3 +1,5 @@
+import decimal
+
 import numba as nb
 import numpy as np
 
@@ -706,20 +708,141 @@ class correlated_efficiency_0vbb_gen:
         plt.step(Es, y)
         plt.show()
 
+    # # function call needs to take the same parameters as the other function calls, in the same order repeated twice
+    # # this is intended only for empty datasets
+    # # returns `None` if we couldn't combine the datasets (a dataset was not empty)
+    # def combine(
+    #     self,
+    #     a_Es: np.array,
+    #     a_S: float,
+    #     a_BI: float,
+    #     a_delta: float,
+    #     a_sigma: float,
+    #     a_eff: float,
+    #     a_effunc: float,
+    #     a_effuncscale: float,
+    #     a_exp: float,
+    #     b_Es: np.array,
+    #     b_S: float,
+    #     b_BI: float,
+    #     b_delta: float,
+    #     b_sigma: float,
+    #     b_eff: float,
+    #     b_effunc: float,
+    #     b_effuncscale: float,
+    #     b_exp: float,
+    # ) -> list | None:
+    #     # datasets must be empty to be combined
+    #     if len(a_Es) != 0 or len(b_Es) != 0:
+    #         return None
+
+    #     Es = np.array([])  # both of these datasets are empty
+    #     S = 0.0  # this should be overwritten in the fit later
+    #     BI = 0.0  # this should be overwritten in the fit later
+
+    #     exp = a_exp + b_exp  # total exposure
+
+    #     # exposure weighted fixed parameters (important to calculate correctly)
+    #     sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
+    #     eff = (a_exp * a_eff + b_exp * b_eff) / exp
+    #     delta = (a_exp * a_delta + b_exp * b_delta) / exp
+
+    #     # these are fully correlated in this model so the direct sum is appropriate
+    #     # (maybe still appropriate even if not fully correlated?)
+    #     effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+
+    #     effuncscale = 0.0  # this should be overwritten in the fit later
+
+    #     return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
+
     # function call needs to take the same parameters as the other function calls, in the same order repeated twice
     # this is intended only for empty datasets
     # returns `None` if we couldn't combine the datasets (a dataset was not empty)
     def combine(
         self,
-        a_Es: np.array,
-        a_S: float,
-        a_BI: float,
-        a_delta: float,
-        a_sigma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
+        Es: list,
+        S: list,
+        BI: list,
+        delta: list,
+        sigma: list,
+        eff: list,
+        effunc: list,
+        effuncscale: list,
+        exp: list,
+    ) -> list | None:
+        # Convert all lists to numpy with float128 precision
+        exp = np.array(exp, dtype=np.float128)
+        delta = np.array(delta, dtype=np.float128)
+        sigma = np.array(sigma, dtype=np.float128)
+        eff = np.array(eff, dtype=np.float128)
+        effunc = np.array(effunc, dtype=np.float128)
+        # datasets must be empty to be combined
+        if len(Es) != 0:
+            return None
+
+        Es_return = np.array([])  # both of these datasets are empty
+        S_return = 0.0  # this should be overwritten in the fit later
+        BI_return = 0.0  # this should be overwritten in the fit later
+
+        # exp_return = np.sum(exp, dtype=np.float128)  # total exposure
+        exp_return = decimal.Decimal("0.0")
+        sigma_return = decimal.Decimal("0.0")
+        delta_return = decimal.Decimal("0.0")
+        eff_return = decimal.Decimal("0.0")
+        effunc_return = decimal.Decimal("0.0")
+        for i, e in enumerate(exp):
+            exp_return = exp_return + decimal.Decimal(f"{e}")
+
+            sigma_return = sigma_return + decimal.Decimal(
+                f"{sigma[i]}"
+            ) * decimal.Decimal(f"{e}")
+            delta_return = delta_return + decimal.Decimal(
+                f"{delta[i]}"
+            ) * decimal.Decimal(f"{e}")
+            eff_return = eff_return + decimal.Decimal(f"{eff[i]}") * decimal.Decimal(
+                f"{e}"
+            )
+            effunc_return = effunc_return + decimal.Decimal(
+                f"{effunc[i]}"
+            ) * decimal.Decimal(f"{e}")
+        sigma_return = sigma_return / exp_return
+        delta_return = delta_return / exp_return
+        eff_return = eff_return / exp_return
+        effunc_return = effunc_return / exp_return
+
+        effuncscale_return = 0.0  # this should be overwritten in the fit later
+
+        exp_return = float(exp_return)
+        sigma_return = float(sigma_return)
+        delta_return = float(delta_return)
+        eff_return = float(eff_return)
+        effunc_return = float(effunc_return)
+        return [
+            Es_return,
+            S_return,
+            BI_return,
+            delta_return,
+            sigma_return,
+            eff_return,
+            effunc_return,
+            effuncscale_return,
+            exp_return,
+        ]
+
+    # function call needs to take the same parameters as the other function calls, in the same order repeated twice
+    # this is intended only for empty datasets
+    # returns `None` if we couldn't combine the datasets (a dataset was not empty)
+    def collect(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        delta: list,
+        sigma: list,
+        eff: list,
+        effunc: list,
+        effuncscale: list,
+        exp: list,
         b_Es: np.array,
         b_S: float,
         b_BI: float,
@@ -730,28 +853,33 @@ class correlated_efficiency_0vbb_gen:
         b_effuncscale: float,
         b_exp: float,
     ) -> list | None:
-        # datasets must be empty to be combined
-        if len(a_Es) != 0 or len(b_Es) != 0:
+        # datasets must be empty to be collected and combined
+        if len(Es) != 0 or len(b_Es) != 0:
             return None
 
-        Es = np.array([])  # both of these datasets are empty
-        S = 0.0  # this should be overwritten in the fit later
-        BI = 0.0  # this should be overwritten in the fit later
+        Es_return = np.array([])  # both of these datasets are empty
+        S_return = 0.0  # this should be overwritten in the fit later
+        BI_return = 0.0  # this should be overwritten in the fit later
 
-        exp = a_exp + b_exp  # total exposure
-
-        # exposure weighted fixed parameters (important to calculate correctly)
-        sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
-        eff = (a_exp * a_eff + b_exp * b_eff) / exp
-        delta = (a_exp * a_delta + b_exp * b_delta) / exp
-
-        # these are fully correlated in this model so the direct sum is appropriate
-        # (maybe still appropriate even if not fully correlated?)
-        effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+        exp.append(b_exp)  # all exposures
+        sigma.append(b_sigma)  # all sigmas
+        eff.append(b_eff)  # all effs
+        effunc.append(b_effunc)  # all effs
+        delta.append(b_delta)  # all effs
 
         effuncscale = 0.0  # this should be overwritten in the fit later
 
-        return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
+        return [
+            Es_return,
+            S_return,
+            BI_return,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+        ]
 
     def can_combine(
         self,
