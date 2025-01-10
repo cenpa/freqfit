@@ -1,6 +1,7 @@
 """
 A class that holds a collection of fake datasets and associated hardware
 """
+import decimal
 import itertools
 import logging
 from copy import deepcopy
@@ -396,24 +397,24 @@ class Toy:
                 elif self.experiment.backend == "minimum_minimizer":
                     self.minuit.simplex()
                     result1 = grab_results(
-                        self.minuit, 
+                        self.minuit,
                         use_grid_rounding=self.experiment.use_grid_rounding,
                         grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                        )
+                    )
 
                     self.minuit.migrad(**self.minimizer_options)
                     result2 = grab_results(
-                        self.minuit, 
+                        self.minuit,
                         use_grid_rounding=self.experiment.use_grid_rounding,
                         grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                        )
+                    )
 
                     self.minuit.scipy(method="Powell", options=self.minimizer_options)
                     result3 = grab_results(
-                        self.minuit, 
+                        self.minuit,
                         use_grid_rounding=self.experiment.use_grid_rounding,
                         grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                        )
+                    )
 
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
@@ -440,10 +441,10 @@ class Toy:
                 logging.debug(msg)
 
             self.best = grab_results(
-                self.minuit, 
+                self.minuit,
                 use_grid_rounding=self.experiment.use_grid_rounding,
                 grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                )
+            )
 
         if "global_S" in self.best["values"]:
             if self.best["values"]["global_S"] < 1e-20:
@@ -509,24 +510,24 @@ class Toy:
                     # Run through 3 minimizers and pick the best of them
                     self.minuit.simplex()
                     result1 = grab_results(
-                        self.minuit, 
+                        self.minuit,
                         use_grid_rounding=self.experiment.use_grid_rounding,
                         grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                        )
+                    )
 
                     self.minuit.migrad(**self.minimizer_options)
                     result2 = grab_results(
-                        self.minuit, 
+                        self.minuit,
                         use_grid_rounding=self.experiment.use_grid_rounding,
                         grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                        )
+                    )
 
                     self.minuit.scipy(method="Powell", options=self.minimizer_options)
                     result3 = grab_results(
-                        self.minuit, 
+                        self.minuit,
                         use_grid_rounding=self.experiment.use_grid_rounding,
                         grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                        )
+                    )
 
                     min_fval = np.argmin(
                         [result1["fval"], result2["fval"], result3["fval"]]
@@ -552,10 +553,10 @@ class Toy:
                 logging.debug(msg)
 
             results = grab_results(
-                self.minuit, 
+                self.minuit,
                 use_grid_rounding=self.experiment.use_grid_rounding,
                 grid_rounding_num_decimals=self.experiment.grid_rounding_num_decimals,
-                )
+            )
 
         if self.guess == results["values"]:
             msg = f"`Toy` with seed {self.seed} has profile fit values very close to initial guess"
@@ -602,7 +603,8 @@ class Toy:
             parameters=profile_parameters, use_physical_limits=use_physical_limits
         )["fval"]
 
-        ts = num - denom
+        ts = decimal.Decimal(f"{num}") - decimal.Decimal(f"{denom}")
+        ts = float(ts)
 
         if ts < 0:
             msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"

@@ -353,7 +353,7 @@ def combine_datasets(
         # if first dataset, the combination is just the stuff needed to recreate it
         # TODO: check if it is allowed to be combined
         if first and (ds.model.can_combine(thisdata, *ds._parlist)):
-            combination = [thisdata, *ds._parlist]
+            collection = [thisdata, *([d] for d in ds._parlist)]
             included_datasets.append(ds.name)
             msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
             logging.info(msg)
@@ -363,9 +363,9 @@ def combine_datasets(
             else:
                 ds.is_combined = True
         elif ds.model.can_combine(thisdata, *ds._parlist):
-            result = model.combine(*combination, thisdata, *ds._parlist)
+            result = model.collect(*collection, thisdata, *ds._parlist)
             if result is not None:  # if None, we cannot combine them
-                combination = result
+                collection = result
                 included_datasets.append(ds.name)
                 msg = f"added `Dataset` '{ds.name}' to combined dataset '{name}'"
                 logging.info(msg)
@@ -376,6 +376,8 @@ def combine_datasets(
             else:
                 msg = f"not able to combine `Dataset` '{ds.name}' with combined dataset '{name}', will be kept separate"
                 logging.info(msg)
+
+    combination = ds.model.combine(*collection)
 
     # return the combined dataset if we combined some datasets
     combined_dataset = None
