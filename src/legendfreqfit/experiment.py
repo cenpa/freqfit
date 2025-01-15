@@ -46,7 +46,6 @@ class Experiment(Superset):
         )  # dict telling us how many decimals to round the parameters to when grid rounding
 
         self.scan = False
-        self.scan_bestfit = False
         self.scan_grid = None  # this is a dictionary, each key is a fit parameter and its values are the parameter values to scan along in one dimension
         self.user_gradient = (
             False  # option to use a user-specified density gradient for a model
@@ -313,20 +312,7 @@ class Experiment(Superset):
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        if self.scan_bestfit:
-            grid = np.linspace(1.0e-9, 0.2, 200)
-            args = [[{"global_S": float(xx)}] for xx in grid]
-
-            ts = []
-            for arg in args:
-                ts.append(self.profile(arg[0]))
-            best = ts[np.argmin([t["fval"] for t in ts])]
-            self.best = best
-            if not best["valid"]:
-                msg = "`Experiment` has invalid best fit"
-                logging.debug(msg)
-
-        elif self.scan:
+        if self.scan:
             y = np.empty(len(self.hypercube_grid))
             for i in range(len(self.hypercube_grid)):
                 y[i] = self.minuit._fcn(self.hypercube_grid[i])
