@@ -337,40 +337,6 @@ class Experiment(Superset):
                     self.minuit.scipy(
                         method=self.scipy_minimizer, options=self.minimizer_options
                     )
-                elif self.backend == "minimum_minimizer":
-                    # Run through 3 minimizers and pick the best of them
-                    self.minuit.simplex()
-                    result1 = grab_results(
-                        self.minuit,
-                        use_grid_rounding=self.use_grid_rounding,
-                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-                    )
-
-                    self.minuit.migrad(**self.minimizer_options)
-                    result2 = grab_results(
-                        self.minuit,
-                        use_grid_rounding=self.use_grid_rounding,
-                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-                    )
-
-                    self.minuit.scipy(method="Powell", options=self.minimizer_options)
-                    result3 = grab_results(
-                        self.minuit,
-                        use_grid_rounding=self.use_grid_rounding,
-                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-                    )
-
-                    min_fval = np.argmin(
-                        [result1["fval"], result2["fval"], result3["fval"]]
-                    )
-                    if min_fval == 0:
-                        self.minuit.simplex()
-                    elif min_fval == 1:
-                        self.minuit.migrad(**self.minimizer_options)
-                    else:
-                        self.minuit.scipy(
-                            method="Powell", options=self.minimizer_options
-                        )
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
@@ -449,39 +415,6 @@ class Experiment(Superset):
                     self.minuit.scipy(
                         method=self.scipy_minimizer, options=self.minimizer_options
                     )
-                elif self.backend == "minimum_minimizer":
-                    self.minuit.simplex()
-                    result1 = grab_results(
-                        self.minuit,
-                        use_grid_rounding=self.use_grid_rounding,
-                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-                    )
-
-                    self.minuit.migrad(**self.minimizer_options)
-                    result2 = grab_results(
-                        self.minuit,
-                        use_grid_rounding=self.use_grid_rounding,
-                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-                    )
-
-                    self.minuit.scipy(method="Powell", options=self.minimizer_options)
-                    result3 = grab_results(
-                        self.minuit,
-                        use_grid_rounding=self.use_grid_rounding,
-                        grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-                    )
-
-                    min_fval = np.argmin(
-                        [result1["fval"], result2["fval"], result3["fval"]]
-                    )
-                    if min_fval == 0:
-                        self.minuit.simplex()
-                    elif min_fval == 1:
-                        self.minuit.migrad(**self.minimizer_options)
-                    else:
-                        self.minuit.scipy(
-                            method="Powell", options=self.minimizer_options
-                        )
                 else:
                     raise NotImplementedError(
                         "Iminuit backend is not set to `minuit` or `scipy`"
