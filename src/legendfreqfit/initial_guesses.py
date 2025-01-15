@@ -10,6 +10,9 @@ from legendfreqfit.models.box_model_0vbb import box_model_0vbb_gen
 from legendfreqfit.models.correlated_efficiency_0vbb import (
     correlated_efficiency_0vbb_gen,
 )
+from legendfreqfit.models.correlated_efficiency_NME_0vbb import (
+    correlated_efficiency_NME_0vbb_gen,
+)
 from legendfreqfit.models.mjd_0vbb import mjd_0vbb_gen
 from legendfreqfit.models.truncated_correlated_efficiency_0vbb import (
     truncated_correlated_efficiency_0vbb_gen,
@@ -151,6 +154,47 @@ def guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted):  # noqa: N802
     return BI_guess, s_guess
 
 
+def guess_BI_m_bb(Es, totexp, eff_expweighted, sigma_expweighted, NME):  # noqa: N802
+    """
+    Give a better initial guess for the signal and background rate given an array of data
+    The signal rate is estimated in a +/-5 keV window around Qbb, the BI is estimated from everything outside that window
+
+    Parameters
+    ----------
+    Es
+        A numpy array of observed energy data
+    totexp
+        The total exposure of the experiment
+    eff_expweighted
+        The total efficiency of the experiment
+    sigma_expweighted
+        The total sigma of the QBB peak
+    NME
+        The central value of the NME used to generate this toy
+    """
+    QBB_ROI_SIZE = [
+        3 * sigma_expweighted,
+        3 * sigma_expweighted,
+    ]  # how many keV away from QBB in - and + directions we are defining the ROI
+    BKG_WINDOW_SIZE = WINDOWSIZE - np.sum(
+        QBB_ROI_SIZE
+    )  # subtract off the keV we are counting as the signal region
+    n_sig = 0
+    n_bkg = 0
+    for E in Es:
+        if QBB - QBB_ROI_SIZE[0] <= E <= QBB + QBB_ROI_SIZE[1]:
+            n_sig += 1
+        else:
+            n_bkg += 1
+
+    # find the expected BI
+    BI_guess = n_bkg / (BKG_WINDOW_SIZE * totexp)
+
+    m_guess = np.sqrt(n_sig / (totexp * eff_expweighted * NME))
+
+    return BI_guess, m_guess
+
+
 def poisson_initial_guess(experiment):
     # figure out if this is a toy or not:
     if hasattr(experiment, "experiment"):
@@ -209,6 +253,7 @@ def poisson_initial_guess(experiment):
 
     # Then perform the loop over datasets that share a background index
     BI_guesses = []
+    is_mbb_scan = False
     for ds_BI in ds_list:
         # Get estimates for these parameters based only on the datasets contributing to one BI
         BI_totexp = 0.0
@@ -223,6 +268,7 @@ def poisson_initial_guess(experiment):
                 isinstance(ds.model, correlated_efficiency_0vbb_gen)
                 or isinstance(ds.model, box_model_0vbb_gen)
                 or isinstance(ds.model, truncated_correlated_efficiency_0vbb_gen)
+                or isinstance(ds.model, correlated_efficiency_NME_0vbb_gen)
             ):
                 BI_totexp = BI_totexp + ds._parlist[7]
                 BI_sigma_expweighted = (
@@ -241,6 +287,10 @@ def poisson_initial_guess(experiment):
                         Es_per_BI.extend([])
                 else:
                     Es_per_BI.extend(ds.data)
+                # report the NME if this is an m_bb toy
+                if isinstance(ds.model, correlated_efficiency_NME_0vbb_gen):
+                    NME = ds._parlist[-1]
+                    is_mbb_scan = True  # we cannot mix and match S and m_bb, if this is true we are using m_bb only
             elif isinstance(ds.model, mjd_0vbb_gen):
                 BI_totexp = BI_totexp + ds._parlist[10]
                 BI_sigma_expweighted = (
@@ -277,14 +327,24 @@ def poisson_initial_guess(experiment):
         # Finally, we are ready to make our guess for this BI
         # If we get only one count in the signal window, then this guess will estimate too low a background
         # So, if BI is guessed as 0 and S is not 0, smear out the signal rate between them
-        BI_guess, s_guess = guess_BI_S(
-            Es_per_BI, BI_totexp, BI_eff_expweighted, BI_sigma_expweighted
-        )
-        if s_guess < 0:
-            s_guess = 0
+        if is_mbb_scan:
+            BI_guess, m_bb_guess = guess_BI_m_bb(
+                Es_per_BI, BI_totexp, BI_eff_expweighted, BI_sigma_expweighted, NME
+            )
+            if m_bb_guess < 0:
+                m_bb_guess = 0
 
-        if BI_guess <= 0:
-            BI_guess = 0
+            if BI_guess <= 0:
+                BI_guess = 0
+        else:
+            BI_guess, s_guess = guess_BI_S(
+                Es_per_BI, BI_totexp, BI_eff_expweighted, BI_sigma_expweighted
+            )
+            if s_guess < 0:
+                s_guess = 0
+
+            if BI_guess <= 0:
+                BI_guess = 0
 
         BI_guesses.append(BI_guess)
 
@@ -293,9 +353,16 @@ def poisson_initial_guess(experiment):
     eff_expweighted = eff_expweighted / BI_totexp
     effunc_expweighted = effunc_expweighted / BI_totexp
 
-    S_guess = guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted)[1]
-    if S_guess <= 0:
-        S_guess = 0
+    if is_mbb_scan:
+        m_bb_guess = guess_BI_m_bb(Es, totexp, eff_expweighted, sigma_expweighted, NME)[
+            1
+        ]
+        if m_bb_guess <= 0:
+            m_bb_guess = 0
+    else:
+        S_guess = guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted)[1]
+        if S_guess <= 0:
+            S_guess = 0
 
     # need to handle this differently depending on if this is a toy or not/what datasets have been combined
     if is_toy:
@@ -315,6 +382,9 @@ def poisson_initial_guess(experiment):
         guess[BI] = BI_guesses[i]
 
     # Update the signal guess
-    guess["global_S"] = S_guess
+    if is_mbb_scan:
+        guess["global_m_bb"] = m_bb_guess
+    else:
+        guess["global_S"] = S_guess
 
     return guess

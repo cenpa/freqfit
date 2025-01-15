@@ -1,6 +1,14 @@
+import numpy as np
+
 QBB = 2039.0612  # 2039.0612 +- 0.0075 keV from AME2020
 NA = 6.0221408e23  # Avogadro's number
 M76 = 0.0759214027  # kilograms per mole, molar mass of 76Ge
+G_01 = 0.23e-14  # in yr^-1, phase space factor for 76Ge from Phys. Rev. C 98, 035502 by Horoi et. al
+g_A = 1.27  # noqa: N816 # axial coupling constant from Phys. Rev. Lett. 120, 202002 by Czarnecki et. al
+me = 0.5109989500e6  # mass of the electron in eV/c^2 from PDG
+NME_central = 2.60  # these values come from Phys. Rev. Lett. 132, 182502
+NME_unc = 1.32  # symmetrized error from Phys. Rev. Lett. 132, 182502
+
 
 # lines to exclude are
 # 2614.511(10) - 511 = 2103.511 keV SEP from 208Tl
@@ -11,19 +19,32 @@ M76 = 0.0759214027  # kilograms per mole, molar mass of 76Ge
 WINDOW = [[1930.0, 2098.511], [2108.511, 2113.513], [2123.513, 2190.0]]
 
 # MJD analysis window (in keV) is slightly larger than GERDA/LEGEND and excludes an additional line
-MJD_WINDOW = [[1950.0, 2098.511], [2108.511, 2113.513], [2123.513, 2199.1], [2209.1, 2350.0]]
+MJD_WINDOW = [
+    [1950.0, 2098.511],
+    [2108.511, 2113.513],
+    [2123.513, 2199.1],
+    [2209.1, 2350.0],
+]
 
 # could use these to go a little faster?
 LOG2 = 0.69314718055994528622676398299518041312694549560546875
 SQRT2PI = 2.506628274631000241612355239340104162693023681640625
 
+
 # conversion function
 def s_prime_to_s(s_prime):
-  # Given s_prime in decays/(kg*yr), find s in decays/yr
-  s = s_prime * (M76 / (LOG2 * NA) )
-  return s
+    # Given s_prime in decays/(kg*yr), find s in decays/yr
+    s = s_prime * (M76 / (LOG2 * NA))
+    return s
+
+
+# another conversion function
+def m_prime_to_m(m_prime):
+    # Given m_prime in ev/(kg*yr), find m in ev
+    return m_prime * np.sqrt(M76 * me**2 / (LOG2 * NA * G_01 * g_A**4))
+
 
 def s_prime_to_halflife(s_prime):
-  # Given s_prime in decays/(kg*yr), find t_half in yrs
-  t_half = 1/(s_prime_to_s(s_prime))
-  return t_half
+    # Given s_prime in decays/(kg*yr), find t_half in yrs
+    t_half = 1 / (s_prime_to_s(s_prime))
+    return t_half
