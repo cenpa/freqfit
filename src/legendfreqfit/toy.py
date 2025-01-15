@@ -58,7 +58,6 @@ class Toy:
         self.seed = seed
         self.user_gradient = self.experiment.user_gradient
         self.use_log = self.experiment.use_log
-        self.scan_bestfit = self.experiment.scan_bestfit
         self.scan = self.experiment.scan
         self.scan_grid = self.experiment.scan_grid
         self.data = (
@@ -355,20 +354,7 @@ class Toy:
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        if self.scan_bestfit:
-            grid = np.linspace(1.0e-9, 0.2, 200)
-            args = [[{"global_S": float(xx)}] for xx in grid]
-
-            ts = []
-            for arg in args:
-                ts.append(self.profile(arg[0]))
-            best = ts[np.argmin([t["fval"] for t in ts])]
-            self.best = best
-            if not best["valid"]:
-                msg = f"`Toy` with seed {self.seed} has invalid best fit"
-                logging.debug(msg)
-
-        elif self.scan:
+        if self.scan:
             y = np.empty(len(self.hypercube_grid))
             for i in range(len(self.hypercube_grid)):
                 y[i] = self.minuit._fcn(self.hypercube_grid[i])
