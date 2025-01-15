@@ -1,7 +1,6 @@
 """
 A class that holds a collection of fake datasets and associated hardware
 """
-import decimal
 import itertools
 import logging
 from copy import deepcopy
@@ -603,8 +602,7 @@ class Toy:
             parameters=profile_parameters, use_physical_limits=use_physical_limits
         )["fval"]
 
-        ts = decimal.Decimal(f"{num}") - decimal.Decimal(f"{denom}")
-        ts = float(ts)
+        ts = num - denom
 
         if ts < 0:
             msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"

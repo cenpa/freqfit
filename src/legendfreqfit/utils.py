@@ -154,7 +154,7 @@ def load_config(
 def grab_results(
     minuit,
     use_grid_rounding: bool = False,
-    grid_rounding_num_decimals: dict = {},
+    grid_rounding_num_decimals: dict = {},  # noqa: B006
 ) -> dict:
     # I checked whether we need to shallow/deep copy these and it seems like we do not
 
@@ -170,8 +170,13 @@ def grab_results(
     toreturn["values"] = minuit.values.to_dict()  # returns dict
 
     if use_grid_rounding:
-        toreturn["values"] = {key: np.around(value, grid_rounding_num_decimals[key]) for key, value in minuit.values.to_dict().items()}  # returns dict
-        toreturn["fval"] = minuit._fcn(toreturn["values"].values()) # overwrite the fval with the truncated params
+        toreturn["values"] = {
+            key: np.around(value, grid_rounding_num_decimals[key])
+            for key, value in minuit.values.to_dict().items()
+        }  # returns dict
+        toreturn["fval"] = minuit._fcn(
+            toreturn["values"].values()
+        )  # overwrite the fval with the truncated params
 
     return toreturn
 
@@ -190,6 +195,7 @@ class UniqueKeyLoader(yaml.SafeLoader):
                 )
             mapping.add(each_key)
         return super().construct_mapping(node, deep)
+
 
 # negative of the exponent of scientific notation of a number
 def negexpscinot(number):

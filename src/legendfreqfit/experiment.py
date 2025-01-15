@@ -1,7 +1,6 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
-import decimal
 import itertools
 import logging
 from copy import deepcopy
@@ -37,8 +36,8 @@ class Experiment(Superset):
         self.backend = "minuit"  # "minuit" or "scipy"
         self.scipy_minimizer = None
         self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
-        self.iminuit_tolerance = 1e-100  # tolerance for iminuit or other minimizer
-        self.iminuit_precision = 1e-120  # precision for the Iminuit minimizer, especially important for scipy minimizers
+        self.iminuit_tolerance = 1e-5  # tolerance for iminuit or other minimizer
+        self.iminuit_precision = 1e-10  # precision for the Iminuit minimizer, especially important for scipy minimizers
         self.iminuit_strategy = 0
         self.minimizer_options = {}  # dict of options to pass to the iminuit minimizer
         self.use_grid_rounding = False  # whether to stick parameters on a grid when evaluating the test statistic after minimizing
@@ -554,8 +553,7 @@ class Experiment(Superset):
             parameters=profile_parameters, use_physical_limits=use_physical_limits
         )["fval"]
 
-        ts = decimal.Decimal(f"{num}") - decimal.Decimal(f"{denom}")
-        ts = float(ts)
+        ts = num - denom
 
         if ts < 0:
             msg = f"`Experiment` gave test statistic below zero: {ts}"
