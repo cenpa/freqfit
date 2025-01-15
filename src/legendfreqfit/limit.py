@@ -11,7 +11,6 @@ import numpy as np
 from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
-from legendfreqfit.models import constants
 
 NUM_CORES = 30  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
@@ -104,100 +103,6 @@ class SetLimit(Experiment):
         with mp.Pool(self.numcores) as pool:
             ts = pool.starmap(self.ts, args)
         return ts
-
-    def find_crossing(
-        self,
-        scanned_var: np.array,
-        ts: np.array,
-        t_crits: np.array,
-        interpolation_mode: str = "l",
-    ):
-        """
-        Parameters
-        ----------
-        scanned_var
-            Values of the variable that is being scanned
-        ts
-            Values of the test statistic at the scanned values
-        t_crits
-            The critical value or values of the test statistic
-        interpolation_mode
-            The mode in which to interpolate the crossing between ts and t_crits. "i" for index before crossing, "l" for linear, and "q" for quadratic are supported
-
-        Notes
-        -----
-        It is important that ts and t_crits are on the same grid!
-        This can handle two crossings in case of discovery!
-        """
-        # First check if t_crits is a scalar, then turn it into an array of the length of ts
-        if isinstance(t_crits, float) or isinstance(t_crits, int):
-            t_crits = np.full(len(ts), t_crits)
-
-        diff = t_crits - ts  # now we can find some zeros!
-        crossing_idxs = []
-        for i in range(0, len(diff) - 1, 1):
-            if diff[i] <= 0 < diff[i + 1]:
-                crossing_idxs.append(i)
-            if diff[i] > 0 >= diff[i + 1]:
-                crossing_idxs.append(i)
-
-        # If index before crossing interpolation do the following:
-        if interpolation_mode == "i":
-            crossing_points = scanned_var[crossing_idxs]
-
-        # If linear mode, treat the t_crits as linear interpolation, as well as the ts
-        if interpolation_mode == "l":
-            crossing_points = []
-            for i in crossing_idxs:
-                alpha = (ts[i + 1] - ts[i]) / (scanned_var[i + 1] - scanned_var[i])
-                beta = (t_crits[i + 1] - t_crits[i]) / (
-                    scanned_var[i + 1] - scanned_var[i]
-                )
-                intersection = (
-                    ts[i] - t_crits[i] + (beta - alpha) * scanned_var[i]
-                ) / (beta - alpha)
-                crossing_points.append(intersection)
-
-        if interpolation_mode == "q":
-            raise NotImplementedError("Not yet implemented! Sorry!")
-
-        return crossing_points
-
-    def create_fine_scan(self, s_crit, num_points):
-        """
-        Parameters
-        ----------
-        s_crit
-            The s-value at the critical value of the test statistic found by Wilks' approximation
-        num_points
-            The number of points to symmetrically create a grid from
-        """
-        M76 = constants.M76
-        NA = constants.NA
-
-        # Scan a whole order of magnitude quickly to see if we need to rescan in case Wilks' isn't good
-        T_est = 1 / (M76 * s_crit / (np.log(2) * NA))
-        T_hi = 2 * T_est
-        T_lo = T_est / 2
-
-        S_lo = 1 / (M76 * T_hi / (np.log(2) * NA))
-        S_hi = 1 / (M76 * T_lo / (np.log(2) * NA))
-
-        #         lo_range = np.linspace(S_lo, s_crit, num_points//2 + num_points%2, endpoint=False)
-        #         hi_range = np.linspace(s_crit, S_hi, num_points//2)
-
-        #         fine = np.append(lo_range, hi_range)
-
-        # Actually, assume we are within 20% of the correct limit and rescan based on this. Linear in S-space, 1/T...
-        # This is good for setting a limit but not for making a plot with
-        lo_range = np.linspace(
-            s_crit * 0.8, s_crit, num_points // 2 + num_points % 2, endpoint=False
-        )
-        hi_range = np.linspace(s_crit, s_crit * 1.2, num_points // 2)
-
-        fine = np.append(lo_range, hi_range)
-
-        return fine
 
     def toy_ts_mp(
         self,
