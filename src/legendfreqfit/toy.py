@@ -118,6 +118,45 @@ class Toy:
                     vals, covar
                 )  # sooooooooo SLOW
 
+            # Check that toypars are drawn within the parameter limits here
+            check_toy_params_beyond_limits = True
+            check_toy_params_beyond_limits_counter = 0  # pressure relief valve
+            while check_toy_params_beyond_limits & (
+                check_toy_params_beyond_limits_counter < 100
+            ):
+                check_toy_params_beyond_limits_counter += 1
+                if check_toy_params_beyond_limits_counter == 100:
+                    logging.warning(
+                        "exiting toy parameter redrawing as maximum number of redraws has been reached."
+                    )
+
+                for i, par in enumerate(pars):
+                    par_lims = self.experiment._toy_parameters[par]["limits"]
+
+                    # check if we are within the limits
+                    if (
+                        (par_lims[0] if par_lims[0] is not None else -np.inf)
+                        <= varied_toy_pars[i]
+                        <= (par_lims[1] if par_lims[1] is not None else np.inf)
+                    ):
+                        check_toy_params_beyond_limits = False
+                    # Parameter does not fall within its limit, redraw them and rerun the loop
+                    else:
+                        logging.warning(
+                            "redrawing toy values because drawn value falls outside allowed limit"
+                        )
+                        check_toy_params_beyond_limits = True
+                        # check if parameters are all independent, draw from simpler distribution if so
+                        if np.all(covar == np.diag(np.diagonal(covar))):
+                            varied_toy_pars = np.random.normal(
+                                vals, np.sqrt(np.diagonal(covar))
+                            )
+                        else:
+                            varied_toy_pars = np.random.multivariate_normal(
+                                vals, covar
+                            )  # sooooooooo SLOW
+                        break
+
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
                 parameters[par] = varied_toy_pars[i]
