@@ -91,8 +91,14 @@ def zero_nu_initial_guess(experiment):
     minuit = Minuit(experiment.costfunction, **guess)
     for par in minuit.parameters:
         minuit.fixed[par] = True
-    minuit.fixed["global_S"] = False
-    minuit.limits["global_S"] = (1e-9, None)
+
+    if "global_S" in list(minuit.fixed):
+        minuit.fixed["global_S"] = False
+        minuit.limits["global_S"] = (1e-9, None)
+
+    if "global_m_bb" in list(minuit.fixed):
+        minuit.fixed["global_m_bb"] = False
+        minuit.limits["global_m_bb"] = (1e-9, None)
 
     # minuit.fixed["global_effuncscale"] = True
     # minuit.limits["global_effuncscale"] = (-100, 100)
@@ -190,7 +196,7 @@ def guess_BI_m_bb(Es, totexp, eff_expweighted, sigma_expweighted, NME):  # noqa:
     # find the expected BI
     BI_guess = n_bkg / (BKG_WINDOW_SIZE * totexp)
 
-    m_guess = np.sqrt(n_sig / (totexp * eff_expweighted * NME))
+    m_guess = np.sqrt(n_sig / (totexp * eff_expweighted * NME**2))
 
     return BI_guess, m_guess
 
