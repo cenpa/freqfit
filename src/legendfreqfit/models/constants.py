@@ -22,7 +22,7 @@ WINDOW = [[1930.0, 2098.5], [2108.5, 2113.5], [2123.5, 2190.0]]
 # MJD analysis window (in keV) is slightly larger than GERDA/LEGEND and excludes an additional line
 MJD_WINDOW = [
     [1950.0, 2098.5],
-    [2108.5, 2113.51],
+    [2108.5, 2113.5],
     [2123.5, 2199.1],
     [2209.1, 2350.0],
 ]
