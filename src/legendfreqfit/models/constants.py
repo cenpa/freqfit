@@ -14,15 +14,16 @@ NME_unc = 1.32  # symmetrized error from Phys. Rev. Lett. 132, 182502
 # 2614.511(10) - 511 = 2103.511 keV SEP from 208Tl
 # 2118.513(25) keV from 214Bi
 # 2204.10(4) keV from 214Bi
+# then round to nearest 0.1 keV
 
 # default analysis window (in keV)
-WINDOW = [[1930.0, 2098.511], [2108.511, 2113.513], [2123.513, 2190.0]]
+WINDOW = [[1930.0, 2098.5], [2108.5, 2113.5], [2123.5, 2190.0]]
 
 # MJD analysis window (in keV) is slightly larger than GERDA/LEGEND and excludes an additional line
 MJD_WINDOW = [
-    [1950.0, 2098.511],
-    [2108.511, 2113.513],
-    [2123.513, 2199.1],
+    [1950.0, 2098.5],
+    [2108.5, 2113.51],
+    [2123.5, 2199.1],
     [2209.1, 2350.0],
 ]
 
