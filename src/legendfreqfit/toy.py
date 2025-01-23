@@ -160,7 +160,8 @@ class Toy:
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
                 parameters[par] = varied_toy_pars[i]
-                self.experiment._toy_parameters[par]["value"] = varied_toy_pars[i]
+                # commented out 01/22/2025 -- toys should be generated at nuisance parameters nominal value, but the constraints should be re-centered to the randomly drawn value, replaced with line below
+                # self.experiment._toy_parameters[par]["value"] = varied_toy_pars[i]
 
         # draw the toy data
         for i, (datasetname, dataset) in enumerate(self.experiment.datasets.items()):
@@ -176,7 +177,9 @@ class Toy:
                     msg = f"`Toy`: for `Dataset` {datasetname}, parameter `{fitpar}` not found in passed `parameters`"
                     raise KeyError(msg)
 
-                pars[j] = parameters[fitpar]
+                # commented out 01/22/2025 -- toys should be generated at nuisance parameters nominal value, but the constraints should be re-centered to the randomly drawn value, replaced with line below
+                # pars[j] = parameters[fitpar]
+                pars[j] = self.experiment._toy_parameters[fitpar]["value"]
 
             # make the toy for this particular dataset
             dataset.toy(par=pars, seed=thisseed)  # saved in dataset._toy_data
