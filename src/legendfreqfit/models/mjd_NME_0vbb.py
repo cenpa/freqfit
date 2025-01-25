@@ -375,6 +375,9 @@ def nb_density(
 
     exgaus = mu_S * frac * nb_exgauss_pdf(Es, QBB + mu, alpha * sigma, alpha * tau)
 
+    if mu_S < 0:  # do not allow for strong downward fluctuations in the signal
+        return 0, np.full_like(Es, 0, dtype=np.float64)
+
     if mu_S + mu_B < 0:
         return 0, np.full_like(Es, 0, dtype=np.float64)
 

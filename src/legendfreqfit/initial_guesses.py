@@ -14,6 +14,7 @@ from legendfreqfit.models.correlated_efficiency_NME_0vbb import (
     correlated_efficiency_NME_0vbb_gen,
 )
 from legendfreqfit.models.mjd_0vbb import mjd_0vbb_gen
+from legendfreqfit.models.mjd_NME_0vbb import mjd_NME_0vbb_gen
 from legendfreqfit.models.truncated_correlated_efficiency_0vbb import (
     truncated_correlated_efficiency_0vbb_gen,
 )
@@ -79,7 +80,9 @@ def zero_nu_initial_guess(experiment):
     if is_toy:
         guess = {}
         for par in experiment.fitparameters:
-            guess |= {par: experiment.experiment._toy_parameters[par]["value"]}
+            guess |= {
+                par: experiment.experiment.toy_params_for_initial_guess[par]["value"]
+            }
     else:
         guess = {
             fitpar: experiment.parameters[fitpar]["value"]
@@ -94,17 +97,17 @@ def zero_nu_initial_guess(experiment):
 
     if "global_S" in list(minuit.fixed):
         minuit.fixed["global_S"] = False
-        minuit.limits["global_S"] = (1e-9, None)
+        minuit.limits["global_S"] = (0, None)
 
     if "global_m_bb" in list(minuit.fixed):
         minuit.fixed["global_m_bb"] = False
-        minuit.limits["global_m_bb"] = (1e-9, None)
+        minuit.limits["global_m_bb"] = (0, None)
 
     # minuit.fixed["global_effuncscale"] = True
     # minuit.limits["global_effuncscale"] = (-100, 100)
     for BI in BI_list:
         minuit.fixed[f"{BI}"] = False
-        minuit.limits[f"{BI}"] = (1e-9, None)
+        minuit.limits[f"{BI}"] = (0, None)
 
         if "empty" in BI:
             minuit.fixed[f"{BI}"] = True
@@ -248,7 +251,9 @@ def poisson_initial_guess(experiment):
     if is_toy:
         guess = {}
         for par in experiment.fitparameters:
-            guess |= {par: experiment.experiment._toy_parameters[par]["value"]}
+            guess |= {
+                par: experiment.experiment.toy_params_for_initial_guess[par]["value"]
+            }
     else:
         guess = {
             fitpar: experiment.parameters[fitpar]["value"]
@@ -297,7 +302,9 @@ def poisson_initial_guess(experiment):
                 if isinstance(ds.model, correlated_efficiency_NME_0vbb_gen):
                     NME = ds._parlist[-1]
                     is_mbb_scan = True  # we cannot mix and match S and m_bb, if this is true we are using m_bb only
-            elif isinstance(ds.model, mjd_0vbb_gen):
+            elif isinstance(ds.model, mjd_0vbb_gen) or isinstance(
+                ds.model, mjd_NME_0vbb_gen
+            ):
                 BI_totexp = BI_totexp + ds._parlist[10]
                 BI_sigma_expweighted = (
                     BI_sigma_expweighted + ds._parlist[4] * ds._parlist[10]
@@ -374,7 +381,9 @@ def poisson_initial_guess(experiment):
     if is_toy:
         guess = {}
         for par in experiment.fitparameters:
-            guess |= {par: experiment.experiment._toy_parameters[par]["value"]}
+            guess |= {
+                par: experiment.experiment.toy_params_for_initial_guess[par]["value"]
+            }
     else:
         guess = {
             fitpar: experiment.parameters[fitpar]["value"]
