@@ -72,6 +72,11 @@ class Toy:
         for par in parameters.keys():
             self.experiment._toy_parameters[par]["value"] = parameters[par]
 
+        # Initial guesses for the toy fit need to recenter the drawn nuisance parameters, and need to be in the correct order
+        self.experiment.toy_params_for_initial_guess = deepcopy(
+            self.experiment._toy_parameters
+        )
+
         # If datasets have been combined, re-assign those combined parameter values to the de-combined toy_parameters
         for combined_ds in experiment.included_in_combined_datasets.keys():
             # Datasets may have been combined into more than one new datasets, that's why we loop over the keys
@@ -160,6 +165,9 @@ class Toy:
             # now assign the random values to the passed parameters (or to not passed parameters?)
             for i, par in enumerate(pars):
                 parameters[par] = varied_toy_pars[i]
+                self.experiment.toy_params_for_initial_guess[par][
+                    "value"
+                ] = varied_toy_pars[i]
                 # commented out 01/22/2025 -- toys should be generated at nuisance parameters nominal value, but the constraints should be re-centered to the randomly drawn value, replaced with line below
                 # self.experiment._toy_parameters[par]["value"] = varied_toy_pars[i]
 
@@ -322,7 +330,9 @@ class Toy:
                     ]["value"]
 
         # save the values of the toy parameters
-        for i, (parname, pardict) in enumerate(self.experiment._toy_parameters.items()):
+        for i, (parname, pardict) in enumerate(
+            self.experiment.toy_params_for_initial_guess.items()
+        ):
             self.parameters_to_save[0, i] = pardict["value"]
 
         # to set limits and fixed variables
@@ -340,7 +350,9 @@ class Toy:
         if self.experiment.initial_guess_function is None:
             guess = {}
             for par in self.fitparameters:
-                guess |= {par: self.experiment._toy_parameters[par]["value"]}
+                guess |= {
+                    par: self.experiment.toy_params_for_initial_guess[par]["value"]
+                }
 
         else:
             func = getattr(initial_guesses, self.experiment.initial_guess_function)
@@ -443,6 +455,10 @@ class Toy:
         if "global_S" in self.best["values"]:
             if self.best["values"]["global_S"] < 1e-20:
                 self.best = self.profile({"global_S": 0.0})
+
+        if "global_m_bb" in self.best["values"]:
+            if self.best["values"]["global_m_bb"] < 1e-20:
+                self.best = self.profile({"global_m_bb": 0.0})
 
         if self.guess == self.best["values"]:
             msg = f"`Toy` with seed {self.seed} has best fit values very close to initial guess"
@@ -566,8 +582,23 @@ class Toy:
         ts = num - denom
 
         if ts < 0:
-            msg = f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
-            logging.debug(msg)
+            # update initial guess and try again
+            for par in list(self.guess.keys()):
+                self.guess[par] = self.minuit.values[par]
+            denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
+                "fval"
+            ]
+            num = self.profile(
+                parameters=profile_parameters, use_physical_limits=use_physical_limits
+            )["fval"]
+
+            ts = num - denom
+
+            if ts < 0:
+                msg = (
+                    f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
+                )
+                logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
         return ts, denom, num
