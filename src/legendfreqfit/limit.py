@@ -27,6 +27,7 @@ class SetLimit(Experiment):
         out_path: str = ".",
         name: str = "",
         overwrite_files: bool = False,
+        numcores: int = NUM_CORES,
     ) -> None:
         """
         This class inherits from `Experiment`, and also holds the name of the variable to profile
@@ -40,7 +41,7 @@ class SetLimit(Experiment):
         self.jobid = jobid
         self.numtoy = numtoy
         self.out_path = out_path
-        self.numcores = NUM_CORES  # default
+        self.numcores = numcores
         self.overwrite_files = overwrite_files
 
     def set_var_to_profile(self, var_to_profile: str):
