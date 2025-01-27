@@ -4,6 +4,9 @@ Models for unbinned frequentist fitting. These models are classes and come with 
 
 from legendfreqfit.models.box_model_0vbb import box_model_0vbb
 from legendfreqfit.models.correlated_efficiency_0vbb import correlated_efficiency_0vbb
+from legendfreqfit.models.correlated_efficiency_0vbb_correlate_delta import (
+    correlated_efficiency_0vbb_correlate_delta,
+)
 from legendfreqfit.models.correlated_efficiency_0vbb_exponential_background import (
     correlated_efficiency_0vbb_exponential_background,
 )
@@ -34,4 +37,5 @@ __all__ = [
     "box_model_0vbb",
     "truncated_correlated_efficiency_0vbb",
     "correlated_efficiency_NME_0vbb",
+    "correlated_efficiency_0vbb_correlate_delta",
 ]
