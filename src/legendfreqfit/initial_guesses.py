@@ -10,6 +10,9 @@ from legendfreqfit.models.box_model_0vbb import box_model_0vbb_gen
 from legendfreqfit.models.correlated_efficiency_0vbb import (
     correlated_efficiency_0vbb_gen,
 )
+from legendfreqfit.models.correlated_efficiency_0vbb_correlate_delta import (
+    correlated_efficiency_0vbb_correlate_delta_gen,
+)
 from legendfreqfit.models.correlated_efficiency_NME_0vbb import (
     correlated_efficiency_NME_0vbb_gen,
 )
@@ -280,6 +283,7 @@ def poisson_initial_guess(experiment):
                 or isinstance(ds.model, box_model_0vbb_gen)
                 or isinstance(ds.model, truncated_correlated_efficiency_0vbb_gen)
                 or isinstance(ds.model, correlated_efficiency_NME_0vbb_gen)
+                or isinstance(ds.model, correlated_efficiency_0vbb_correlate_delta_gen)
             ):
                 BI_totexp = BI_totexp + ds._parlist[7]
                 BI_sigma_expweighted = (
