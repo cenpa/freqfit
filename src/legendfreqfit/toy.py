@@ -136,7 +136,9 @@ class Toy:
                     )
 
                 for i, par in enumerate(pars):
-                    par_lims = self.experiment._toy_parameters[par]["limits"]
+                    par_lims = [None, None]
+                    if "limits" in self.experiment._toy_parameters[par]:
+                        par_lims = self.experiment._toy_parameters[par]["limits"]
 
                     # check if we are within the limits
                     if (
