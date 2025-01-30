@@ -146,7 +146,7 @@
         <mxCell id="xQd-b2vYR8q1xLKKLbWP-67" value="evaluate data \(p\)-value for rejection of \(\Gamma^{\star}\) hypothesis" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="-30" y="648.75" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="xQd-b2vYR8q1xLKKLbWP-75" value="find value of \(\Gamma^{\star}\)&amp;nbsp; rejected at 90% C.L." style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="xQd-b2vYR8q1xLKKLbWP-75" value="exclude all \(\Gamma^{\star}\)&amp;nbsp; rejected at \(\geq\)90% C.L." style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="-30" y="730" width="120" height="60" as="geometry" />
         </mxCell>
       </root>
