@@ -47,12 +47,12 @@
     </mxGraphModel>
   </diagram>
   <diagram id="8zzVZDwSDZGgTKh15WBY" name="Page-2">
-    <mxGraphModel dx="2214" dy="766" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="1" shadow="0">
+    <mxGraphModel dx="1629" dy="438" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="1" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
-          <mxGeometry x="60" y="40" width="360" height="180" as="geometry" />
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;strokeColor=#07A9FF;" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="410" height="180" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-4" target="vn_P0LbeZkL3piJtxGpa-6">
           <mxGeometry relative="1" as="geometry" />
@@ -60,42 +60,47 @@
         <mxCell id="vn_P0LbeZkL3piJtxGpa-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-4" target="vn_P0LbeZkL3piJtxGpa-9">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-4" value="&lt;div&gt;&lt;b&gt;truth&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(\Gamma_t,&amp;nbsp; \vec{\nu}_t\)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-4" value="&lt;div&gt;&lt;b&gt;truth&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(\Gamma_t,&amp;nbsp; \vec{\nu}_t\)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=default;" vertex="1" parent="1">
           <mxGeometry x="-440" y="102.5" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-6" target="vn_P0LbeZkL3piJtxGpa-11">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-6" value="&lt;div&gt;&lt;b&gt;L200 data&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(p(\textrm{data} | \Gamma_t)\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-6" value="&lt;div&gt;&lt;b&gt;L200 data&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(\textrm{data} | \Gamma_t\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="-280" y="140" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-9" target="vn_P0LbeZkL3piJtxGpa-11">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-9" target="vn_P0LbeZkL3piJtxGpa-11">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="-140" y="105" />
-              <mxPoint x="-140" y="170" />
+              <mxPoint x="-140" y="155" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-8" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-9" target="vn_P0LbeZkL3piJtxGpa-15">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-9" value="&lt;div&gt;&lt;b&gt;auxiliary measurements&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(p(\textrm{aux} | \vec{\nu}_t) \to \vec{\tilde{\nu}} \pm \vec{\delta_\nu}\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-9" value="&lt;div&gt;&lt;b&gt;auxiliary measurements&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(\textrm{aux} | \vec{\nu}_t \to \vec{\tilde{\nu}} \pm \vec{\delta_\nu}\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="-280" y="60" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-11" target="vn_P0LbeZkL3piJtxGpa-13">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-11" value="&lt;div&gt;profile \(\vec{\nu}\) at particular \(\Gamma^{\star}\)\(\mathcal{L}(\Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data, aux})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-11" value="&lt;div&gt;profile \(\vec{\nu}\) at particular \(\Gamma^{\star}\)\(\mathcal{L}(\Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data},&amp;nbsp;\vec{\tilde{\nu}})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="-120" y="140" width="160" height="60" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-13" target="vn_P0LbeZkL3piJtxGpa-17">
-          <mxGeometry relative="1" as="geometry" />
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="170" />
+              <mxPoint x="210" y="133" />
+            </Array>
+          </mxGeometry>
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-13" value="generate toy data at \(\Gamma^{\star},&amp;nbsp; \hat{\hat{\vec{\nu}}}\)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-13" value="&lt;div&gt;generate toy data&lt;/div&gt;&lt;div&gt;&amp;nbsp;\( \textrm{data}^{\prime} | \Gamma^{\star},&amp;nbsp; \hat{\hat{\vec{\nu}}}\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="140" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-15" target="vn_P0LbeZkL3piJtxGpa-17">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-15" target="vn_P0LbeZkL3piJtxGpa-17">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-15" value="&lt;div&gt;vary auxiliary measurements&lt;/div&gt;&lt;div&gt;\(&amp;nbsp;\vec{\tilde{\nu}} \pm \vec{\delta_\nu} \to \vec{\tilde{\nu}}^{\prime} \pm \vec{\delta_\nu} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -106,22 +111,22 @@
             <mxPoint x="319.66666666666697" y="300" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-17" value="&lt;div&gt;evaluate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}))}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}\,)}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="239.5" y="92.5" width="160" height="80" as="geometry" />
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-17" value="&lt;div&gt;evaluate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}| \textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="239.5" y="92.5" width="210.5" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-20" target="vn_P0LbeZkL3piJtxGpa-11">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-20" target="vn_P0LbeZkL3piJtxGpa-11">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="-140" y="235" />
-              <mxPoint x="-140" y="170" />
+              <mxPoint x="-140" y="185" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-20" target="vn_P0LbeZkL3piJtxGpa-17">
+        <mxCell id="LvJkU9q-zEDQBaRfy26J-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-20" target="vn_P0LbeZkL3piJtxGpa-17">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="220" y="250" />
-              <mxPoint x="220" y="133" />
+              <mxPoint x="220" y="153" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -131,7 +136,7 @@
         <mxCell id="vn_P0LbeZkL3piJtxGpa-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-22" target="vn_P0LbeZkL3piJtxGpa-28">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="vn_P0LbeZkL3piJtxGpa-22" value="&lt;div&gt;evaluate data test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}))}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}\,)}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="vn_P0LbeZkL3piJtxGpa-22" value="&lt;div&gt;evaluate data test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star})| \textrm{data}, \vec{\tilde{\nu}})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}} | \textrm{data},&amp;nbsp;\vec{\tilde{\nu}})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="-120" y="280" width="160" height="77.5" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-23" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;jumpStyle=gap;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-11" target="vn_P0LbeZkL3piJtxGpa-22">
@@ -144,7 +149,7 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-26" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma^{\star}}^{\prime} | \Gamma^{\star})\)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="259.5" y="288.75" width="120" height="60" as="geometry" />
+          <mxGeometry x="284.75" y="288.75" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="vn_P0LbeZkL3piJtxGpa-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="vn_P0LbeZkL3piJtxGpa-28" target="vn_P0LbeZkL3piJtxGpa-29">
           <mxGeometry relative="1" as="geometry">
