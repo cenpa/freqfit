@@ -145,7 +145,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="pB9OxfSEECygrkOrtsTo-26" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma^{\star}|\Gamma^{\star}}^{\prime} | \Gamma^{\star})\)" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="pB9OxfSEECygrkOrtsTo-26" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma^{\star}|\Gamma^{\star}}^{\prime} ) \)" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="440" y="880" width="130" height="80" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-28" target="pB9OxfSEECygrkOrtsTo-29" edge="1">
