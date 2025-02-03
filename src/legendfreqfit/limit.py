@@ -209,18 +209,23 @@ class SetLimit(Experiment):
         profile_dict: dict = {},  # noqa:B006
         scan_point_override=None,
         overwrite_files: bool = None,
+        compute_conditional: bool = False,
     ):
         """
-        Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty
+        Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty.
+        This can be used to scan on a hypercube if `profile_dict` is passed and `compute_conditional` is false,
+        as `profile_dict` is used to fix parameters when generating the toys as well as to fix parameters during the profile.
 
         Parameters
         ----------
         profile_dict
             An optional dictionary of values we want to fix during all of the profiles
 
-        overwrite_files: bool, optional
+        overwrite_files
             whether to overwrite result files if found, uses global option of SetLimit as default
 
+        compute_conditional
+            If true, `profile_dict` is passed, then toys are generated at those values, but allowed to float during the profile fit
         """
 
         if overwrite_files is None:
@@ -251,19 +256,35 @@ class SetLimit(Experiment):
             ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
 
         # Now we can run the toys
-        (
-            toyts,
-            data,
-            nuisance,
-            num_drawn,
-            seeds_to_save,
-            toyts_denom,
-            toyts_num,
-        ) = self.toy_ts_mp(
-            toypars,
-            {f"{self.var_to_profile}": scan_point, **profile_dict},
-            num=self.numtoy,
-        )
+        if compute_conditional and profile_dict:
+            # don't fix the profile_dict points during the fits
+            (
+                toyts,
+                data,
+                nuisance,
+                num_drawn,
+                seeds_to_save,
+                toyts_denom,
+                toyts_num,
+            ) = self.toy_ts_mp(
+                toypars,
+                {f"{self.var_to_profile}": scan_point},
+                num=self.numtoy,
+            )
+        else:
+            (
+                toyts,
+                data,
+                nuisance,
+                num_drawn,
+                seeds_to_save,
+                toyts_denom,
+                toyts_num,
+            ) = self.toy_ts_mp(
+                toypars,
+                {f"{self.var_to_profile}": scan_point, **profile_dict},
+                num=self.numtoy,
+            )
 
         # Now, save the toys to a file
 
@@ -297,43 +318,82 @@ class SetLimit(Experiment):
 
     def run_and_save_brazil(
         self,
-        scan_points,
+        scan_points: list,
+        profile_dict: dict = {},  # noqa:B006
         overwrite_files: bool = None,
+        compute_conditional: bool = False,
     ) -> None:
         """
-        Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
+        Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses.
+        If compute_conditional is True and profile_dict is passed, then toys are generated at `profile_dict`,
+        but are allowed to float in the fits.
+
+        If compute_conditional is passed as False and a `profile_dict` is passed in order to scan a hypercube, it will work.
+        However, this will be slow, and the recommended job submission differs. Use `run_and_save_brazil_with_profile_parameters` instead.
         """
+
+        if profile_dict and not compute_conditional:
+            log.warning(
+                "Job submission for hypercube scan using `profile_dict` and `compute_conditional` as False is not recommended.\
+                 Use `run_and_save_brazil_with_profile_parameters` instead "
+            )
 
         if overwrite_files is None:
             overwrite_files = self.overwrite_files
 
-        filename = self.out_path + f"/0_{self.jobid}.h5"
+        filename = ""
+        if not profile_dict:
+            filename = self.out_path + f"/0_{self.jobid}.h5"
+        else:
+            filename = (
+                self.out_path + f"/0_{list(profile_dict.values())}_{self.jobid}.h5"
+            )
 
         if os.path.exists(filename) and not overwrite_files:
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
             raise RuntimeError(msg)
 
         # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 0.0})["values"]
+        toypars = self.profile({f"{self.var_to_profile}": 0.0, **profile_dict})[
+            "values"
+        ]
 
         # Add 0 to the scan points if it is not there
         if 0.0 not in scan_points:
             scan_points = np.insert(scan_points, 0, 0.0)
 
         # Now we can run the toys
-        (
-            toyts,
-            data,
-            nuisance,
-            num_drawn,
-            seeds_to_save,
-            toyts_denom,
-            toyts_num,
-        ) = self.toy_ts_mp(
-            toypars,
-            [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
-            num=self.numtoy,
-        )
+        if compute_conditional and profile_dict:
+            (
+                toyts,
+                data,
+                nuisance,
+                num_drawn,
+                seeds_to_save,
+                toyts_denom,
+                toyts_num,
+            ) = self.toy_ts_mp(
+                toypars,
+                [{f"{self.var_to_profile}": scan_point} for scan_point in scan_points],
+                num=self.numtoy,
+            )
+        else:
+            (
+                toyts,
+                data,
+                nuisance,
+                num_drawn,
+                seeds_to_save,
+                toyts_denom,
+                toyts_num,
+            ) = self.toy_ts_mp(
+                toypars,
+                [
+                    {f"{self.var_to_profile}": scan_point, **profile_dict}
+                    for scan_point in scan_points
+                ],
+                num=self.numtoy,
+            )
 
         # Now, save the toys to a file
         if overwrite_files and os.path.exists(filename):
@@ -357,13 +417,14 @@ class SetLimit(Experiment):
 
     def run_and_save_brazil_with_profile_parameters(
         self,
-        scan_point,
+        scan_point: float,
         profile_dict: dict = {},  # noqa:B006
         overwrite_files: bool = None,
     ) -> None:
         """
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
-        If we are running with profile_dict parameters, the optimal job submission differs from the above and is more similar to run_and_save_toys
+        If we are running with profile_dict parameters in order to scan a hypercube,
+        the optimal job submission differs from the above and is more similar to run_and_save_toys
         """
 
         if overwrite_files is None:
