@@ -36,14 +36,14 @@ SQRT2PI = 2.506628274631000241612355239340104162693023681640625
 # conversion function
 def s_prime_to_s(s_prime):
     # Given s_prime in decays/(kg*yr), find s in decays/yr
-    s = s_prime * (M76 / (LOG2 * NA))
+    s = s_prime * (MDET / (LOG2 * NA))
     return s
 
 
 # another conversion function
 def m_prime_to_m(m_prime):
     # Given m_prime in ev/(kg*yr), find m in ev
-    return m_prime * np.sqrt(M76 * me**2 / (LOG2 * NA * G_01 * g_A**4))
+    return m_prime * np.sqrt(MDET * me**2 / (LOG2 * NA * G_01 * g_A**4))
 
 
 def s_prime_to_halflife(s_prime):
