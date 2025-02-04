@@ -307,9 +307,9 @@ class SetLimit(Experiment):
         dset = f.create_dataset("ts_denom", data=toyts_denom)
         dset = f.create_dataset("ts_num", data=toyts_num)
         dset = f.create_dataset("s", data=scan_point)
-        # dset = f.create_dataset("Es", data=data)
+        dset = f.create_dataset("Es", data=data)
         # dset = f.create_dataset("nuisance", data=nuisance)
-        # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
         dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()

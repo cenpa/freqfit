@@ -46,6 +46,7 @@ def nb_pdf(
     effuncscale: float,
     exp: float,
     alpha_delta: float,
+    delta_unc: float,
     check_window: bool = False,
 ) -> np.array:
     """
@@ -71,6 +72,8 @@ def nb_pdf(
         The exposure, in kg*yr
     alpha_delta
         Global correlation between all energy biases
+    delta_unc
+        Uncertainty on delta
     check_window
         Whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
         all fall inside the window (for speed)
@@ -97,7 +100,10 @@ def nb_pdf(
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
             S_amp
-            * np.exp(-((Es[i] - QBB + delta * alpha_delta) ** 2) / (2 * sigma**2))
+            * np.exp(
+                -((Es[i] - QBB + delta + alpha_delta * delta_unc) ** 2)
+                / (2 * sigma**2)
+            )
             + B_amp
         )
 
@@ -125,6 +131,7 @@ def nb_density(
     effuncscale: float,
     exp: float,
     alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -149,6 +156,8 @@ def nb_density(
         The exposure, in kg*yr
     alpha_delta
         The global scaling of energy biases
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
@@ -178,7 +187,10 @@ def nb_density(
     for i in nb.prange(Es.shape[0]):
         y[i] = (
             S_amp
-            * np.exp(-((Es[i] - QBB + delta * alpha_delta) ** 2) / (2 * sigma**2))
+            * np.exp(
+                -((Es[i] - QBB + delta + alpha_delta * delta_unc) ** 2)
+                / (2 * sigma**2)
+            )
             + B_amp
         )
 
@@ -197,6 +209,7 @@ def nb_log_density(
     effuncscale: float,
     exp: float,
     alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -221,6 +234,8 @@ def nb_log_density(
         The exposure, in kg*yr
     alpha_delta
         Global energy bias uncertainty
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
@@ -245,6 +260,7 @@ def nb_density_gradient(
     effuncscale: float,
     exp: float,
     alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -269,6 +285,8 @@ def nb_density_gradient(
         The exposure, in kg*yr
     alpha_delta
         The global energy bias scaling
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
@@ -294,6 +312,7 @@ def nb_logpdf(
     effuncscale: float,
     exp: float,
     alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -318,6 +337,8 @@ def nb_logpdf(
         The exposure, in kg*yr
     alpha_delta
         The global energy bias scaling
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
@@ -346,7 +367,10 @@ def nb_logpdf(
     for i in nb.prange(Es.shape[0]):
         pdf = (1 / (mu_S + mu_B)) * (
             S_amp
-            * np.exp(-((Es[i] - QBB + delta * alpha_delta) ** 2) / (2 * sigma**2))
+            * np.exp(
+                -((Es[i] - QBB + delta + alpha_delta * delta_unc) ** 2)
+                / (2 * sigma**2)
+            )
             + B_amp
         )
 
@@ -365,6 +389,7 @@ def nb_rvs(
     delta: float,
     sigma: float,
     alpha_delta: float,
+    delta_unc: float,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -380,6 +405,8 @@ def nb_rvs(
         The energy resolution at QBB, in keV
     alpha_delta
         The global energy bias scaling
+    delta_unc
+        The uncertainty on delta
     seed
         specify a seed, otherwise uses default seed
 
@@ -394,7 +421,8 @@ def nb_rvs(
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
     Es = np.append(
-        np.random.normal(QBB - delta * alpha_delta, sigma, size=n_sig), np.zeros(n_bkg)
+        np.random.normal(QBB - delta - alpha_delta * delta_unc, sigma, size=n_sig),
+        np.zeros(n_bkg),
     )
 
     # Get background events from a uniform distribution
@@ -430,6 +458,7 @@ def nb_extendedrvs(
     effuncscale: float,
     exp: float,
     alpha_delta: float,
+    delta_unc: float,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -453,6 +482,8 @@ def nb_extendedrvs(
         The exposure, in kg*yr
     alpha_delta
         The global energy bias scaling
+    delta_unc
+        The uncertainty on delta
     seed
         specify a seed, otherwise uses default seed
 
@@ -472,7 +503,8 @@ def nb_extendedrvs(
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
     Es = np.append(
-        np.random.normal(QBB - delta * alpha_delta, sigma, size=n_sig), np.zeros(n_bkg)
+        np.random.normal(QBB - delta - delta_unc * alpha_delta, sigma, size=n_sig),
+        np.zeros(n_bkg),
     )
 
     # Get background events from a uniform distribution
@@ -514,6 +546,7 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
         check_window: bool = False,
     ) -> np.array:
         return nb_pdf(
@@ -527,6 +560,7 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
             effuncscale,
             exp,
             alpha_delta,
+            delta_unc,
             check_window,
         )
 
@@ -542,9 +576,20 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
         return nb_logpdf(
-            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
         )
 
     # for iminuit ExtendedUnbinnedNLL
@@ -560,9 +605,20 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
         return nb_density(
-            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
         )
 
     # for iminuit ExtendedUnbinnedNLL
@@ -578,9 +634,20 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
         return nb_density_gradient(
-            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
         )
 
     # for iminuit ExtendedUnbinnedNLL
@@ -596,9 +663,20 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
         return nb_log_density(
-            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
         )
 
     # should we have an rvs method for drawing a random number of events?
@@ -611,9 +689,10 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         delta: float,
         sigma: float,
         alpha_delta: float,
+        delta_unc: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, delta, sigma, alpha_delta, seed=seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma, alpha_delta, delta_unc, seed=seed)
 
     def extendedrvs(
         self,
@@ -626,10 +705,21 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
         seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(
-            S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta, seed=seed
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+            seed=seed,
         )
 
     def plot(
@@ -644,8 +734,21 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         effuncscale: float,
         exp: float,
         alpha_delta: float,
+        delta_unc: float,
     ) -> None:
-        y = nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta)
+        y = nb_pdf(
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        )
 
         import matplotlib.pyplot as plt
 
@@ -667,6 +770,7 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         a_effuncscale: float,
         a_exp: float,
         a_alpha_delta: float,
+        a_delta_unc: float,
         b_Es: np.array,
         b_S: float,
         b_BI: float,
@@ -677,6 +781,7 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         b_effuncscale: float,
         b_exp: float,
         b_alpha_delta: float,
+        b_delta_unc: float,
     ) -> list | None:
         # datasets must be empty to be combined
         if len(a_Es) != 0 or len(b_Es) != 0:
@@ -697,10 +802,24 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         # (maybe still appropriate even if not fully correlated?)
         effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
 
+        delta_unc = (a_exp * a_delta_unc + b_exp * b_delta_unc) / exp
+
         effuncscale = 0.0  # this should be overwritten in the fit later
         alpha_delta = 0.0  # this should be overwritten in the fit later
 
-        return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, alpha_delta]
+        return [
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        ]
 
     def can_combine(
         self,
@@ -714,6 +833,7 @@ class correlated_efficiency_0vbb_correlate_delta_gen:
         a_effuncscale: float,
         a_exp: float,
         a_alpha_delta: float,
+        a_delta_unc: float,
     ) -> bool:
         """
         This sets an arbitrary rule if this dataset can be combined with other datasets.
