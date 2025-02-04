@@ -3,6 +3,7 @@ import numpy as np
 QBB = 2039.0612  # 2039.0612 +- 0.0075 keV from AME2020
 NA = 6.0221408e23  # Avogadro's number
 M76 = 0.0759214027  # kilograms per mole, molar mass of 76Ge
+MDET = 0.075681 # kg/mol, avergae molar mass for detectors from MJD Unidoc # M-TECHDOCUNIDOC-2022-068
 G_01 = 0.23e-14  # in yr^-1, phase space factor for 76Ge from Phys. Rev. C 98, 035502 by Horoi et. al
 g_A = 1.27  # noqa: N816 # axial coupling constant from Phys. Rev. Lett. 120, 202002 by Czarnecki et. al
 me = 0.5109989500e6  # mass of the electron in eV/c^2 from PDG
@@ -35,14 +36,14 @@ SQRT2PI = 2.506628274631000241612355239340104162693023681640625
 # conversion function
 def s_prime_to_s(s_prime):
     # Given s_prime in decays/(kg*yr), find s in decays/yr
-    s = s_prime * (M76 / (LOG2 * NA))
+    s = s_prime * (MDET / (LOG2 * NA))
     return s
 
 
 # another conversion function
 def m_prime_to_m(m_prime):
     # Given m_prime in ev/(kg*yr), find m in ev
-    return m_prime * np.sqrt(M76 * me**2 / (LOG2 * NA * G_01 * g_A**4))
+    return m_prime * np.sqrt(MDET * me**2 / (LOG2 * NA * G_01 * g_A**4))
 
 
 def s_prime_to_halflife(s_prime):
