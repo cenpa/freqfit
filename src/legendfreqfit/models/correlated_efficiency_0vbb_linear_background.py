@@ -16,7 +16,7 @@ nb_kwd = {
 
 QBB = constants.QBB
 N_A = constants.NA
-M_A = constants.M76
+M_A = constants.MDET
 
 # default analysis window and width
 # window
