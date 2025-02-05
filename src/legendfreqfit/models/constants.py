@@ -3,12 +3,14 @@ import numpy as np
 QBB = 2039.0612  # 2039.0612 +- 0.0075 keV from AME2020
 NA = 6.0221408e23  # Avogadro's number
 M76 = 0.0759214027  # kilograms per mole, molar mass of 76Ge
-MDET = 0.075681 # kg/mol, avergae molar mass for detectors from MJD Unidoc # M-TECHDOCUNIDOC-2022-068
+MDET = 0.075681  # kg/mol, average molar mass for detectors from MJD Unidoc # M-TECHDOCUNIDOC-2022-068
 G_01 = 0.23e-14  # in yr^-1, phase space factor for 76Ge from Phys. Rev. C 98, 035502 by Horoi et. al
 g_A = 1.27  # noqa: N816 # axial coupling constant from Phys. Rev. Lett. 120, 202002 by Czarnecki et. al
 me = 0.5109989500e6  # mass of the electron in eV/c^2 from PDG
 NME_central = 2.60  # these values come from Phys. Rev. Lett. 132, 182502
 NME_unc = 1.32  # symmetrized error from Phys. Rev. Lett. 132, 182502
+NME_PHENO_LOW = 2.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099
+NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099
 
 
 # lines to exclude are

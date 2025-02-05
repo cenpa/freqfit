@@ -2,7 +2,6 @@
 A package for setting frequenstist limits from unbinned data
 """
 
-from legendfreqfit._version import version as __version__
 from legendfreqfit.dataset import Dataset
 from legendfreqfit.experiment import Experiment
 from legendfreqfit.limit import SetLimit
@@ -15,5 +14,5 @@ __all__ = [
     "SetLimit",
     "Superset",
     "Toy",
-    "__version__",
+    "PlotLimit" "__version__",
 ]
