@@ -597,9 +597,7 @@ class Toy:
             ts = num - denom
 
             if ts < 0:
-                msg = (
-                    f"`Toy` with seed {self.seed} gave test statistic below zero: {ts}"
-                )
+                msg = f"`Toy` profiled at {profile_parameters} with seed {self.seed} gave test statistic below zero: {ts}"
                 logging.warning(msg)
 
         # because these are already -2*ln(L) from iminuit
