@@ -9,8 +9,8 @@ g_A = 1.27  # noqa: N816 # axial coupling constant from Phys. Rev. Lett. 120, 20
 me = 0.5109989500e6  # mass of the electron in eV/c^2 from PDG
 NME_central = 2.60  # these values come from Phys. Rev. Lett. 132, 182502
 NME_unc = 1.32  # symmetrized error from Phys. Rev. Lett. 132, 182502
-NME_PHENO_LOW = 2.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099
-NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099
+NME_PHENO_LOW = 2.35  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Jiao et al. doi.org/10.1103/PhysRevC.96.054310
+NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Deppisch et al. doir.org/10.1103/PhysRevD.102.095016
 
 
 # lines to exclude are
