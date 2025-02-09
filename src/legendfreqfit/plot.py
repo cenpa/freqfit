@@ -448,7 +448,7 @@ class PlotLimit:
         plt.xlabel(r"$\tilde{t}_{\Gamma}$")
         plt.ylabel("Counts")
         plt.yscale("log")
-        plt.title("PDFs to generate sensitivity plot for LEGEND-200")
+        # plt.title("PDFs to generate sensitivity plot for LEGEND-200")
 
         legendstyles.legend_watermark(ax, logo_suffix="-200")
         legendstyles.add_preliminary(ax, color="red")
@@ -474,6 +474,8 @@ class PlotLimit:
         plt.plot(
             m_bb,
             self.p_values,
+            marker="s",
+            markersize=3,
             color="k",
             label="Observed, " + f" 90% CL UL {T_est*1000: 0.0f} meV",
         )
