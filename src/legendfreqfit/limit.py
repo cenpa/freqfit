@@ -12,7 +12,7 @@ from scipy.special import erfcinv
 
 from legendfreqfit.experiment import Experiment
 
-NUM_CORES = 36  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = 20  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
 
 log = logging.getLogger(__name__)
