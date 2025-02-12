@@ -575,7 +575,7 @@ class Toy:
         ):
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
-                    return 0.0
+                    return 0.0, 0.0, 0.0
 
         num = self.profile(
             parameters=profile_parameters, use_physical_limits=use_physical_limits
