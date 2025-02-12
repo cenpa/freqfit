@@ -420,6 +420,7 @@ class SetLimit(Experiment):
         scan_point: float,
         profile_dict: dict = {},  # noqa:B006
         overwrite_files: bool = None,
+        compute_conditional: bool = False,
     ) -> None:
         """
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
@@ -430,10 +431,13 @@ class SetLimit(Experiment):
         if overwrite_files is None:
             overwrite_files = self.overwrite_files
 
-        filename = (
-            self.out_path
-            + f"/0_{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
-        )
+        filename = ""
+        if not profile_dict:
+            filename = self.out_path + f"/0_{self.jobid}.h5"
+        else:
+            filename = (
+                self.out_path + f"/0_{list(profile_dict.values())}_{self.jobid}.h5"
+            )
 
         if os.path.exists(filename) and not overwrite_files:
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
@@ -445,19 +449,35 @@ class SetLimit(Experiment):
         ]
 
         # Now we can run the toys
-        (
-            toyts,
-            data,
-            nuisance,
-            num_drawn,
-            seeds_to_save,
-            toyts_denom,
-            toyts_num,
-        ) = self.toy_ts_mp(
-            toypars,
-            {f"{self.var_to_profile}": scan_point, **profile_dict},
-            num=self.numtoy,
-        )
+        if compute_conditional and profile_dict:
+            # don't fix the profile_dict points during the fits
+            (
+                toyts,
+                data,
+                nuisance,
+                num_drawn,
+                seeds_to_save,
+                toyts_denom,
+                toyts_num,
+            ) = self.toy_ts_mp(
+                toypars,
+                {f"{self.var_to_profile}": scan_point},
+                num=self.numtoy,
+            )
+        else:
+            (
+                toyts,
+                data,
+                nuisance,
+                num_drawn,
+                seeds_to_save,
+                toyts_denom,
+                toyts_num,
+            ) = self.toy_ts_mp(
+                toypars,
+                {f"{self.var_to_profile}": scan_point, **profile_dict},
+                num=self.numtoy,
+            )
 
         # Now, save the toys to a file
         if overwrite_files and os.path.exists(filename):
