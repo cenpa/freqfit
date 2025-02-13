@@ -41,6 +41,14 @@ def s_prime_to_s(s_prime):
     s = s_prime * (MDET / (LOG2 * NA))
     return s
 
+# conversion function
+def s_to_s_prime(s):
+    # Given s in decays/yr, find s_prime in decays/(kg*yr)
+    s_prime = s / (MDET / (LOG2 * NA)) 
+    return s_prime
+
+def halflife_to_s_prime(halflife):
+    return s_to_s_prime(1.0/halflife)
 
 # another conversion function
 def m_prime_to_m(m_prime):
