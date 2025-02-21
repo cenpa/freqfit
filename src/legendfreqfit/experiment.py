@@ -631,6 +631,80 @@ class Experiment(Superset):
             plt.sca(ax[i])
             comp.visualize(cargs, **kwargs)
             i += 1
+        
+        return fig
+
+    # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
+    # plots slightly differently
+    def pull_plot(
+        self,
+        parameters: dict,
+        component_kwargs=None,
+    ) -> None:
+        """
+        Visualize data and model agreement (requires matplotlib).
+
+        The visualization is drawn with matplotlib.pyplot into the current figure.
+        Subplots are created to visualize each part of the cost function, the figure
+        height is increased accordingly. Parts without a visualize method are silently
+        ignored.
+
+        Does not draw Datasets that are empty (have no events).
+
+        Parameters
+        ----------
+        args : array-like
+            Parameter values.
+        component_kwargs : dict of dicts, optional
+            Dict that maps an index to dict of keyword arguments. This can be
+            used to pass keyword arguments to a visualize method of a component with
+            that index.
+        **kwargs :
+            Other keyword arguments are forwarded to all components.
+        """
+        from matplotlib import pyplot as plt
+
+        args = []
+        for par in self.fitparameters:
+            if par not in parameters:
+                msg = f"parameter {par} was not provided"
+                raise KeyError(msg)
+            args.append(parameters[par])
+
+        n = 0
+        totnum = 0
+        for comp in self.costfunction:
+            totnum += 1
+            if hasattr(comp, "visualize"):
+                if hasattr(comp, "data"):
+                    if len(comp.data) > 0:
+                        n += 1
+                else:
+                    n += 1
+
+        fig = plt.gcf()
+        # fig.set_figwidth(n * fig.get_figwidth() / 1.5)
+        _, ax = plt.subplots(1, 1, num=fig.number)
+
+        if component_kwargs is None:
+            component_kwargs = {}
+
+        i = 0
+        for k, (comp, cargs) in enumerate(self.costfunction._split(args)):
+            # assumes nuisance constraints are the last cost function...
+            if k != totnum - 1:
+                continue
+            if not hasattr(comp, "visualize"):
+                continue
+            if hasattr(comp, "data") and len(comp.data) == 0:
+                continue
+            kwargs = component_kwargs.get(k, {})
+            plt.sca(ax)
+            comp.visualize(cargs, **kwargs)
+            i += 1
+        
+        return fig
+        
 
     def create_hypercube(self, scan_grid) -> list:
         """
