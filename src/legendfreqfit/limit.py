@@ -504,3 +504,117 @@ class SetLimit(Experiment):
         f.close()
 
         return None
+
+    def run_and_save_joint_profile_toys(
+        self,
+        scan_points: np.array,
+        profile_dict: dict = {},  # noqa:B006
+        scan_point_override=None,
+        overwrite_files: bool = None,
+        compute_conditional: bool = False,
+    ):
+        """
+        Runs toys at list of scan points and returns the critical value of the test statistic and its uncertainty.
+        This can be used to scan on a hypercube if `profile_dict` is passed and `compute_conditional` is false,
+        as `profile_dict` is used to fix parameters when generating the toys as well as to fix parameters during the profile.
+
+        Parameters
+        ----------
+        profile_dict
+            An optional dictionary of values we want to fix during all of the profiles
+
+        overwrite_files
+            whether to overwrite result files if found, uses global option of SetLimit as default
+
+        compute_conditional
+            If true, `profile_dict` is passed, then toys are generated at those values, but allowed to float during the profile fit
+        """
+
+        if overwrite_files is None:
+            overwrite_files = self.overwrite_files
+
+        for scan_point in scan_points:
+            filename = ""
+            if not profile_dict:
+                filename = self.out_path + f"/{scan_point}_{self.jobid}.h5"
+            else:
+                filename = (
+                    self.out_path
+                    + f"/{scan_point}_{list(profile_dict.values())}_{self.jobid}.h5"
+                )
+
+            if os.path.exists(filename) and not overwrite_files:
+                msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
+                raise RuntimeError(msg)
+
+            # First we need to profile out the variable we are scanning
+            toypars = self.profile(
+                {f"{self.var_to_profile}": scan_point, **profile_dict}
+            )["values"]
+            if scan_point_override is not None:
+                toypars[f"{self.var_to_profile}"] = scan_point_override
+            else:
+                toypars[
+                    f"{self.var_to_profile}"
+                ] = scan_point  # override here if we want to compare the power of the toy ts to another scan_point
+
+            # Now we can run the toys
+            if compute_conditional and profile_dict:
+                # don't fix the profile_dict points during the fits
+                (
+                    toyts,
+                    data,
+                    nuisance,
+                    num_drawn,
+                    seeds_to_save,
+                    toyts_denom,
+                    toyts_num,
+                ) = self.toy_ts_mp(
+                    toypars,
+                    {f"{self.var_to_profile}": scan_point},
+                    num=self.numtoy,
+                )
+            else:
+                (
+                    toyts,
+                    data,
+                    nuisance,
+                    num_drawn,
+                    seeds_to_save,
+                    toyts_denom,
+                    toyts_num,
+                ) = self.toy_ts_mp(
+                    toypars,
+                    {f"{self.var_to_profile}": scan_point, **profile_dict},
+                    num=self.numtoy,
+                )
+
+            # Now, save the toys to a file
+
+            if overwrite_files and os.path.exists(filename):
+                msg = f"overwriting existing file {filename}"
+                logging.warning(msg)
+                os.remove(filename)
+
+            f = h5py.File(filename, "a")
+
+            if profile_dict:
+                dset = f.create_dataset(
+                    "profile_parameters_names", data=list(profile_dict.keys())
+                )
+                dset = f.create_dataset(
+                    "profile_parameters_values", data=list(profile_dict.values())
+                )
+
+            dset = f.create_dataset("ts", data=toyts)
+            dset = f.create_dataset("ts_denom", data=toyts_denom)
+            dset = f.create_dataset("ts_num", data=toyts_num)
+            dset = f.create_dataset("s", data=scan_point)
+            dset = f.create_dataset("Es", data=data)
+            # dset = f.create_dataset("nuisance", data=nuisance)
+            dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+            dset = f.create_dataset("seed", data=seeds_to_save)
+
+            f.close()
+
+        return None

@@ -28,7 +28,41 @@ from legendfreqfit.statistics import (
 
 plt.style.use(legendstyles.LEGEND)
 
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
 from matplotlib.ticker import MultipleLocator
+
+
+# define an object that will be used by the legend
+class MulticolorPatch:
+    def __init__(self, colors):
+        self.colors = colors
+
+
+# define a handler for the MulticolorPatch object
+class MulticolorPatchHandler:
+    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
+        width, height = handlebox.width, handlebox.height
+        patches = []
+        for i, c in enumerate(orig_handle.colors):
+            patches.append(
+                plt.Rectangle(
+                    [
+                        width / len(orig_handle.colors) * i - handlebox.xdescent,
+                        -handlebox.ydescent,
+                    ],
+                    width / len(orig_handle.colors),
+                    height,
+                    facecolor=c,
+                    edgecolor="none",
+                )
+            )
+
+        patch = PatchCollection(patches, match_original=True)
+
+        handlebox.add_artist(patch)
+        return patch
+
 
 PLTSIZE = legendstyles.figsizes.JupyterNotebook
 
@@ -309,20 +343,26 @@ class PlotLimit:
                 [],
                 [],
                 ls="None",
-                label=r"Limit $m_{\beta\beta} <$" + f" {s_approx[-1]: .2f} eV",
+                label=r"limit $m_{\beta\beta} <$" + f"{s_approx[-1]: .2f} eV",
             )
         else:
             plt.xlabel(r"$\Gamma_{1/2}^{0\nu}$ [$10^{-25} \,\mathrm{yr}^{-1}$]")
             plt.ylabel(r"$\tilde{t}_{\Gamma}$")
-            plt.plot([], [], ls="None", label="90% CL UL" + f"{T_est: 0.2e} yr")
+            plt.plot(
+                [],
+                [],
+                ls="None",
+                label=rf"$\rm{{T}}_{{1/2}}^{{0\nu}} >${T_est: 0.2e} yr, 90% CL",
+            )
 
-        legendstyles.legend_watermark(ax, logo_suffix="-200")
-        legendstyles.add_preliminary(ax, color="red")
+        legendstyles.legend_watermark(ax, logo_suffix="-200", approved=True)
+        # legendstyles.add_preliminary(ax, color="red")
 
         plt.ylim(*self.critical_y_lim)
         plt.xlim(*self.critical_x_lim)
 
         plt.legend()
+        plt.tight_layout()
 
         return fig
 
@@ -340,31 +380,44 @@ class PlotLimit:
             marker="s",
             markersize=3,
             color="k",
-            label="Observed, " + f" 90% CL UL {T_est: 0.2e} yr",
+            label="obs., " + r"$\rm{T}_{1/2}^{0\nu} >$ " + f"{T_est: 0.2e} yr, 90% CL",
         )
         plt.plot(
             gammas,
             self.p_values_median,
             color="k",
             ls="--",
-            label="Median expected for bkg. only, "
-            + f"90% CL UL {T_12_median: 0.2e} yr",
+            label="median exp. bkg. only, "
+            + r"$\rm{T}_{1/2}^{0\nu} >$ "
+            + f"{T_12_median: 0.2e} yr, 90% CL",
         )
 
         plt.fill_between(
             gammas,
             self.p_values_lo,
             self.p_values_hi,
-            label=r"Median expected for bkg. only $\pm$ 2 $\sigma$",
             **BRAZIL_2_SIGMA_KWARGS,
         )
         plt.fill_between(
             gammas,
             self.p_values_lo_1,
             self.p_values_hi_1,
-            label=r"Median expected for bkg. only $\pm$ 1 $\sigma$",
             **BRAZIL_1_SIGMA_KWARGS,
         )
+
+        # ------ get the legend-entries that are already attached to the axis
+        colors, label = ax.get_legend_handles_labels()
+
+        # ------ append the multicolor legend patches
+        colors.append(
+            MulticolorPatch(
+                [
+                    (BRAZIL_1_SIGMA_KWARGS["color"], BRAZIL_1_SIGMA_KWARGS["alpha"]),
+                    (BRAZIL_2_SIGMA_KWARGS["color"], BRAZIL_2_SIGMA_KWARGS["alpha"]),
+                ]
+            )
+        )
+        label.append(r"median exp. bkg. only $\pm$ 1 $\sigma,\,\pm 2 \sigma$")
 
         plt.axhline(y=0.1, ls=":", **P_VALUE_KWARGS)
         plt.vlines(1 / T_est / 1e-25, 0, 1e-1, **P_VALUE_KWARGS)
@@ -377,12 +430,20 @@ class PlotLimit:
         plt.xlabel(r"$\Gamma_{1/2}^{0\nu} \, [10^{-25} \,\mathrm{yr}^{-1}]$ ")
         plt.ylabel(r"$p$-value")
 
-        plt.legend()
-        legendstyles.legend_watermark(ax, logo_suffix="-200")
-        legendstyles.add_preliminary(ax, color="red")
+        # plt.legend()
+        ax.legend(
+            colors,
+            label,
+            loc="best",
+            handler_map={MulticolorPatch: MulticolorPatchHandler()},
+            frameon=False,
+        )
+        legendstyles.legend_watermark(ax, logo_suffix="-200", approved=True)
+        # legendstyles.add_preliminary(ax, color="red")
 
         plt.ylim(*self.sensitivity_y_lim)
         plt.xlim(*self.sensitivity_x_lim)
+        plt.tight_layout()
         return fig
 
     def plot_test_statistic(self):
@@ -414,7 +475,7 @@ class PlotLimit:
 
         plt.axvline(
             np.median(self.toys_per_s_zero_sig[self.idx]),
-            label=r"Median $\Gamma_0$",
+            label=r"median $\Gamma_0$",
             color="k",
             ls="--",
             zorder=2,
@@ -446,11 +507,11 @@ class PlotLimit:
             zorder=100,
         )
         plt.xlabel(r"$\tilde{t}_{\Gamma}$")
-        plt.ylabel("Counts")
+        plt.ylabel("counts")
         plt.yscale("log")
 
-        legendstyles.legend_watermark(ax, logo_suffix="-200")
-        legendstyles.add_preliminary(ax, color="red")
+        legendstyles.legend_watermark(ax, logo_suffix="-200", approved=True)
+        # legendstyles.add_preliminary(ax, color="red")
 
         plt.legend()
         plt.xlim(*RANGE)
@@ -459,6 +520,7 @@ class PlotLimit:
         log.debug(median_ts)
         ordered_ts = np.sort(self.toys_per_scanned_s[self.idx])
         log.debug((len(ordered_ts[ordered_ts >= median_ts])) / len(ordered_ts))
+        plt.tight_layout()
 
         return fig
 
@@ -470,14 +532,14 @@ class PlotLimit:
         m_bb = self.signal_rate * 1000
 
         fig, ax = plt.subplots(figsize=legendstyles.figsizes.JupyterNotebook)
-        plt.plot(
-            m_bb,
-            self.p_values,
-            marker="s",
-            markersize=3,
-            color="k",
-            label="Observed, " + f" 90% CL UL {T_est*1000: 0.0f} meV",
-        )
+        if self.plot_nme_range:
+            (obs,) = ax.plot(
+                m_bb,
+                self.p_values,
+                color="k",
+            )
+        else:
+            (obs,) = ax.plot(m_bb, self.p_values, color="k", marker="s", markersize=3)
 
         plt.plot(
             m_bb,
@@ -485,59 +547,112 @@ class PlotLimit:
             color="k",
             alpha=1,
             ls="--",
-            label="median expected for bkg. only, "
-            + f"90% CL UL {T_12_median*1000: 0.0f} meV",
+            label="median exp. bkg. only, "
+            + r"$m_{\beta\beta} <$ "
+            + f"{round(T_12_median*1000,-1): 0.0f} meV, 90% CL",
         )
 
         plt.fill_between(
             m_bb,
             self.p_values_lo,
             self.p_values_hi,
-            label=r"Median expected for bkg. only $\pm$ 2 $\sigma$",
             **BRAZIL_2_SIGMA_KWARGS,
         )
         plt.fill_between(
             m_bb,
             self.p_values_lo_1,
             self.p_values_hi_1,
-            label=r"Median expected for bkg. only $\pm$ 1 $\sigma$",
             **BRAZIL_1_SIGMA_KWARGS,
         )
 
         if self.plot_nme_range:
+            m_bb_belley_low = T_est * 1000 * NME_central / (NME_central + NME_unc)
+            m_bb_belley_high = T_est * 1000 * NME_central / (NME_central - NME_unc)
+            m_bb_pheno_low = (NME_central / (NME_PHENO_LOW)) * T_est * 1000
+            m_bb_pheno_high = (NME_central / (NME_PHENO_HIGH)) * T_est * 1000
+
             plt.plot(
                 m_bb * NME_central / (NME_central + NME_unc),
                 self.p_values,
-                ls="-.",
-                color="k",
-                label=r"Observed limit $\pm 1\sigma_{\mathrm{theory\,NME}}$",
+                color=GOOD_MAGENTA,
+                alpha=0.5,
             )
             plt.plot(
                 m_bb * NME_central / (NME_central - NME_unc),
                 self.p_values,
-                ls="-.",
-                color="k",
+                color=GOOD_MAGENTA,
+                alpha=0.5,
+            )
+            # plot the Belley
+            band = ax.fill_between(
+                np.linspace(m_bb_belley_low, m_bb_belley_high, 100),
+                0.08,
+                0.12,
+                color=GOOD_MAGENTA,
+                hatch="\\\\",
+                alpha=0.8,
+                facecolor="None",
+                linewidth=2,
             )
 
-            plt.scatter(
-                [(NME_central / (NME_PHENO_LOW)) * T_est * 1000],
-                [0.1],
+            plt.vlines(m_bb_belley_low, 0, 1e-1, color=GOOD_MAGENTA, alpha=0.8)
+            plt.vlines(m_bb_belley_high, 0, 1e-1, color=GOOD_MAGENTA, alpha=0.8)
+
+            # plot the pheno
+            plt.fill_between(
+                np.linspace(m_bb_pheno_low, m_bb_pheno_high, 100),
+                0.08,
+                0.12,
                 color=GOOD_ORANGE,
-                marker="x",
-                s=50,
-                label="Phenomenological",
-            )
-            plt.scatter(
-                [(NME_central / (NME_PHENO_HIGH)) * T_est * 1000],
-                [0.1],
-                color=GOOD_ORANGE,
-                marker="x",
-                s=50,
+                hatch="//",
+                alpha=0.8,
+                facecolor="None",
+                linewidth=2,
+                label="phenom., "
+                + r"$m_{\beta\beta} <$ "
+                + rf"${round(m_bb_pheno_high, -1): 0.0f}-{round(m_bb_pheno_low, -1): 0.0f}$ meV, 90% CL, "
+                + rf"NME: {NME_PHENO_HIGH}- {NME_PHENO_LOW}",
             )
 
-        plt.axhline(y=0.1, ls=":", **P_VALUE_KWARGS)
-        plt.vlines(T_est * 1000, 0, 1e-1, **P_VALUE_KWARGS)
-        plt.vlines(T_12_median * 1000, 0, 1e-1, ls="--", **P_VALUE_KWARGS)
+            plt.vlines(m_bb_pheno_low, 0, 1e-1, color=GOOD_ORANGE, alpha=0.8)
+            plt.vlines(m_bb_pheno_high, 0, 1e-1, color=GOOD_ORANGE, alpha=0.8)
+
+        # ------ get the legend-entries that are already attached to the axis
+        colors, label = ax.get_legend_handles_labels()
+
+        # ------ append the multicolor legend patches
+        colors.append(
+            MulticolorPatch(
+                [
+                    (BRAZIL_1_SIGMA_KWARGS["color"], BRAZIL_1_SIGMA_KWARGS["alpha"]),
+                    (BRAZIL_2_SIGMA_KWARGS["color"], BRAZIL_2_SIGMA_KWARGS["alpha"]),
+                ]
+            )
+        )
+        label.append(r"median exp. bkg. only $\pm$ 1 $\sigma,\,\pm 2 \sigma$")
+
+        if self.plot_nme_range:
+            colors.append((band, obs))
+            label.append(
+                "obs., "
+                + r"$m_{\beta\beta} <$ "
+                + rf"${round(T_est*1000, -1): 0.0f}_{{-{round(T_est*1000-m_bb_belley_low, -1)}}}^{{+{round(m_bb_belley_high-T_est*1000, -1)}}}$ meV, 90% CL, "
+                + rf"NME: {NME_central}$\pm$ {NME_unc}"
+            )
+            plt.axhline(y=0.1, ls=":", color="k")
+            plt.vlines(T_est * 1000, 0, 1e-1, color="k")
+            plt.vlines(T_12_median * 1000, 0, 1e-1, ls="--", color="k")
+        else:
+            colors.append(obs)
+            label.append(
+                "obs., "
+                + r"$m_{\beta\beta} <$ "
+                + rf"${round(T_est*1000, -1): 0.0f}$ meV, 90% CL"
+            )
+
+            plt.axhline(y=0.1, ls=":", **P_VALUE_KWARGS)
+            plt.vlines(T_est * 1000, 0, 1e-1, **P_VALUE_KWARGS)
+            plt.vlines(T_12_median * 1000, 0, 1e-1, ls="--", **P_VALUE_KWARGS)
 
         ax.xaxis.set_minor_locator(MultipleLocator(5))
         ax.minorticks_on()
@@ -546,10 +661,18 @@ class PlotLimit:
         plt.xlabel(r"$m_{\beta\beta}$  [meV]")
         plt.ylabel(r"$p$-value")
 
-        plt.legend()
-        legendstyles.legend_watermark(ax, logo_suffix="-200")
-        legendstyles.add_preliminary(ax, color="red")
+        # plt.legend()
+        ax.legend(
+            colors,
+            label,
+            loc="best",
+            handler_map={MulticolorPatch: MulticolorPatchHandler()},
+            frameon=False,
+        )
+        legendstyles.legend_watermark(ax, logo_suffix="-200", approved=True)
+        # legendstyles.add_preliminary(ax, color="red")
 
         plt.ylim(*self.sensitivity_y_lim)
         plt.xlim(*self.nme_sensitivity_x_lim)
+        plt.tight_layout()
         return fig

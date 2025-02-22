@@ -9,9 +9,10 @@ g_A = 1.27  # noqa: N816 # axial coupling constant from Phys. Rev. Lett. 120, 20
 me = 0.5109989500e6  # mass of the electron in eV/c^2 from PDG
 NME_central = 2.60  # these values come from Phys. Rev. Lett. 132, 182502
 NME_unc = 1.32  # symmetrized error from Phys. Rev. Lett. 132, 182502
-NME_PHENO_LOW = 2.35  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Jiao et al. doi.org/10.1103/PhysRevC.96.054310
-NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Deppisch et al. doir.org/10.1103/PhysRevD.102.095016
-
+NME_PHENO_LOW = 2.12  # lower phenomenological  NME published after the US nuclear physics long range plan, Jokiniemi et al. https://doi.org/10.1103/PhysRevC.107.044305
+# NME_PHENO_LOW = 2.35  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Jiao et al. doi.org/10.1103/PhysRevC.96.054310
+# NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Deppisch et al. doir.org/10.1103/PhysRevD.102.095016
+NME_PHENO_HIGH = 6.79  # upper phenomenological  NME published after the US nuclear physics long range plan, Jokiniemi et al. https://doi.org/10.1103/PhysRevC.107.044305
 
 # lines to exclude are
 # 2614.511(10) - 511 = 2103.511 keV SEP from 208Tl
@@ -41,14 +42,17 @@ def s_prime_to_s(s_prime):
     s = s_prime * (MDET / (LOG2 * NA))
     return s
 
+
 # conversion function
 def s_to_s_prime(s):
     # Given s in decays/yr, find s_prime in decays/(kg*yr)
-    s_prime = s / (MDET / (LOG2 * NA)) 
+    s_prime = s / (MDET / (LOG2 * NA))
     return s_prime
 
+
 def halflife_to_s_prime(halflife):
-    return s_to_s_prime(1.0/halflife)
+    return s_to_s_prime(1.0 / halflife)
+
 
 # another conversion function
 def m_prime_to_m(m_prime):
