@@ -2,6 +2,7 @@ import importlib
 import inspect
 import logging
 
+import os
 import numpy as np
 import yaml
 
@@ -37,26 +38,31 @@ def inspectparameters(
 
     return r
 
-
 def load_config(
-    file: str,
+    file: str | dict,
 ) -> dict:
     """
-    Loads a config file and converts `str` for some fields to the appropriate objects.
+    Loads a config file or dict and converts `str` for some fields to the appropriate objects.
     """
-    with open(file) as stream:
-        # switch from safe_load to load in order to check for duplicate keys
-        config = yaml.load(stream, Loader=UniqueKeyLoader)
+
+    # if it's not a dict, it might be a path to a file
+    if not isinstance(file, dict):
+        with open(file) as stream:
+            # switch from safe_load to load in order to check for duplicate keys
+            config = yaml.load(stream, Loader=UniqueKeyLoader)
+
+    else:
+        config = file
 
     # get list of models and cost functions to import
     models = set()
     costfunctions = set()
     if "datasets" not in config:
-        msg = f"`datasets` not found in `{file}`"
+        msg = f"`datasets` not found in `{file if file is not dict else 'provided `dict`'}`"
         raise KeyError(msg)
 
     if "parameters" not in config:
-        msg = f"`parameters` not found in `{file}`"
+        msg = f"`parameters` not found in `{file if file is not dict else 'provided `dict`'}`"
         raise KeyError(msg)
 
     for datasetname, dataset in config["datasets"].items():
