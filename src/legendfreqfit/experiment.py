@@ -226,9 +226,28 @@ class Experiment(Superset):
         file: str,
         name: str = "",
     ):
+        logging.warn('Experiment.file() will be deprecated, use Experiment.from_file() instead')
         config = load_config(file=file)
         return cls(config=config, name=name)
 
+    @classmethod
+    def from_file(
+        cls,
+        file: str,
+        name: str = "",
+    ):
+        config = load_config(file=file)
+        return cls(config=config, name=name)
+
+    @classmethod
+    def from_dict(
+        cls,
+        input: str,
+        name: str = "",
+    ):
+        config = load_config(file=input)
+        return cls(config=config, name=name)
+        
     def initialguess(
         self,
     ) -> dict:
