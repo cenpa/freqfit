@@ -2,12 +2,12 @@ name: legendfreqfit
 
 on:
   push:
-    branches:
-      - main
-      - refactor
   pull_request:
   merge_group:
   release:
+      branches:
+      - main
+      - refactor
 
 jobs:
   build:

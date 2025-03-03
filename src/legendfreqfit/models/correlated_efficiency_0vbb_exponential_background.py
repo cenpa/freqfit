@@ -15,7 +15,7 @@ nb_kwd = {
 
 QBB = constants.QBB
 N_A = constants.NA
-M_A = constants.M76
+M_A = constants.MDET
 
 # default analysis window and width
 # window
@@ -79,8 +79,8 @@ def nb_pdf(
     -----
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
-    mu_B = BI * W * exp
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + N*BI*W*exp*(np.exp(-a*(E_j-x_lo)/a + 1))]
+    mu_B = BI * exp
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + N*BI*exp*(np.exp(-a*(E_j-x_lo)))]
     """
     x_lo = WINDOW[0][0]
     x1 = WINDOW[0][1]
@@ -90,24 +90,19 @@ def nb_pdf(
     x_hi = WINDOW[-1][1]
 
     # Compute the normalization for the CDF
-    invnorm = (x_hi - x4 + x3 - x2 + x1 - x_lo) - (
-        np.exp(-a * (x_hi - x_lo))
-        - np.exp(-a * (x4 - x_lo))
-        + np.exp(-a * (x3 - x_lo))
-        - np.exp(-a * (x2 - x_lo))
-        + np.exp(-a * (x1 - x_lo))
-        - 1
+    invnorm = (
+        1
+        + np.exp(-a * (x2 - x_lo))
+        + np.exp(-a * (x4 - x_lo))
+        - np.exp(-a * (x1 - x_lo))
+        - np.exp(-a * (x3 - x_lo))
+        - np.exp(-a * (x_hi - x_lo))
     )
 
     if invnorm == 0:
         norm = np.inf
     else:
-        norm = 1 / invnorm
-
-    if a == 0:
-        a_inv = np.inf
-    else:
-        a_inv = 1 / a
+        norm = a / invnorm
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
@@ -123,7 +118,7 @@ def nb_pdf(
     for i in nb.prange(Es.shape[0]):
         y[i] = (1 / (mu_S + mu_B)) * (
             S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))
-            + B_amp * (np.exp(-a * (Es[i] - x_lo)) * a_inv + 1)
+            + B_amp * np.exp(-a * (Es[i] - x_lo))
         )
 
     if check_window:
@@ -192,25 +187,20 @@ def nb_density(
     x4 = WINDOW[-1][0]
     x_hi = WINDOW[-1][1]
 
-    # Compute the normalization for the CDF
-    invnorm = (x_hi - x4 + x3 - x2 + x1 - x_lo) - (
-        np.exp(-a * (x_hi - x_lo))
-        - np.exp(-a * (x4 - x_lo))
-        + np.exp(-a * (x3 - x_lo))
-        - np.exp(-a * (x2 - x_lo))
-        + np.exp(-a * (x1 - x_lo))
-        - 1
+    # Compute the normalization for the PDF
+    invnorm = (
+        1
+        + np.exp(-a * (x2 - x_lo))
+        + np.exp(-a * (x4 - x_lo))
+        - np.exp(-a * (x1 - x_lo))
+        - np.exp(-a * (x3 - x_lo))
+        - np.exp(-a * (x_hi - x_lo))
     )
 
     if invnorm == 0:
         norm = np.inf
     else:
-        norm = 1 / invnorm
-
-    if a == 0:
-        a_inv = np.inf
-    else:
-        a_inv = 1 / a
+        norm = a / invnorm
 
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = WINDOWSIZE * BI * exp
@@ -227,7 +217,7 @@ def nb_density(
     for i in nb.prange(Es.shape[0]):
         y[i] = S_amp * np.exp(
             -((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)
-        ) + B_amp * (np.exp(-a * (Es[i] - x_lo)) * a_inv + 1)
+        ) + B_amp * np.exp(-a * (Es[i] - x_lo))
 
     if check_window:
         for i in nb.prange(Es.shape[0]):
@@ -329,54 +319,60 @@ def nb_extendedrvs(
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-    raise NotImplementedError
-    # S *= 0.01
-    # BI *= 0.0001
+    np.random.seed(seed)
 
-    # np.random.seed(seed)
+    n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
+    n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
-    # n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
-    # n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
+    x_lo = WINDOW[0][0]
+    x1 = WINDOW[0][1]
+    x2 = WINDOW[1][0]
+    x3 = WINDOW[1][1]
+    x4 = WINDOW[-1][0]
+    x_hi = WINDOW[-1][1]
 
-    # x_lo = WINDOW[0][0]
-    # x1 = WINDOW[0][1]
-    # x2 = WINDOW[1][0]
-    # x3 = WINDOW[1][1]
-    # x4 = WINDOW[-1][0]
-    # x_hi = WINDOW[-1][1]
+    # Compute the normalization for the PDF
+    invnorm = (
+        1
+        + np.exp(-a * (x2 - x_lo))
+        + np.exp(-a * (x4 - x_lo))
+        - np.exp(-a * (x1 - x_lo))
+        - np.exp(-a * (x3 - x_lo))
+        - np.exp(-a * (x_hi - x_lo))
+    )
 
-    # # Compute the normalization for the CDF
-    # invnorm = (x_hi - x4 + x3 - x2 + x1 -x_lo) - (np.exp(-a*(x_hi-x_lo)) - np.exp(-a*(x4-x_lo)) + np.exp(-a*(x3-x_lo)) - np.exp(-a*(x2-x_lo))+
-    # np.exp(-a*(x1-x_lo)) - 1)
+    if invnorm == 0:
+        norm = np.inf
+    else:
+        norm = a / invnorm
 
-    # if invnorm == 0:
-    #     norm = np.inf
-    # else:
-    #     norm = 1/invnorm
+    Es = np.random.laplace(x_lo, 1 / a, n_bkg)
+    # Make sure we drew in the correct window
+    for i in nb.prange(len(Es)):
+        inwindow = False
+        for j in range(len(WINDOW)):
+            if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
+                inwindow = True
+        if (Es[i] < WINDOW[0][0]) or (Es[i] > WINDOW[-1][-1]):
+            inwindow = True
+        if inwindow:
+            # loop until we do get a count inside a window
+            new_inwindow = True
+            while new_inwindow:
+                newdraw = np.random.laplace(x_lo, 1 / a, 1)[0]
+                new_inwindowcheck = False
+                for j in range(len(WINDOW) - 1):
+                    if WINDOW[j][1] <= newdraw <= WINDOW[j + 1][0]:
+                        new_inwindowcheck = True
+                if (newdraw < WINDOW[0][0]) or (newdraw > WINDOW[-1][-1]):
+                    new_inwindowcheck = True
+                if not new_inwindowcheck:
+                    new_inwindow = False
+        Es[i] = newdraw
 
-    # Es = np.random.exponential(a, n_bkg) + x_lo
-    # # Make sure we drew in the correct window
-    # for i in nb.prange(len(Es)):
-    #     inwindow = False
-    #     for j in range(len(WINDOW)):
-    #         if WINDOW[j][0] <= Es[i] <= WINDOW[j][1]:
-    #             inwindow = True
-    #     if inwindow:
-    #         # loop until we do get a count inside a window
-    #         new_inwindow = True
-    #         while new_inwindow:
-    #             newdraw = np.random.exponential(a, 1)[0] + x_lo
-    #             new_inwindowcheck = False
-    #             for j in range(len(WINDOW)-1):
-    #                 if WINDOW[j][1] <= newdraw <= WINDOW[j+1][0]:
-    #                     new_inwindowcheck = True
-    #             if not new_inwindowcheck:
-    #                 new_inwindow = False
-    #     Es[i] = newdraw
+    Es = np.append(Es, np.random.normal(QBB - delta, sigma, size=n_sig))
 
-    #     Es = np.append(Es, np.random.normal(QBB - delta, sigma, size=n_sig))
-
-    # return Es, (n_bkg, n_sig)
+    return Es, (n_bkg, n_sig)
 
 
 class correlated_efficiency_0vbb_exponential_background_gen:

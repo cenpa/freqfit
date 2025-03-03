@@ -407,10 +407,6 @@ def sensitivity(
         upper_ts = np.quantile(ts, 0.5 + CL / 2, method="linear")
         lower_ts = np.quantile(ts, 0.5 - CL / 2, method="linear")
 
-        cdf, binedges = emp_cdf(
-            toy_ts[i], bins
-        )  # note that the CDF is evaluated at the right bin edge
-
         sorted_toy_ts = np.sort(toy_ts[i])
 
         p_values_median.append(

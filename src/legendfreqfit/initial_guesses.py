@@ -13,6 +13,12 @@ from legendfreqfit.models.correlated_efficiency_0vbb import (
 from legendfreqfit.models.correlated_efficiency_0vbb_correlate_delta import (
     correlated_efficiency_0vbb_correlate_delta_gen,
 )
+from legendfreqfit.models.correlated_efficiency_0vbb_exponential_background import (
+    correlated_efficiency_0vbb_exponential_background_gen,
+)
+from legendfreqfit.models.correlated_efficiency_0vbb_linear_background import (
+    correlated_efficiency_0vbb_linear_background_gen,
+)
 from legendfreqfit.models.correlated_efficiency_NME_0vbb import (
     correlated_efficiency_NME_0vbb_gen,
 )
@@ -284,6 +290,12 @@ def poisson_initial_guess(experiment):
                 or isinstance(ds.model, truncated_correlated_efficiency_0vbb_gen)
                 or isinstance(ds.model, correlated_efficiency_NME_0vbb_gen)
                 or isinstance(ds.model, correlated_efficiency_0vbb_correlate_delta_gen)
+                or isinstance(
+                    ds.model, correlated_efficiency_0vbb_linear_background_gen
+                )
+                or isinstance(
+                    ds.model, correlated_efficiency_0vbb_exponential_background_gen
+                )
             ):
                 BI_totexp = BI_totexp + ds._parlist[7]
                 BI_sigma_expweighted = (

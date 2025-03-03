@@ -16,7 +16,7 @@ nb_kwd = {
 
 QBB = constants.QBB
 N_A = constants.NA
-M_A = constants.M76
+M_A = constants.MDET
 
 # default analysis window and width
 # window
@@ -203,6 +203,9 @@ def nb_density(
         * (WINDOW[-1][1] - WINDOW[0][0])
         * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b)
     )
+
+    if includedarea == 0:
+        return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
 
     amp = totarea / includedarea * BI * exp * WINDOWSIZE
 

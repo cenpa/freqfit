@@ -1,5 +1,5 @@
 """
-Define a class whose input is the effective Majorana mass and incorporates uncertainty on the NME
+Stores the PDF for Gaussian on uniform background, parametrized in number of decays. This model lacks any information on the efficiency and exposure.
 """
 import numba as nb
 import numpy as np
@@ -37,15 +37,10 @@ SEED = 42  # set the default random seed
 @nb.jit(**nb_kwd)
 def nb_pdf(
     Es: np.array,
-    m_bb: float,
-    BI: float,
+    n_S: float,
+    n_B: float,
     delta: float,
     sigma: float,
-    eff: float,
-    effunc: float,
-    effuncscale: float,
-    exp: float,
-    NME: float,
     check_window: bool = False,
 ) -> np.array:
     """
@@ -53,24 +48,14 @@ def nb_pdf(
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    m_bb
-        The effective neutrino mass
-    BI
-        The background index rate, in counts/(kg*yr*keV)
+    n_S
+        The signal rate, in units of counts
+    n_B
+        The background index rate, in counts
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    effunc
-        uncertainty on the efficiency
-    effuncscale
-        scaling parameter of the efficiency
-    exp
-        The exposure, in kg*yr
-    NME
-        The nuclear matrix element
     check_window
         whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
         all fall inside the window (for speed)
@@ -78,18 +63,17 @@ def nb_pdf(
     Notes
     -----
     This function computes the following:
-    mu_S = (eff + effuncscale * effunc) * exp * m_bb^2 * NME^2
-    mu_B = exp * BI * windowsize
+    mu_S = n_S
+    mu_B = n_B
     pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
-    # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
-    mu_S = m_bb**2 * NME**2 * (eff + effuncscale * effunc) * exp
-    mu_B = exp * BI * WINDOWSIZE
+    mu_S = n_S
+    mu_B = n_B
 
     # Precompute the prefactors so that way we save multiplications in the for loop
-    B_amp = exp * BI
+    B_amp = mu_B / WINDOWSIZE
     S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
@@ -114,65 +98,42 @@ def nb_pdf(
 @nb.jit(**nb_kwd)
 def nb_density(
     Es: np.array,
-    m_bb: float,
-    BI: float,
+    n_S: float,
+    n_B: float,
     delta: float,
     sigma: float,
-    eff: float,
-    effunc: float,
-    effuncscale: float,
-    exp: float,
-    NME: float,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    m_bb
-        The effective Majorana mass
-    BI
-        The background index rate, in counts/(kg*yr*keV)
+    n_S
+        The signal rate, in units of counts
+    n_B
+        The background index rate, in counts
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    effunc
-        uncertainty on the efficiency
-    effuncscale
-        scaling parameter of the efficiency
-    exp
-        The exposure, in kg*yr
-    NME
-        The nuclear matrix element
 
     Notes
     -----
     This function computes the following, faster than without a numba wrapper:
-    mu_S = (eff + effuncscale * effunc) * exp * m_bb^2 * NME^2
-    mu_B = exp * BI * windowsize
+    mu_S = n_S
+    mu_B = n_B
     CDF(E) = mu_S + mu_B
     pdf(E) =[mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
     """
 
-    # Precompute the signal and background counts
-
-    mu_S = m_bb**2 * NME**2 * (eff + effuncscale * effunc) * exp
-    mu_B = exp * BI * WINDOWSIZE
+    mu_S = n_S
+    mu_B = n_B
 
     if sigma == 0:
         return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
 
-    if mu_S < 0:  # do not allow for strong downward fluctuations in the signal region
-        return 0, np.full_like(Es, 0, dtype=np.float64)
-
-    if mu_S + mu_B < 0:
-        return 0, np.full_like(Es, 0, dtype=np.float64)
-
     # Precompute the prefactors so that way we save multiplications in the for loop
-    B_amp = exp * BI
+    B_amp = mu_B / WINDOWSIZE
     S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
@@ -186,202 +147,99 @@ def nb_density(
 @nb.jit(**nb_kwd)
 def nb_log_density(
     Es: np.array,
-    m_bb: float,
-    BI: float,
+    n_S: float,
+    n_B: float,
     delta: float,
     sigma: float,
-    eff: float,
-    effunc: float,
-    effuncscale: float,
-    exp: float,
-    NME: float,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    m_bb
-        The effective Majorana mass
-    BI
-        The background index rate, in counts/(kg*yr*keV)
+    n_S
+        The signal rate, in units of counts
+    n_B
+        The background index rate, in counts
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    effunc
-        uncertainty on the efficiency
-    effuncscale
-        scaling parameter of the efficiency
-    exp
-        The exposure, in kg*yr
-    NME
-        The nuclear matrix element
-
     Notes
     -----
     This function computes the following, faster than without a numba wrapper:
-    mu_S = (eff + effuncscale * effunc) * exp * m_bb^2 * NME
-    mu_B = exp * BI * windowsize
+    mu_S = n_S
+    mu_B = n_B
     CDF(E) = mu_S + mu_B
     pdf(E) =[mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
     """
-
-    # Precompute the signal and background counts
-    mu_S = m_bb**2 * NME**2 * (eff + effuncscale * effunc) * exp
-    mu_B = exp * BI * WINDOWSIZE
-
-    if sigma == 0:
-        return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
-
-    if mu_S + mu_B < 0:
-        return 0, np.full_like(Es, -np.inf)
-
-    # Precompute the prefactors so that way we save multiplications in the for loop
-    B_amp = exp * BI
-    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
-
-    # Initialize and execute the for loop
-    y = np.empty_like(Es, dtype=np.float64)
-    for i in nb.prange(Es.shape[0]):
-        pdf = S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
-
-        if pdf <= 0:
-            y[i] = -np.inf
-
-        # Make an approximation based on machine precision, following J. Detwiler's suggestion
-        u = (S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2))) / B_amp
-
-        if u <= 1e-8:
-            y[i] = np.log(B_amp) + u
-        else:
-            y[i] = np.log(pdf)
-
-    return mu_S + mu_B, y
+    raise NotImplementedError("not yet implemented , sorry!")
 
 
 @nb.jit(**nb_kwd)
 def nb_density_gradient(
     Es: np.array,
-    m_bb: float,
-    BI: float,
+    n_S: float,
+    n_B: float,
     delta: float,
     sigma: float,
-    eff: float,
-    effunc: float,
-    effuncscale: float,
-    exp: float,
-    NME: float,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    m_bb
-        The effective Majorana mass
-    BI
-        The background index rate, in counts/(kg*yr*keV)
+    n_S
+        The signal rate, in units of counts
+    n_B
+        The background index rate, in counts
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    effunc
-        uncertainty on the efficiency
-    effuncscale
-        scaling parameter of the efficiency
-    exp
-        The exposure, in kg*yr
-    NME
-        The nuclear matrix element
 
     Notes
     -----
     This function computes the gradient of the density function and returns a tuple where the first element is the gradient of the CDF, and the second element is the gradient of the PDF.
     The first element has shape (K,) where K is the number of parameters, and the second element has shape (K,N) where N is the length of Es.
-    mu_S = S * exp * (eff + effuncscale * effunc)
-    mu_B = exp * BI * windowsize
+    mu_S = n_S
+    mu_B = n_B
     pdf(E) = [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
     cdf(E) = mu_S + mu_B
     """
-    raise NotImplementedError("Not yet implemented!")
+    raise NotImplementedError("not yet implemented, sorry!")
 
 
 @nb.jit(**nb_kwd)
 def nb_logpdf(
     Es: np.array,
-    m_bb: float,
-    BI: float,
+    n_S: float,
+    n_B: float,
     delta: float,
     sigma: float,
-    eff: float,
-    effunc: float,
-    effuncscale: float,
-    exp: float,
-    NME: float,
 ) -> np.array:
     """
     Parameters
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    m_bb
-        The effective Majorana mass
-    BI
-        The background index rate, in counts/(kg*yr*keV)
+    n_S
+        The signal rate, in units of counts
+    n_B
+        The background index rate, in counts
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    effunc
-        uncertainty on the efficiency
-    effuncscale
-        scaling parameter of the efficiency
-    exp
-        The exposure, in kg*yr
-    NME
-        The nuclear matrix element
 
     Notes
     -----
     This function computes the following:
-    mu_S = (eff + effuncscale * effunc) * exp * m_bb**2 * NME
-    mu_B = exp * BI * windowsize
+    mu_S = n_S
+    mu_B = n_B
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize])
     """
-
-    # Precompute the signal and background counts
-    mu_S = m_bb**2 * NME**2 * (eff + effuncscale * effunc) * exp
-    mu_B = exp * BI * WINDOWSIZE
-
-    if sigma == 0:  # need this check for fitting
-        return np.full_like(
-            Es, np.log(exp * BI / (mu_S + mu_B))
-        )  # TODO: make sure this simplification makes sense in the limit
-
-    # Precompute the prefactors so that way we save multiplications in the for loop
-    B_amp = exp * BI
-    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
-
-    # Initialize and execute the for loop
-    y = np.empty_like(Es, dtype=np.float64)
-    for i in nb.prange(Es.shape[0]):
-        pdf = (1 / (mu_S + mu_B)) * (
-            S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
-        )
-
-        if pdf <= 0:
-            y[i] = -np.inf
-        else:
-            y[i] = np.log(pdf)
-
-    return y
+    raise NotImplementedError("not yet implemented!")
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -442,38 +300,23 @@ def nb_rvs(
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
-    m_bb: float,
-    BI: float,
+    n_S: float,
+    n_B: float,
     delta: float,
     sigma: float,
-    eff: float,
-    effunc: float,
-    effuncscale: float,
-    exp: float,
-    NME: float,
     seed: int = SEED,
 ) -> np.array:
     """
     Parameters
     ----------
-    m_bb
-        expected effective Majorana mass
-    BI
-        rate of background events in events/(kev*kg*yr)
+    n_S
+        expected rate of signal events in events
+    n_B
+        rate of background events in events
     delta
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    eff
-        The global signal efficiency, unitless
-    effunc
-        uncertainty on the efficiency
-    effuncscale
-        scaling parameter of the efficiency
-    exp
-        The exposure, in kg*yr
-    NME
-        The nuclear matrix element
     seed
         specify a seed, otherwise uses default seed
 
@@ -485,8 +328,8 @@ def nb_extendedrvs(
 
     np.random.seed(seed)
 
-    n_sig = np.random.poisson(m_bb**2 * NME**2 * (eff + effuncscale * effunc) * exp)
-    n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
+    n_sig = n_S
+    n_bkg = n_B
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
@@ -514,7 +357,7 @@ def nb_extendedrvs(
     return Es, (n_sig, n_bkg)
 
 
-class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
+class number_of_counts_0vbb_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
         pass
@@ -522,89 +365,56 @@ class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
     def pdf(
         self,
         Es: np.array,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
         check_window: bool = False,
     ) -> np.array:
-        return nb_pdf(
-            Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME, check_window
-        )
+        return nb_pdf(Es, n_S, n_B, delta, sigma, check_window)
 
     def logpdf(
         self,
         Es: np.array,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
     ) -> np.array:
-        return nb_logpdf(Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME)
+        return nb_logpdf(Es, n_S, n_B, delta, sigma)
 
     # for iminuit ExtendedUnbinnedNLL
     def density(
         self,
         Es: np.array,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
     ) -> np.array:
-        return nb_density(
-            Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME
-        )
+        return nb_density(Es, n_S, n_B, delta, sigma)
 
     # for iminuit ExtendedUnbinnedNLL
     def density_gradient(
         self,
         Es: np.array,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
     ) -> np.array:
-        return nb_density_gradient(
-            Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME
-        )
+        return nb_density_gradient(Es, n_S, n_B, delta, sigma)
 
     # for iminuit ExtendedUnbinnedNLL
     def log_density(
         self,
         Es: np.array,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
     ) -> np.array:
-        return nb_log_density(
-            Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME
-        )
+        return nb_log_density(Es, n_S, n_B, delta, sigma)
 
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
@@ -621,35 +431,23 @@ class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
 
     def extendedrvs(
         self,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(
-            m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME, seed=seed
-        )
+        return nb_extendedrvs(n_S, n_B, delta, sigma, seed=seed)
 
     def plot(
         self,
         Es: np.array,
-        m_bb: float,
-        BI: float,
+        n_S: float,
+        n_B: float,
         delta: float,
         sigma: float,
-        eff: float,
-        effunc: float,
-        effuncscale: float,
-        exp: float,
-        NME: float,
     ) -> None:
-        y = nb_pdf(Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME)
+        y = nb_pdf(Es, n_S, n_B, delta, sigma)
 
         import matplotlib.pyplot as plt
 
@@ -662,62 +460,47 @@ class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
     def combine(
         self,
         a_Es: np.array,
-        a_m_bb: float,
-        a_BI: float,
+        a_n_S: float,
+        a_n_B: float,
         a_delta: float,
         a_sigma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
-        a_NME: float,
         b_Es: np.array,
-        b_m_bb: float,
-        b_BI: float,
+        b_n_S: float,
+        b_n_B: float,
         b_delta: float,
         b_sigma: float,
-        b_eff: float,
-        b_effunc: float,
-        b_effuncscale: float,
-        b_exp: float,
-        b_NME: float,
     ) -> list | None:
         # datasets must be empty to be combined
         if len(a_Es) != 0 or len(b_Es) != 0:
             return None
 
         Es = np.array([])  # both of these datasets are empty
-        m_bb = 0.0  # this should be overwritten in the fit later
-        BI = 0.0  # this should be overwritten in the fit later
+        n_S = 0.0  # this should be overwritten in the fit later
+        # n_B = 0.0  # this should be overwritten in the fit later
 
-        exp = a_exp + b_exp  # total exposure
+        # exp = 1 + 1  # total exposure
 
-        # exposure weighted fixed parameters (important to calculate correctly)
-        sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
-        eff = (a_exp * a_eff + b_exp * b_eff) / exp
-        delta = (a_exp * a_delta + b_exp * b_delta) / exp
+        # # exposure weighted fixed parameters (important to calculate correctly)
+        # sigma = (a_sigma + b_exp * b_sigma) / exp
+        # eff = (a_exp * a_eff + b_exp * b_eff) / exp
+        # delta = (a_exp * a_delta + b_exp * b_delta) / exp
 
-        # these are fully correlated in this model so the direct sum is appropriate
-        # (maybe still appropriate even if not fully correlated?)
-        effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+        # # these are fully correlated in this model so the direct sum is appropriate
+        # # (maybe still appropriate even if not fully correlated?)
+        # effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
 
-        effuncscale = 0.0  # this should be overwritten in the fit later
-        NME = 0.0  # this should be overwritten in the fit later
+        # effuncscale = 0.0  # this should be overwritten in the fit later
 
-        return [Es, m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME]
+        # return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
+        return None
 
     def can_combine(
         self,
         a_Es: np.array,
-        a_m_bb: float,
-        a_BI: float,
+        a_n_S: float,
+        a_n_B: float,
         a_delta: float,
         a_sigma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
-        a_NME: float,
     ) -> bool:
         """
         This sets an arbitrary rule if this dataset can be combined with other datasets.
@@ -729,4 +512,4 @@ class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
             return False
 
 
-correlated_efficiency_NME_0vbb = correlated_efficiency_NME_0vbb_gen()  # noqa: N816
+number_of_counts_0vbb = number_of_counts_0vbb_gen()
