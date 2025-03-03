@@ -5,28 +5,28 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="dGh9uOD7rtoKU6u2wli6-2" value="$$\mathcal{L}(\Gamma) = \mathcal{L}_{\textrm{L200}} \cdot \mathcal{L}_{\textrm{aux}}$$" style="text;whiteSpace=wrap;align=center;verticalAlign=middle;" parent="1" vertex="1">
-          <mxGeometry x="-260" y="80" width="160" height="50" as="geometry" />
+          <mxGeometry x="-160" y="100" width="160" height="50" as="geometry" />
         </mxCell>
         <mxCell id="dGh9uOD7rtoKU6u2wli6-6" value="" style="endArrow=none;html=1;rounded=0;fontColor=#07A9FF;strokeColor=#07A9FF;strokeWidth=2;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="-187.5" y="120" as="sourcePoint" />
-            <mxPoint x="-157.5" y="120" as="targetPoint" />
+            <mxPoint x="-87.5" y="140" as="sourcePoint" />
+            <mxPoint x="-57.5" y="140" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="dGh9uOD7rtoKU6u2wli6-7" value="" style="endArrow=none;html=1;rounded=0;fontColor=#07A9FF;strokeColor=#1A2A5B;strokeWidth=2;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="-147.5" y="120" as="sourcePoint" />
-            <mxPoint x="-117.5" y="120" as="targetPoint" />
+            <mxPoint x="-47.5" y="140" as="sourcePoint" />
+            <mxPoint x="-17.5" y="140" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="dGh9uOD7rtoKU6u2wli6-10" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="dGh9uOD7rtoKU6u2wli6-2" target="dGh9uOD7rtoKU6u2wli6-1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="-177.5" y="120" as="sourcePoint" />
-            <mxPoint x="-67.5" y="120" as="targetPoint" />
+            <mxPoint x="-77.5" y="140" as="sourcePoint" />
+            <mxPoint x="32.5" y="140" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="dGh9uOD7rtoKU6u2wli6-12" value="" style="group" parent="1" vertex="1" connectable="0">
-          <mxGeometry x="-685" y="160" width="1010" height="90" as="geometry" />
+          <mxGeometry x="-585" y="180" width="1010" height="90" as="geometry" />
         </mxCell>
         <mxCell id="dGh9uOD7rtoKU6u2wli6-1" value="$$\mathcal{L}(\Gamma | \vec{\nu}\,) = \prod_k \bigg[ \frac{(s_k + b_k)^{N_k} e^{-(s_k + b_k)}}{N_k!} \prod_{i=1}^{N_k} \frac{1}{s_k + b_k} \left( \frac{b_k}{\Delta E} + \frac{s_k}{\sqrt{2 \pi \sigma_k^2}} e^{-\frac{(E_i - Q_{\beta\beta} - \Delta_k)^2}{2 \sigma_k^2}} \right) \bigg] &#xa;&#xa;\times \prod_k \bigg[ \frac{1}{\sqrt{2 \pi \delta_{\Delta_k}^2}} e^{-\frac{(\Delta_k - \tilde{\Delta}_k)^2}{2 \delta_{\Delta_k}^2}}   &#xa; \frac{1}{\sqrt{2 \pi \delta_{\sigma_k}^2}} e^{-\frac{(\sigma_k - &#xa;\tilde{\sigma}_k)^2}{2 \delta_{\sigma_k}^2}} \bigg] \times \frac{1}{\sqrt{2 &#xa;\pi \delta_{\alpha} }} e^{-\frac{(\alpha - \tilde{\alpha})^2}{2 &#xa;\delta_{\alpha}}}&#xa;   $$" style="text;whiteSpace=wrap;align=center;verticalAlign=middle;" parent="dGh9uOD7rtoKU6u2wli6-12" vertex="1">
           <mxGeometry width="1010" height="90" as="geometry" />
@@ -47,7 +47,7 @@
           <mxGeometry x="-790" y="270" width="1540" height="1190" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-54" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;strokeColor=#D907FF;fontColor=#07A9FF;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="110" y="280" width="1430" height="820" as="geometry" />
+          <mxGeometry x="110" y="280" width="1200" height="820" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;strokeColor=#FF5D07;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="250" y="410" width="520" height="450" as="geometry" />
@@ -59,13 +59,13 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-5" value="&lt;div&gt;truth&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div&gt;\(\Gamma_t,&amp;nbsp; \vec{\nu}_t\)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=default;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="450" width="120" height="60" as="geometry" />
+          <mxGeometry x="650" y="10" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-7" target="pB9OxfSEECygrkOrtsTo-20" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-7" value="&lt;div&gt;L200 data&lt;/div&gt;&lt;div&gt;\(\textrm{data} | \Gamma_t\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="380" y="100" width="120" height="60" as="geometry" />
+          <mxGeometry x="580" y="105" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-9" target="pB9OxfSEECygrkOrtsTo-20" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -73,7 +73,7 @@
         <mxCell id="XF3HAn--ySpP8VppQo1m-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-9" target="ZSnNDYF2Bw-W7KcPjIif-27">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="610" y="200" />
+              <mxPoint x="810" y="200" />
               <mxPoint x="1130" y="200" />
               <mxPoint x="1130" y="390" />
               <mxPoint x="1110" y="390" />
@@ -81,7 +81,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-9" value="&lt;div&gt;auxiliary measurements&lt;/div&gt;&lt;div&gt;\(\textrm{aux} | \vec{\nu}_t \to \vec{\tilde{\nu}} \pm \vec{\delta_\nu}\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="520" y="100" width="120" height="60" as="geometry" />
+          <mxGeometry x="720" y="105" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-11" target="pB9OxfSEECygrkOrtsTo-13" edge="1">
           <mxGeometry relative="1" as="geometry">
@@ -126,16 +126,23 @@
           <mxGeometry x="260" y="740" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-20" target="ZSnNDYF2Bw-W7KcPjIif-1" edge="1">
-          <mxGeometry relative="1" as="geometry" />
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="235" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-20" target="pB9OxfSEECygrkOrtsTo-11" edge="1">
-          <mxGeometry relative="1" as="geometry" />
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="270" />
+              <mxPoint x="510" y="270" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-20" target="ZSnNDYF2Bw-W7KcPjIif-40" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-20" value="&lt;div&gt;define data likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\Gamma, \vec{\nu}&amp;nbsp;| \textrm{data},&amp;nbsp;\vec{\tilde{\nu}} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="450" y="200" width="120" height="60" as="geometry" />
+          <mxGeometry x="650" y="200" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-22" target="pB9OxfSEECygrkOrtsTo-28" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -214,7 +221,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-21" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;dashed=1;dashPattern=8 8;strokeColor=#07A9FF;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="780" y="410" width="645" height="450" as="geometry" />
+          <mxGeometry x="780" y="410" width="520" height="450" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-25" target="ZSnNDYF2Bw-W7KcPjIif-33" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -365,7 +372,7 @@
         <mxCell id="XF3HAn--ySpP8VppQo1m-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-15" target="XF3HAn--ySpP8VppQo1m-17">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-15" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma_0|\Gamma^{\star}}^{\prime} ) \)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-15" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma_0|\Gamma_0}^{\prime} ) \)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
           <mxGeometry x="1105" y="880" width="130" height="80" as="geometry" />
         </mxCell>
         <mxCell id="XF3HAn--ySpP8VppQo1m-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-17" target="XF3HAn--ySpP8VppQo1m-19">
