@@ -174,12 +174,14 @@ def nb_density(
     # BI *= 0.0001
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
+    # mu_B = exp * BI * WINDOWSIZE/(np.sqrt(sigma**2 + delta_unc**2) * 2*np.sqrt(2* np.log(2)))
 
     if sigma == 0:
         return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
+    # B_amp = exp * BI / (np.sqrt(sigma**2 + delta_unc**2) * 2*np.sqrt(2* np.log(2)))
     S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
