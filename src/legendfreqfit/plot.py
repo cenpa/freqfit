@@ -15,7 +15,8 @@ from legendfreqfit.models.constants import (
     NME_PHENO_HIGH,
     NME_PHENO_LOW,
     NME_central,
-    NME_unc,
+    NME_unc_hi,
+    NME_unc_lo,
     m_prime_to_m,
     s_prime_to_s,
 )
@@ -176,13 +177,18 @@ class PlotLimit:
                 else:
                     for FILE in file_list:
                         f = h5py.File(FILE, "r")
-                        if "Es" in f.keys():
-                            Es_per_file.extend(f["Es"][:])
-                        else:
-                            Es_per_file.extend([])
                         toy_ts_per_file.extend(f["ts"][:])
-                        toy_num_per_file.extend(f["ts_num"][:])
-                        toy_denom_per_file.extend(f["ts_denom"][:])
+                        if "Es" in f.keys():
+                            Es = f["Es"][:]
+                            num = f["ts_num"][:]
+                            denom = f["ts_denom"][:]
+                        else:
+                            Es = []
+                            num = []
+                            denom = []
+                        Es_per_file.extend(Es)
+                        toy_num_per_file.extend(num)
+                        toy_denom_per_file.extend(denom)
                         f.close()
 
                 tcrit_tuple, _ = ts_critical(
@@ -251,13 +257,22 @@ class PlotLimit:
                 for file in brazil_files:
                     f = h5py.File(file, "r")
                     ts = f["ts"][:]
-                    Es = f["Es"][:]
-                    seeds = f["seed"][:]
                     toys_per_file.extend(ts[i])
+                    if "Es" in f.keys():
+                        Es = f["Es"][:]
+                        seeds = f["seed"][:]
+                        num = f["ts_num"][:][i]
+                        denom = f["ts_denom"][:][i]
+                    else:
+                        Es = []
+                        seeds = []
+                        denom = []
+                        num = []
+
                     Es_per_file.extend(Es)
                     seeds_per_file.extend(seeds)
-                    denom_per_file.extend(f["ts_denom"][:][i])
-                    num_per_file.extend(f["ts_num"][:][i])
+                    denom_per_file.extend(denom)
+                    num_per_file.extend(num)
             toys_per_s_zero_sig.append(toys_per_file)
             num_per_s_zero_sig.append(num_per_file)
             denom_per_s_zero_sig.append(denom_per_file)
@@ -405,6 +420,8 @@ class PlotLimit:
             **BRAZIL_1_SIGMA_KWARGS,
         )
 
+        log.warning(find_crossing(self.signal_rate, self.p_values_lo_1, 0.1))
+        log.warning(find_crossing(self.signal_rate, self.p_values_hi_1, 0.1))
         # ------ get the legend-entries that are already attached to the axis
         colors, label = ax.get_legend_handles_labels()
 
@@ -564,21 +581,23 @@ class PlotLimit:
             self.p_values_hi_1,
             **BRAZIL_1_SIGMA_KWARGS,
         )
+        log.warning(find_crossing(self.signal_rate, self.p_values_lo_1, 0.1))
+        log.warning(find_crossing(self.signal_rate, self.p_values_hi_1, 0.1))
 
         if self.plot_nme_range:
-            m_bb_belley_low = T_est * 1000 * NME_central / (NME_central + NME_unc)
-            m_bb_belley_high = T_est * 1000 * NME_central / (NME_central - NME_unc)
+            m_bb_belley_low = T_est * 1000 * NME_central / (NME_central + NME_unc_hi)
+            m_bb_belley_high = T_est * 1000 * NME_central / (NME_central - NME_unc_lo)
             m_bb_pheno_low = (NME_central / (NME_PHENO_LOW)) * T_est * 1000
             m_bb_pheno_high = (NME_central / (NME_PHENO_HIGH)) * T_est * 1000
 
             plt.plot(
-                m_bb * NME_central / (NME_central + NME_unc),
+                m_bb * NME_central / (NME_central + NME_unc_hi),
                 self.p_values,
                 color=GOOD_MAGENTA,
                 alpha=0.5,
             )
             plt.plot(
-                m_bb * NME_central / (NME_central - NME_unc),
+                m_bb * NME_central / (NME_central - NME_unc_lo),
                 self.p_values,
                 color=GOOD_MAGENTA,
                 alpha=0.5,
@@ -637,7 +656,7 @@ class PlotLimit:
                 "obs., "
                 + r"$m_{\beta\beta} <$ "
                 + rf"${round(T_est*1000, -1): 0.0f}_{{-{round(T_est*1000-m_bb_belley_low, -1)}}}^{{+{round(m_bb_belley_high-T_est*1000, -1)}}}$ meV, 90% CL, "
-                + rf"NME: {NME_central}$\pm$ {NME_unc}"
+                + rf"$\mathrm{{NME}}: {NME_central}_{{-{NME_unc_lo}}}^{{+{NME_unc_hi}}}$"
             )
             plt.axhline(y=0.1, ls=":", color="k")
             plt.vlines(T_est * 1000, 0, 1e-1, color="k")

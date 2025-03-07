@@ -28,6 +28,7 @@ class SetLimit(Experiment):
         name: str = "",
         overwrite_files: bool = False,
         numcores: int = NUM_CORES,
+        profile_grid: np.array = None,
     ) -> None:
         """
         This class inherits from `Experiment`, and also holds the name of the variable to profile
@@ -43,6 +44,7 @@ class SetLimit(Experiment):
         self.out_path = out_path
         self.numcores = numcores
         self.overwrite_files = overwrite_files
+        self.profile_grid = profile_grid
 
     def set_var_to_profile(self, var_to_profile: str):
         """
@@ -57,6 +59,16 @@ class SetLimit(Experiment):
             logging.error(msg)
             raise ValueError(msg)
         self.var_to_profile = var_to_profile
+
+    def set_profile_grid(self, profile_grid: np.array):
+        """
+        Parameters
+        ----------
+        scan_grid
+            values of the variable we are going to scan over to compute test-statistics at
+        """
+
+        self.profile_grid = profile_grid
 
     def wilks_ts_crit(self, CL: float) -> float:
         """
@@ -210,9 +222,12 @@ class SetLimit(Experiment):
         scan_point_override=None,
         overwrite_files: bool = None,
         compute_conditional: bool = False,
+        save_only_ts: bool = True,
+        compute_coverage: bool = False,
+        toy_pars_override: dict = None,  # noqa:B006
     ):
         """
-        Runs toys at specified scan point and returns the critical value of the test statistic and its uncertainty.
+        Runs toys at specified scan point.
         This can be used to scan on a hypercube if `profile_dict` is passed and `compute_conditional` is false,
         as `profile_dict` is used to fix parameters when generating the toys as well as to fix parameters during the profile.
 
@@ -226,6 +241,16 @@ class SetLimit(Experiment):
 
         compute_conditional
             If true, `profile_dict` is passed, then toys are generated at those values, but allowed to float during the profile fit
+
+        save_only_ts
+            Save only the test statistics
+
+        compute_coverage
+            If true, use `self.profile_grid` to scan all points on the profile grid, not just scan point. Useful for determining coverage
+            by computing limits toy-by-toy and comparing limit to `scan_point`
+
+        toy_pars_override
+            If a dict is passed, generate toys at these values instead of the ones profiled out at `scan_point`
         """
 
         if overwrite_files is None:
@@ -244,10 +269,14 @@ class SetLimit(Experiment):
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
             raise RuntimeError(msg)
 
-        # First we need to profile out the variable we are scanning
-        toypars = self.profile({f"{self.var_to_profile}": scan_point, **profile_dict})[
-            "values"
-        ]
+        # First we need to pass the parameter values to generate the toys at: either profile out the variable we are scanning, or user supplied
+        if toy_pars_override:
+            toypars = toy_pars_override
+        else:
+            toypars = self.profile(
+                {f"{self.var_to_profile}": scan_point, **profile_dict}
+            )["values"]
+
         if scan_point_override is not None:
             toypars[f"{self.var_to_profile}"] = scan_point_override
         else:
@@ -258,6 +287,8 @@ class SetLimit(Experiment):
         # Now we can run the toys
         if compute_conditional and profile_dict:
             # don't fix the profile_dict points during the fits
+            # compute the test statistic at just the given point by default
+
             (
                 toyts,
                 data,
@@ -272,19 +303,44 @@ class SetLimit(Experiment):
                 num=self.numtoy,
             )
         else:
-            (
-                toyts,
-                data,
-                nuisance,
-                num_drawn,
-                seeds_to_save,
-                toyts_denom,
-                toyts_num,
-            ) = self.toy_ts_mp(
-                toypars,
-                {f"{self.var_to_profile}": scan_point, **profile_dict},
-                num=self.numtoy,
-            )
+            # Scan a toy over all points if asked
+            if compute_coverage and self.profile_grid is not None:
+                # check if the profile grid has the scan point in it, otherwise fail gracefully
+                if scan_point not in self.profile_grid:
+                    raise ValueError(
+                        f"{scan_point} not in user specified grid {self.profile_grid}!"
+                    )
+                (
+                    toyts,
+                    data,
+                    nuisance,
+                    num_drawn,
+                    seeds_to_save,
+                    toyts_denom,
+                    toyts_num,
+                ) = self.toy_ts_mp(
+                    toypars,
+                    [
+                        {f"{self.var_to_profile}": one_scan_point}
+                        for one_scan_point in self.profile_grid
+                    ],
+                    num=self.numtoy,
+                )
+            # Default to scanning over just the one point specified
+            else:
+                (
+                    toyts,
+                    data,
+                    nuisance,
+                    num_drawn,
+                    seeds_to_save,
+                    toyts_denom,
+                    toyts_num,
+                ) = self.toy_ts_mp(
+                    toypars,
+                    {f"{self.var_to_profile}": scan_point, **profile_dict},
+                    num=self.numtoy,
+                )
 
         # Now, save the toys to a file
 
@@ -304,13 +360,16 @@ class SetLimit(Experiment):
             )
 
         dset = f.create_dataset("ts", data=toyts)
-        dset = f.create_dataset("ts_denom", data=toyts_denom)
-        dset = f.create_dataset("ts_num", data=toyts_num)
         dset = f.create_dataset("s", data=scan_point)
-        dset = f.create_dataset("Es", data=data)
-        # dset = f.create_dataset("nuisance", data=nuisance)
-        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
-        dset = f.create_dataset("seed", data=seeds_to_save)
+
+        if not save_only_ts:
+            dset = f.create_dataset("ts_denom", data=toyts_denom)
+            dset = f.create_dataset("ts_num", data=toyts_num)
+            dset = f.create_dataset("s", data=scan_point)
+            dset = f.create_dataset("Es", data=data)
+            # dset = f.create_dataset("nuisance", data=nuisance)
+            dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+            dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
@@ -322,6 +381,8 @@ class SetLimit(Experiment):
         profile_dict: dict = {},  # noqa:B006
         overwrite_files: bool = None,
         compute_conditional: bool = False,
+        save_only_ts: bool = True,
+        toy_pars_override: dict = None,
     ) -> None:
         """
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses.
@@ -330,6 +391,12 @@ class SetLimit(Experiment):
 
         If compute_conditional is passed as False and a `profile_dict` is passed in order to scan a hypercube, it will work.
         However, this will be slow, and the recommended job submission differs. Use `run_and_save_brazil_with_profile_parameters` instead.
+
+        save_only_ts
+            Save only the test statistics
+
+        toy_pars_override
+            If a dict is passed, generate toys at these values instead of the ones profiled out at `scan_point`
         """
 
         if profile_dict and not compute_conditional:
@@ -353,10 +420,13 @@ class SetLimit(Experiment):
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
             raise RuntimeError(msg)
 
-        # First we need to profile out the variable we are scanning at 0 signal rate
-        toypars = self.profile({f"{self.var_to_profile}": 0.0, **profile_dict})[
-            "values"
-        ]
+        # First we need to pass the parameter values to generate the toys at:  either profile out the variable we are scanning at 0 signal rate, or user supplied
+        if toy_pars_override:
+            toypars = toy_pars_override
+        else:
+            toypars = self.profile({f"{self.var_to_profile}": 0.0, **profile_dict})[
+                "values"
+            ]
 
         # Add 0 to the scan points if it is not there
         if 0.0 not in scan_points:
@@ -403,13 +473,15 @@ class SetLimit(Experiment):
 
         f = h5py.File(filename, "a")
         dset = f.create_dataset("ts", data=toyts)
-        dset = f.create_dataset("ts_num", data=toyts_num)
-        dset = f.create_dataset("ts_denom", data=toyts_denom)
         dset = f.create_dataset("s", data=scan_points)
-        dset = f.create_dataset("Es", data=data)
-        dset = f.create_dataset("nuisance", data=nuisance)
-        dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
-        dset = f.create_dataset("seed", data=seeds_to_save)
+
+        if not save_only_ts:
+            dset = f.create_dataset("ts_num", data=toyts_num)
+            dset = f.create_dataset("ts_denom", data=toyts_denom)
+            dset = f.create_dataset("Es", data=data)
+            dset = f.create_dataset("nuisance", data=nuisance)
+            dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+            dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
@@ -421,11 +493,14 @@ class SetLimit(Experiment):
         profile_dict: dict = {},  # noqa:B006
         overwrite_files: bool = None,
         compute_conditional: bool = False,
+        save_only_ts: bool = True,
     ) -> None:
         """
         Runs toys at 0 signal rate and computes the test statistic for different signal hypotheses
         If we are running with profile_dict parameters in order to scan a hypercube,
         the optimal job submission differs from the above and is more similar to run_and_save_toys
+
+        TODO: refactor this with `run_and_save_brazil`
         """
 
         if overwrite_files is None:
@@ -487,19 +562,21 @@ class SetLimit(Experiment):
 
         f = h5py.File(filename, "a")
         dset = f.create_dataset("ts", data=toyts)
-        dset = f.create_dataset("ts_num", data=toyts_num)
-        dset = f.create_dataset("ts_denom", data=toyts_denom)
-        dset = f.create_dataset("s", data=scan_point)
+        dset = f.create_dataset("seed", data=seeds_to_save)
         dset = f.create_dataset(
             "profile_parameters_names", data=list(profile_dict.keys())
         )
         dset = f.create_dataset(
             "profile_parameters_values", data=list(profile_dict.values())
         )
-        # dset = f.create_dataset("Es", data=data)
-        # dset = f.create_dataset("nuisance", data=nuisance)
-        # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
-        dset = f.create_dataset("seed", data=seeds_to_save)
+        dset = f.create_dataset("s", data=scan_point)
+
+        if not save_only_ts:
+            dset = f.create_dataset("ts_num", data=toyts_num)
+            dset = f.create_dataset("ts_denom", data=toyts_denom)
+            dset = f.create_dataset("Es", data=data)
+            dset = f.create_dataset("nuisance", data=nuisance)
+            dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
 
         f.close()
 
@@ -512,11 +589,15 @@ class SetLimit(Experiment):
         scan_point_override=None,
         overwrite_files: bool = None,
         compute_conditional: bool = False,
+        save_only_ts: bool = True,
     ):
         """
-        Runs toys at list of scan points and returns the critical value of the test statistic and its uncertainty.
+        Runs toys at list of scan points.
         This can be used to scan on a hypercube if `profile_dict` is passed and `compute_conditional` is false,
         as `profile_dict` is used to fix parameters when generating the toys as well as to fix parameters during the profile.
+        This differs from `run_and_save_toys` because `scan_points` is now an array.
+
+        TODO: combine this and `run_and_save_toys`
 
         Parameters
         ----------
@@ -528,6 +609,9 @@ class SetLimit(Experiment):
 
         compute_conditional
             If true, `profile_dict` is passed, then toys are generated at those values, but allowed to float during the profile fit
+
+        save_only_ts
+            Save only the test statistics
         """
 
         if overwrite_files is None:
@@ -551,6 +635,7 @@ class SetLimit(Experiment):
             toypars = self.profile(
                 {f"{self.var_to_profile}": scan_point, **profile_dict}
             )["values"]
+
             if scan_point_override is not None:
                 toypars[f"{self.var_to_profile}"] = scan_point_override
             else:
@@ -607,13 +692,15 @@ class SetLimit(Experiment):
                 )
 
             dset = f.create_dataset("ts", data=toyts)
-            dset = f.create_dataset("ts_denom", data=toyts_denom)
-            dset = f.create_dataset("ts_num", data=toyts_num)
             dset = f.create_dataset("s", data=scan_point)
-            dset = f.create_dataset("Es", data=data)
-            # dset = f.create_dataset("nuisance", data=nuisance)
-            dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
-            dset = f.create_dataset("seed", data=seeds_to_save)
+
+            if not save_only_ts:
+                dset = f.create_dataset("ts_denom", data=toyts_denom)
+                dset = f.create_dataset("ts_num", data=toyts_num)
+                dset = f.create_dataset("Es", data=data)
+                # dset = f.create_dataset("nuisance", data=nuisance)
+                dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+                dset = f.create_dataset("seed", data=seeds_to_save)
 
             f.close()
 

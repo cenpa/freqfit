@@ -8,11 +8,12 @@ G_01 = 0.23e-14  # in yr^-1, phase space factor for 76Ge from Phys. Rev. C 98, 0
 g_A = 1.27  # noqa: N816 # axial coupling constant from Phys. Rev. Lett. 120, 202002 by Czarnecki et. al
 me = 0.5109989500e6  # mass of the electron in eV/c^2 from PDG
 NME_central = 2.60  # these values come from Phys. Rev. Lett. 132, 182502
-NME_unc = 1.32  # symmetrized error from Phys. Rev. Lett. 132, 182502
-NME_PHENO_LOW = 2.12  # lower phenomenological  NME published after the US nuclear physics long range plan, Jokiniemi et al. https://doi.org/10.1103/PhysRevC.107.044305
-# NME_PHENO_LOW = 2.35  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Jiao et al. doi.org/10.1103/PhysRevC.96.054310
-# NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Deppisch et al. doir.org/10.1103/PhysRevD.102.095016
-NME_PHENO_HIGH = 6.79  # upper phenomenological  NME published after the US nuclear physics long range plan, Jokiniemi et al. https://doi.org/10.1103/PhysRevC.107.044305
+NME_unc_hi = 1.28  # symmetrized error from Phys. Rev. Lett. 132, 182502
+NME_unc_lo = 1.36  # symmetrized error from Phys. Rev. Lett. 132, 182502
+# NME_PHENO_LOW = 2.12  # lower phenomenological  NME published after the US nuclear physics long range plan, Jokiniemi et al. https://doi.org/10.1103/PhysRevC.107.044305
+NME_PHENO_LOW = 2.35  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Jiao et al. doi.org/10.1103/PhysRevC.96.054310
+NME_PHENO_HIGH = 6.34  # lower phenomenological NME from the US nuclear physics long range plan arXiv:2212.11099, Deppisch et al. doir.org/10.1103/PhysRevD.102.095016
+# NME_PHENO_HIGH = 6.79  # upper phenomenological  NME published after the US nuclear physics long range plan, Jokiniemi et al. https://doi.org/10.1103/PhysRevC.107.044305
 
 # lines to exclude are
 # 2614.511(10) - 511 = 2103.511 keV SEP from 208Tl
