@@ -344,7 +344,7 @@ def get_p_values(toy_ts: np.array, ts_observed: np.array):
     """
 
     if len(toy_ts) != len(ts_observed):
-        raise ValueError(
+        log.warning(
             "The number of scanned points for the toys is not equal to the number of observed test statistics"
         )
 
