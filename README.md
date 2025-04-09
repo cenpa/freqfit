@@ -1,5 +1,5 @@
-# legendfreqfit
-LEGEND 0v2b frequentist analysis
+# freqfit
+Unbinned frequentist analysis
 
 ---
 
@@ -14,7 +14,7 @@ datasets: # the collection of datasets
   ds1: # name of dataset
     costfunction: ExtendedUnbinnedNLL # which cost function to use (only ExtendedUnbinnedNLL and UnbinnedNLL are supported)
     data: [...] # list of data
-    model: legendfreqfit.models.mymodel # name/location of model to use
+    model: freqfit.models.mymodel # name/location of model to use
     model_parameters: # parameter of the model: name given to this parameter
       a: a_ds1
       b: global_b # shared parameter names indicate the same parameter across different datasets
@@ -24,7 +24,7 @@ datasets: # the collection of datasets
     combined_dataset: empty_ds # name of the group to attempt to join
     costfunction: ExtendedUnbinnedNLL
     data: [] # this dataset has no data
-    model: legendfreqfit.models.mymodel
+    model: freqfit.models.mymodel
     model_parameters:
       a: a_ds2
       b: global_b
@@ -34,7 +34,7 @@ datasets: # the collection of datasets
     combined_dataset: empty_ds
     costfunction: ExtendedUnbinnedNLL
     data: []
-    model: legendfreqfit.models.mymodel
+    model: freqfit.models.mymodel
     model_parameters:
       a: a_ds3
       b: global_b
@@ -42,7 +42,7 @@ datasets: # the collection of datasets
 combined_datasets: # details of how we should attempt to combine datasets
   empty_ds: # name of the combined datasets
     costfunction: ExtendedUnbinnedNLL
-    model: legendfreqfit.models.mymodel # model for the combined group (must match the datasets being added for now)
+    model: freqfit.models.mymodel # model for the combined group (must match the datasets being added for now)
     model_parameters:
       a: a_empty_ds
       b: global_b
@@ -118,7 +118,7 @@ Test statistic definitions come from [G. Cowan, K. Cranmer, E. Gross, and O. Vit
 Once you have a config file made, you can load it by doing
 
 ```python
-from legendfreqfit import Experiment
+from freqfit import Experiment
 
 myexperiment = Experiment.file("myconfig.yaml")
 ```
@@ -143,14 +143,14 @@ per detector per partition
 ---
 
 ### development help
-You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `legendfreqfit/`.
+You can install the repository using `pip` as an editable file. Just do `pip install -e` while inside of `freqfit/`.
 
 ### running on cenpa-rocks
 1. Make sure you have a user directory in the LEGEND location on `eliza1`: `mkdir /data/eliza1/LEGEND/users/$USER`
 2. Add the PYTHONUSERBASE to your `~/.bashrc`: `export PYTHONUSERBASE=/data/eliza1/LEGEND/users/$USER/pythonuserbase`
-3. The code is located at `/data/eliza1/LEGEND/sw/legendfreqfit`. In order to pip3 install it, run the following
+3. The code is located at `/data/eliza1/LEGEND/sw/freqfit`. In order to pip3 install it, run the following
 4. Activate the singularity shell `singularity shell --bind /data/eliza1/LEGEND/:/data/eliza1/LEGEND/ /data/eliza1/LEGEND/sw/containers/python3-10.sif`
-5. Pip3 install as an editable file. When located inside the `/data/eliza1/LEGEND/sw/legendfreqfit` directory, run `pip install -e .` (NOTE: you may need to run the command `python3 -m pip install --upgrade pip` in order for this pip install to succeed)
+5. Pip3 install as an editable file. When located inside the `/data/eliza1/LEGEND/sw/freqfit` directory, run `pip install -e .` (NOTE: you may need to run the command `python3 -m pip install --upgrade pip` in order for this pip install to succeed)
 6. Exit the singularity shell and run the code
 
 
