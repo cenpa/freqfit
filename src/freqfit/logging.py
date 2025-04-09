@@ -26,7 +26,7 @@ def setup(level: int = logging.INFO, logger: logging.Logger = None) -> None:
 
     Examples
     --------
-    >>> from legendfreqfit import logging
+    >>> from freqfit import logging
     >>> logging.setup(level=logging.DEBUG)
     """
     handler = colorlog.StreamHandler()
@@ -35,7 +35,7 @@ def setup(level: int = logging.INFO, logger: logging.Logger = None) -> None:
     )
 
     if logger is None:
-        logger = colorlog.getLogger("legendfreqfit")
+        logger = colorlog.getLogger("freqfit")
 
     logger.setLevel(level)
     logger.addHandler(handler)

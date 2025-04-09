@@ -2,8 +2,8 @@
 import numba as nb
 import numpy as np
 
-import legendfreqfit.models.constants as constants
-from legendfreqfit.utils import inspectparameters
+import freqfit.models.constants as constants
+from freqfit.utils import inspectparameters
 
 nb_kwd = {
     "nopython": True,

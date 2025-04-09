@@ -8,10 +8,10 @@ from copy import deepcopy
 import numpy as np
 from iminuit import Minuit
 
-from legendfreqfit import initial_guesses
-from legendfreqfit.superset import Superset
-from legendfreqfit.toy import Toy
-from legendfreqfit.utils import grab_results, load_config
+from freqfit import initial_guesses
+from freqfit.superset import Superset
+from freqfit.toy import Toy
+from freqfit.utils import grab_results, load_config
 
 SEED = 42
 

@@ -1,7 +1,7 @@
 import numba as nb
 import numpy as np
 
-from legendfreqfit.utils import inspectparameters
+from freqfit.utils import inspectparameters
 
 nb_kwd = {
     "nopython": True,

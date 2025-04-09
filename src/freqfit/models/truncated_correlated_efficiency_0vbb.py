@@ -1,11 +1,13 @@
 """
-0vbb ROI is treated as a flat rectangle on a flat background. Built in order to understand the tailing effects of the Gaussian signal model.
+Model is a Gaussian signal on a flat background, Gaussian is truncated at 5 sigma
 """
+from math import erf
+
 import numba as nb
 import numpy as np
 
-import legendfreqfit.models.constants as constants
-from legendfreqfit.utils import inspectparameters
+import freqfit.models.constants as constants
+from freqfit.utils import inspectparameters
 
 nb_kwd = {
     "nopython": True,
@@ -19,7 +21,6 @@ nb_kwd = {
 QBB = constants.QBB
 N_A = constants.NA
 M_A = constants.MDET
-ROI_WIDTH = 5  # width of the ROI in sigma
 
 # default analysis window and width
 # window
@@ -33,6 +34,8 @@ for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
 SEED = 42  # set the default random seed
+
+ROI_WIDTH = 5  # width of the ROI in sigma
 
 
 @nb.jit(**nb_kwd)
@@ -83,23 +86,26 @@ def nb_pdf(
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
-    ROI = ROI_WIDTH * sigma
-    mu_S = S * (eff + effuncscale * effunc) * exp * ROI
+    mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = S * (eff + effuncscale * effunc) * exp
+    S_amp = (
+        mu_S / (np.sqrt(2 * np.pi) * sigma) * (1 / erf(ROI_WIDTH / np.sqrt(2)))
+    )  # renomormalize for the Gaussian finite width
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        if (Es[i] - QBB + delta > -1 * (ROI_WIDTH * sigma / 2)) & (
-            Es[i] - QBB + delta < (ROI_WIDTH * sigma / 2)
+        if (Es[i] - QBB + delta > -ROI_WIDTH * sigma) & (
+            Es[i] - QBB + delta < ROI_WIDTH * sigma
         ):
-            y[i] = (1 / (mu_S + mu_B)) * (S_amp + B_amp)
+            y[i] = (1 / (mu_S + mu_B)) * (
+                S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
+            )
         else:
-            y[i] = (1 / (mu_S + mu_B)) * (B_amp)
+            y[i] = B_amp
 
     if check_window:
         for i in nb.prange(Es.shape[0]):
@@ -160,7 +166,6 @@ def nb_density(
     # mu_S = np.log(2) * (N_A * S) * (eff + effuncscale * effunc) * exp / M_A
     # S *= 0.01
     # BI *= 0.0001
-    ROI = ROI_WIDTH * sigma
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
 
@@ -169,13 +174,17 @@ def nb_density(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = S * (eff + effuncscale * effunc) * exp
+    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma) * (1 / erf(ROI_WIDTH / np.sqrt(2)))
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        if (Es[i] - QBB + delta > -1 * (ROI / 2)) & (Es[i] - QBB + delta < (ROI / 2)):
-            y[i] = S_amp / ROI + B_amp
+        if (Es[i] - QBB + delta > -ROI_WIDTH * sigma) & (
+            Es[i] - QBB + delta < ROI_WIDTH * sigma
+        ):
+            y[i] = (
+                S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
+            )
         else:
             y[i] = B_amp
 
@@ -227,7 +236,7 @@ def nb_density_gradient(
     """
 
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    raise NotImplementedError("Not implemented yet")
+    raise NotImplementedError("Not implemented yet, check back sometime.")
 
 
 @nb.jit(**nb_kwd)
@@ -271,7 +280,10 @@ def nb_logpdf(
     mu_B = exp * BI * windowsize
     logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize])
     """
-    raise NotImplementedError("Not yet implemented! sorry!")
+
+    # Precompute the signal and background counts
+    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
+    raise NotImplementedError("not yet implemented")
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -301,7 +313,8 @@ def nb_rvs(
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-    raise NotImplementedError("Not implemented! Sorry!")
+
+    raise NotImplementedError("not implemented yet")
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -345,7 +358,6 @@ def nb_extendedrvs(
     """
     # S *= 0.01
     # BI *= 0.0001
-    ROI = ROI_WIDTH * sigma
 
     np.random.seed(seed)
 
@@ -354,10 +366,17 @@ def nb_extendedrvs(
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
-    Es = np.append(
-        np.random.uniform(QBB - delta - ROI / 2, QBB - delta + ROI / 2, n_sig),
-        np.zeros(n_bkg),
-    )
+    # TODO: create a truncated normal and call here, avoid this dumb while loop
+    len_Es = 0
+    Es = np.zeros(n_sig, dtype=np.float64)
+    while len_Es != n_sig:
+        E = np.random.normal(QBB - delta, sigma, size=1)[0]
+        if (E > QBB - delta - ROI_WIDTH * sigma) & (
+            E < QBB - delta + ROI_WIDTH * sigma
+        ):
+            Es[len_Es] = E
+            len_Es += 1
+    Es = np.append(Es, np.zeros(n_bkg))
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
@@ -381,10 +400,9 @@ def nb_extendedrvs(
     return Es, (n_sig, n_bkg)
 
 
-class box_model_0vbb_gen:
+class truncated_correlated_efficiency_0vbb_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
-        pass
 
     def pdf(
         self,
@@ -633,4 +651,4 @@ class box_model_0vbb_gen:
         return s_guess, BI_guess
 
 
-box_model_0vbb = box_model_0vbb_gen()
+truncated_correlated_efficiency_0vbb = truncated_correlated_efficiency_0vbb_gen()

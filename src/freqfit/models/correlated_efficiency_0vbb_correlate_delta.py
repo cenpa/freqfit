@@ -1,13 +1,11 @@
 """
-Model is a Gaussian signal on a flat background, Gaussian is truncated at 5 sigma
+PDF that correlates all energy biases with one global parameter alpha_delta
 """
-from math import erf
-
 import numba as nb
 import numpy as np
 
-import legendfreqfit.models.constants as constants
-from legendfreqfit.utils import inspectparameters
+import freqfit.models.constants as constants
+from freqfit.utils import inspectparameters
 
 nb_kwd = {
     "nopython": True,
@@ -35,8 +33,6 @@ for i in range(len(WINDOW)):
 
 SEED = 42  # set the default random seed
 
-ROI_WIDTH = 5  # width of the ROI in sigma
-
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
@@ -49,6 +45,8 @@ def nb_pdf(
     effunc: float,
     effuncscale: float,
     exp: float,
+    alpha_delta: float,
+    delta_unc: float,
     check_window: bool = False,
 ) -> np.array:
     """
@@ -67,13 +65,17 @@ def nb_pdf(
     eff
         The global signal efficiency, unitless
     effunc
-        uncertainty on the efficiency
+        Uncertainty on the efficiency
     effuncscale
-        scaling parameter of the efficiency
+        Scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    alpha_delta
+        Global correlation between all energy biases
+    delta_unc
+        Uncertainty on delta
     check_window
-        whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
+        Whether to check if the passed Es fall inside of the window. Default is False and assumes that the passed Es
         all fall inside the window (for speed)
 
     Notes
@@ -81,7 +83,7 @@ def nb_pdf(
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
+    pdf(E) = 1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta * alpha_delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -91,21 +93,19 @@ def nb_pdf(
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = (
-        mu_S / (np.sqrt(2 * np.pi) * sigma) * (1 / erf(ROI_WIDTH / np.sqrt(2)))
-    )  # renomormalize for the Gaussian finite width
+    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        if (Es[i] - QBB + delta > -ROI_WIDTH * sigma) & (
-            Es[i] - QBB + delta < ROI_WIDTH * sigma
-        ):
-            y[i] = (1 / (mu_S + mu_B)) * (
-                S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
+        y[i] = (1 / (mu_S + mu_B)) * (
+            S_amp
+            * np.exp(
+                -((Es[i] - QBB + delta + alpha_delta * delta_unc) ** 2)
+                / (2 * sigma**2)
             )
-        else:
-            y[i] = B_amp
+            + B_amp
+        )
 
     if check_window:
         for i in nb.prange(Es.shape[0]):
@@ -130,6 +130,8 @@ def nb_density(
     effunc: float,
     effuncscale: float,
     exp: float,
+    alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -152,6 +154,10 @@ def nb_density(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    alpha_delta
+        The global scaling of energy biases
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
@@ -159,7 +165,7 @@ def nb_density(
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
     CDF(E) = mu_S + mu_B
-    pdf(E) =[mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize]
+    pdf(E) =[mu_S * norm(E_j, QBB - delta * alpha_delta, sigma) + mu_B/windowsize]
     """
 
     # Precompute the signal and background counts
@@ -168,27 +174,80 @@ def nb_density(
     # BI *= 0.0001
     mu_S = S * (eff + effuncscale * effunc) * exp
     mu_B = exp * BI * WINDOWSIZE
+    # mu_B = exp * BI * WINDOWSIZE/(np.sqrt(sigma**2 + delta_unc**2) * 2*np.sqrt(2* np.log(2)))
 
     if sigma == 0:
         return np.inf, np.full_like(Es, np.inf, dtype=np.float64)
 
     # Precompute the prefactors so that way we save multiplications in the for loop
     B_amp = exp * BI
-    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma) * (1 / erf(ROI_WIDTH / np.sqrt(2)))
+    # B_amp = exp * BI / (np.sqrt(sigma**2 + delta_unc**2) * 2*np.sqrt(2* np.log(2)))
+    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
 
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
-        if (Es[i] - QBB + delta > -ROI_WIDTH * sigma) & (
-            Es[i] - QBB + delta < ROI_WIDTH * sigma
-        ):
-            y[i] = (
-                S_amp * np.exp(-((Es[i] - QBB + delta) ** 2) / (2 * sigma**2)) + B_amp
+        y[i] = (
+            S_amp
+            * np.exp(
+                -((Es[i] - QBB + delta + alpha_delta * delta_unc) ** 2)
+                / (2 * sigma**2)
             )
-        else:
-            y[i] = B_amp
+            + B_amp
+        )
 
     return mu_S + mu_B, y
+
+
+@nb.jit(**nb_kwd)
+def nb_log_density(
+    Es: np.array,
+    S: float,
+    BI: float,
+    delta: float,
+    sigma: float,
+    eff: float,
+    effunc: float,
+    effuncscale: float,
+    exp: float,
+    alpha_delta: float,
+    delta_unc: float,
+) -> np.array:
+    """
+    Parameters
+    ----------
+    Es
+        Energies at which this function is evaluated, in keV
+    S
+        The signal rate, in units of counts/(kg*yr)
+    BI
+        The background index rate, in counts/(kg*yr*keV)
+    delta
+        Systematic energy offset from QBB, in keV
+    sigma
+        The energy resolution at QBB, in keV
+    eff
+        The global signal efficiency, unitless
+    effunc
+        uncertainty on the efficiency
+    effuncscale
+        scaling parameter of the efficiency
+    exp
+        The exposure, in kg*yr
+    alpha_delta
+        Global energy bias uncertainty
+    delta_unc
+        Uncertainty on delta
+
+    Notes
+    -----
+    This function computes the following, faster than without a numba wrapper:
+    mu_S = (eff + effuncscale * effunc) * exp * S
+    mu_B = exp * BI * windowsize
+    CDF(E) = mu_S + mu_B
+    pdf(E) =[mu_S * norm(E_j, QBB - delta * alpha_delta, sigma) + mu_B/windowsize]
+    """
+    raise NotImplementedError("This is not yet implemented.")
 
 
 @nb.jit(**nb_kwd)
@@ -202,6 +261,8 @@ def nb_density_gradient(
     effunc: float,
     effuncscale: float,
     exp: float,
+    alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -224,6 +285,10 @@ def nb_density_gradient(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    alpha_delta
+        The global energy bias scaling
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
@@ -231,12 +296,10 @@ def nb_density_gradient(
     The first element has shape (K,) where K is the number of parameters, and the second element has shape (K,N) where N is the length of Es.
     mu_S = S * exp * (eff + effuncscale * effunc)
     mu_B = exp * BI * windowsize
-    pdf(E) = [mu_S * norm(E_j, QBB + delta, sigma) + mu_B/windowsize]
+    pdf(E) = [mu_S * norm(E_j, QBB + delta * alpha_delta, sigma) + mu_B/windowsize]
     cdf(E) = mu_S + mu_B
     """
-
-    # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    raise NotImplementedError("Not implemented yet, check back sometime.")
+    raise NotImplementedError("This is not yet implemented, sorry!")
 
 
 @nb.jit(**nb_kwd)
@@ -250,6 +313,8 @@ def nb_logpdf(
     effunc: float,
     effuncscale: float,
     exp: float,
+    alpha_delta: float,
+    delta_unc: float,
 ) -> np.array:
     """
     Parameters
@@ -272,18 +337,51 @@ def nb_logpdf(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    alpha_delta
+        The global energy bias scaling
+    delta_unc
+        Uncertainty on delta
 
     Notes
     -----
     This function computes the following:
     mu_S = (eff + effuncscale * effunc) * exp * S
     mu_B = exp * BI * windowsize
-    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta, sigma) + mu_B/windowsize])
+    logpdf(E) = log(1/(mu_S+mu_B) * [mu_S * norm(E_j, QBB - delta * alpha_delta, sigma) + mu_B/windowsize])
     """
 
     # Precompute the signal and background counts
     # mu_S = np.log(2) * (N_A * S) * eff * exp / M_A
-    raise NotImplementedError("not yet implemented")
+    mu_S = S * (eff + effuncscale * effunc) * exp
+    mu_B = exp * BI * WINDOWSIZE
+
+    if sigma == 0:  # need this check for fitting
+        return np.full_like(
+            Es, np.log(exp * BI / (mu_S + mu_B))
+        )  # TODO: make sure this simplification makes sense in the limit
+
+    # Precompute the prefactors so that way we save multiplications in the for loop
+    B_amp = exp * BI
+    S_amp = mu_S / (np.sqrt(2 * np.pi) * sigma)
+
+    # Initialize and execute the for loop
+    y = np.empty_like(Es, dtype=np.float64)
+    for i in nb.prange(Es.shape[0]):
+        pdf = (1 / (mu_S + mu_B)) * (
+            S_amp
+            * np.exp(
+                -((Es[i] - QBB + delta + alpha_delta * delta_unc) ** 2)
+                / (2 * sigma**2)
+            )
+            + B_amp
+        )
+
+        if pdf <= 0:
+            y[i] = -np.inf
+        else:
+            y[i] = np.log(pdf)
+
+    return y
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -292,6 +390,8 @@ def nb_rvs(
     n_bkg: int,
     delta: float,
     sigma: float,
+    alpha_delta: float,
+    delta_unc: float,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -305,6 +405,10 @@ def nb_rvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
+    alpha_delta
+        The global energy bias scaling
+    delta_unc
+        The uncertainty on delta
     seed
         specify a seed, otherwise uses default seed
 
@@ -314,7 +418,35 @@ def nb_rvs(
     in the provided windows, which may be discontinuous.
     """
 
-    raise NotImplementedError("not implemented yet")
+    np.random.seed(seed)
+
+    # Get energy of signal events from a Gaussian distribution
+    # preallocate for background draws
+    Es = np.append(
+        np.random.normal(QBB - delta - alpha_delta * delta_unc, sigma, size=n_sig),
+        np.zeros(n_bkg),
+    )
+
+    # Get background events from a uniform distribution
+    bkg = np.random.uniform(0, 1, n_bkg)
+
+    breaks = np.zeros(shape=(len(WINDOW), 2))
+    for i in range(len(WINDOW)):
+        thiswidth = WINDOW[i][1] - WINDOW[i][0]
+
+        if i > 0:
+            breaks[i][0] = breaks[i - 1][1]
+
+        if i < len(WINDOW):
+            breaks[i][1] = breaks[i][0] + thiswidth / WINDOWSIZE
+
+        for j in range(len(bkg)):
+            if breaks[i][0] <= bkg[j] <= breaks[i][1]:
+                Es[n_sig + j] = (bkg[j] - breaks[i][0]) * thiswidth / (
+                    breaks[i][1] - breaks[i][0]
+                ) + WINDOW[i][0]
+
+    return Es
 
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
@@ -327,6 +459,8 @@ def nb_extendedrvs(
     effunc: float,
     effuncscale: float,
     exp: float,
+    alpha_delta: float,
+    delta_unc: float,
     seed: int = SEED,
 ) -> np.array:
     """
@@ -348,6 +482,10 @@ def nb_extendedrvs(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
+    alpha_delta
+        The global energy bias scaling
+    delta_unc
+        The uncertainty on delta
     seed
         specify a seed, otherwise uses default seed
 
@@ -366,17 +504,10 @@ def nb_extendedrvs(
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
-    # TODO: create a truncated normal and call here, avoid this dumb while loop
-    len_Es = 0
-    Es = np.zeros(n_sig, dtype=np.float64)
-    while len_Es != n_sig:
-        E = np.random.normal(QBB - delta, sigma, size=1)[0]
-        if (E > QBB - delta - ROI_WIDTH * sigma) & (
-            E < QBB - delta + ROI_WIDTH * sigma
-        ):
-            Es[len_Es] = E
-            len_Es += 1
-    Es = np.append(Es, np.zeros(n_bkg))
+    Es = np.append(
+        np.random.normal(QBB - delta - delta_unc * alpha_delta, sigma, size=n_sig),
+        np.zeros(n_bkg),
+    )
 
     # Get background events from a uniform distribution
     bkg = np.random.uniform(0, 1, n_bkg)
@@ -400,9 +531,10 @@ def nb_extendedrvs(
     return Es, (n_sig, n_bkg)
 
 
-class truncated_correlated_efficiency_0vbb_gen:
+class correlated_efficiency_0vbb_correlate_delta_gen:
     def __init__(self):
         self.parameters = inspectparameters(self.density)
+        pass
 
     def pdf(
         self,
@@ -415,10 +547,23 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
         check_window: bool = False,
     ) -> np.array:
         return nb_pdf(
-            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, check_window
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+            check_window,
         )
 
     def logpdf(
@@ -432,8 +577,22 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
-        return nb_logpdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
+        return nb_logpdf(
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        )
 
     # for iminuit ExtendedUnbinnedNLL
     def density(
@@ -447,8 +606,22 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
-        return nb_density(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
+        return nb_density(
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        )
 
     # for iminuit ExtendedUnbinnedNLL
     def density_gradient(
@@ -462,9 +635,21 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
         return nb_density_gradient(
-            Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
         )
 
     # for iminuit ExtendedUnbinnedNLL
@@ -479,19 +664,22 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
     ) -> np.array:
-        mu_S = S * (eff + effuncscale * effunc) * exp
-        mu_B = exp * BI * WINDOWSIZE
-
-        # Do a quick check and return -inf if log args are negative
-        if (mu_S + mu_B <= 0) or np.isnan(np.array([mu_S, mu_B])).any():
-            return mu_S + mu_B, np.full(Es.shape[0], -np.inf)
-        else:
-            return (
-                mu_S + mu_B,
-                np.log(mu_S + mu_B)
-                + nb_logpdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp),
-            )
+        return nb_log_density(
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        )
 
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
@@ -502,9 +690,11 @@ class truncated_correlated_efficiency_0vbb_gen:
         n_bkg: int,
         delta: float,
         sigma: float,
+        alpha_delta: float,
+        delta_unc: float,
         seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, delta, sigma, seed=seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma, alpha_delta, delta_unc, seed=seed)
 
     def extendedrvs(
         self,
@@ -516,10 +706,22 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
         seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(
-            S, BI, delta, sigma, eff, effunc, effuncscale, exp, seed=seed
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+            seed=seed,
         )
 
     def plot(
@@ -533,8 +735,22 @@ class truncated_correlated_efficiency_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
+        alpha_delta: float,
+        delta_unc: float,
     ) -> None:
-        y = nb_pdf(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp)
+        y = nb_pdf(
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        )
 
         import matplotlib.pyplot as plt
 
@@ -555,6 +771,8 @@ class truncated_correlated_efficiency_0vbb_gen:
         a_effunc: float,
         a_effuncscale: float,
         a_exp: float,
+        a_alpha_delta: float,
+        a_delta_unc: float,
         b_Es: np.array,
         b_S: float,
         b_BI: float,
@@ -564,6 +782,8 @@ class truncated_correlated_efficiency_0vbb_gen:
         b_effunc: float,
         b_effuncscale: float,
         b_exp: float,
+        b_alpha_delta: float,
+        b_delta_unc: float,
     ) -> list | None:
         # datasets must be empty to be combined
         if len(a_Es) != 0 or len(b_Es) != 0:
@@ -584,9 +804,24 @@ class truncated_correlated_efficiency_0vbb_gen:
         # (maybe still appropriate even if not fully correlated?)
         effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
 
-        effuncscale = 0.0  # this should be overwritten in the fit later
+        delta_unc = (a_exp * a_delta_unc + b_exp * b_delta_unc) / exp
 
-        return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp]
+        effuncscale = 0.0  # this should be overwritten in the fit later
+        alpha_delta = 0.0  # this should be overwritten in the fit later
+
+        return [
+            Es,
+            S,
+            BI,
+            delta,
+            sigma,
+            eff,
+            effunc,
+            effuncscale,
+            exp,
+            alpha_delta,
+            delta_unc,
+        ]
 
     def can_combine(
         self,
@@ -599,6 +834,8 @@ class truncated_correlated_efficiency_0vbb_gen:
         a_effunc: float,
         a_effuncscale: float,
         a_exp: float,
+        a_alpha_delta: float,
+        a_delta_unc: float,
     ) -> bool:
         """
         This sets an arbitrary rule if this dataset can be combined with other datasets.
@@ -609,46 +846,7 @@ class truncated_correlated_efficiency_0vbb_gen:
         else:
             return False
 
-    def intial_guess(self, Es: np.array, exp_tot: float, eff_tot: float) -> tuple:
-        """
-        Give a better initial guess for the signal and background rate given an array of data
-        The signal rate is estimated in a +/-5 keV window around Qbb, the BI is estimated from everything outside that window
 
-        Parameters
-        ----------
-        Es
-            A numpy array of observed energy data
-        exp_tot
-            The total exposure of the experiment
-        eff_tot
-            The total efficiency of the experiment
-        """
-        QBB_ROI_SIZE = [
-            5,
-            5,
-        ]  # how many keV away from QBB in - and + directions we are defining the ROI
-        BKG_WINDOW_SIZE = WINDOWSIZE - np.sum(
-            QBB_ROI_SIZE
-        )  # subtract off the keV we are counting as the signal region
-        n_sig = 0
-        n_bkg = 0
-        for E in Es:
-            if QBB - QBB_ROI_SIZE[0] <= E <= QBB + QBB_ROI_SIZE[1]:
-                n_sig += 1
-            else:
-                n_bkg += 1
-
-        # find the expected BI
-        BI_guess = n_bkg / (BKG_WINDOW_SIZE * exp_tot)
-
-        # Now find the expected signal rate
-        n_sig -= (
-            n_bkg * np.sum(QBB_ROI_SIZE) / BKG_WINDOW_SIZE
-        )  # subtract off the expected number of BI counts in ROI
-
-        s_guess = n_sig / (exp_tot * eff_tot)
-
-        return s_guess, BI_guess
-
-
-truncated_correlated_efficiency_0vbb = truncated_correlated_efficiency_0vbb_gen()
+correlated_efficiency_0vbb_correlate_delta = (
+    correlated_efficiency_0vbb_correlate_delta_gen()
+)
