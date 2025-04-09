@@ -1,4 +1,9 @@
 # freqfit
+
+
+[![DOI](https://zenodo.org/badge/962842518.svg)](https://doi.org/10.5281/zenodo.15185401)
+
+
 Unbinned frequentist analysis
 
 ---
