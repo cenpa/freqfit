@@ -1,8 +1,8 @@
 import numpy as np
 from iminuit import Minuit, cost
 
-import legendfreqfit.models.constants as constants
-from legendfreqfit.models import gaussian_on_uniform
+import freqfit.models.constants as constants
+from freqfit.models import gaussian_on_uniform
 
 QBB = constants.QBB
 N_A = constants.NA

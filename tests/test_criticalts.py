@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.stats import chi2
 
-from legendfreqfit import Experiment
-from legendfreqfit.statistics import dkw_band, emp_cdf, ts_critical
+from freqfit import Experiment
+from freqfit.statistics import dkw_band, emp_cdf, ts_critical
 
 
 def test_dkw():

@@ -1,8 +1,8 @@
 import numpy as np
 from iminuit import cost
 
-from legendfreqfit.dataset import Dataset
-from legendfreqfit.models import gaussian_on_uniform
+from freqfit.dataset import Dataset
+from freqfit.models import gaussian_on_uniform
 
 
 def test_dataset():
