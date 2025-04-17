@@ -10,8 +10,8 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 # import python modules
 import argparse
 
-from legendfreqfit.limit import SetLimit
-from legendfreqfit.utils import load_config
+from freqfit.limit import SetLimit
+from freqfit.utils import load_config
 
 # Setup the argument parser
 __pars__ = argparse.ArgumentParser()

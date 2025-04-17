@@ -2,7 +2,7 @@ datasets:
   "datasetname1":
     data: [2061.55097903, 2030.55066863, 2151.12979847, 2018.13550212, 2014.38864454]
     costfunction: "ExtendedUnbinnedNLL"
-    model: "legendfreqfit.models.gaussian_on_uniform"
+    model: "freqfit.models.gaussian_on_uniform"
     model_parameters:
       "S": "global_S"
       "BI": "BI_datasetname1"
@@ -14,7 +14,7 @@ datasets:
   "datasetname2":
     data: [1954.27940129, 2049.28163933, 2024.10741244, 2092.64877668, 2165.27444874]
     costfunction: "ExtendedUnbinnedNLL"
-    model: "legendfreqfit.models.gaussian_on_uniform"
+    model: "freqfit.models.gaussian_on_uniform"
     model_parameters:
       "S": "global_S"
       "BI": "BI_datasetname2"
@@ -26,7 +26,7 @@ datasets:
   "datasetname3":
     data: []
     costfunction: "ExtendedUnbinnedNLL"
-    model: "legendfreqfit.models.gaussian_on_uniform"
+    model: "freqfit.models.gaussian_on_uniform"
     model_parameters:
       "S": "global_S"
       "BI": "BI_datasetname3"
