@@ -226,7 +226,7 @@ class Experiment(Superset):
         file: str,
         name: str = "",
     ):
-        logging.warn('Experiment.file() will be deprecated, use Experiment.from_file() instead')
+        logging.warning('Experiment.file() will be deprecated, use Experiment.from_file() instead')
         config = load_config(file=file)
         return cls(config=config, name=name)
 
