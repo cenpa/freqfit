@@ -11,8 +11,8 @@ apidoc: clean-apidoc
       --module-first \
       --force \
       --output-dir "$(SOURCEDIR)/api" \
-      ../src/legendfreqfit \
-      ../src/legendfreqfit/_version.py
+      ../src/freqfit \
+      ../src/freqfit/_version.py
 
 clean-apidoc:
 	rm -rf "$(SOURCEDIR)/api"
