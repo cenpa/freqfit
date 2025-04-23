@@ -8,7 +8,7 @@
 *.png
 *.h5
 
-src/legendfreqfit/_version.py
+src/freqfit/_version.py
 
 # -------------------- github-generated stuff -------------------
 # Byte-compiled / optimized / DLL files

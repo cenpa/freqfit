@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import chi2
 
-from legendfreqfit.models.constants import (
+from .models.constants import (
     NME_PHENO_HIGH,
     NME_PHENO_LOW,
     NME_central,
@@ -20,7 +20,7 @@ from legendfreqfit.models.constants import (
     m_prime_to_m,
     s_prime_to_s,
 )
-from legendfreqfit.statistics import (
+from .statistics import (
     find_crossing,
     get_p_values,
     sensitivity,

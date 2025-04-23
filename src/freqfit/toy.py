@@ -8,9 +8,9 @@ from copy import deepcopy
 import numpy as np
 from iminuit import Minuit, cost
 
-from freqfit import initial_guesses
-from freqfit.dataset import combine_datasets
-from freqfit.utils import grab_results
+from . import initial_guesses
+from .dataset import combine_datasets
+from .utils import grab_results
 
 SEED = 42
 

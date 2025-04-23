@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 from iminuit import cost
 
-from freqfit.dataset import Dataset, combine_datasets
+from .dataset import Dataset, combine_datasets
 
 SEED = 42
 

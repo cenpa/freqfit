@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 from scipy.special import erfcinv
 
-from freqfit.experiment import Experiment
+from .experiment import Experiment
 
 NUM_CORES = 20  # TODO: change this to an environment variable, or something that detects available cores
 SEED = 42
