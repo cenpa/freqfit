@@ -147,6 +147,9 @@ def load_config(
 
         if "physical_limits" in pardict and type(pardict["physical_limits"]) is str:
             pardict["physical_limits"] = eval(pardict["physical_limits"])
+        
+        if "value_from_combine" in pardict:
+            pardict["value"] = np.nan
 
     if "options" in config:
         for option, optionval in config["options"].items():
