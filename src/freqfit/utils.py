@@ -7,7 +7,9 @@ import yaml
 
 log = logging.getLogger(__name__)
 
-
+#-----------------------------
+# moved to Model
+#-----------------------------
 # takes a model function and returns a dict of its parameters with their default value
 def inspectparameters(
     func,
@@ -37,6 +39,9 @@ def inspectparameters(
 
     return r
 
+#-----------------------------
+# moved to Workspace
+#-----------------------------
 def load_config(
     file: str | dict,
 ) -> dict:
@@ -158,7 +163,6 @@ def load_config(
 
     return config
 
-
 def grab_results(
     minuit,
     use_grid_rounding: bool = False,
@@ -189,8 +193,11 @@ def grab_results(
     return toreturn
 
 
+#-----------------------------
+# moved to Workspace
+#-----------------------------
 # use this YAML loader to detect duplicate keys in a config file
-# https://stackoverflow.com/a/76090386
+# https://stackoverflow.com/a/76090386 
 class UniqueKeyLoader(yaml.SafeLoader):
     def construct_mapping(self, node, deep=False):
         mapping = set()

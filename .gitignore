@@ -7,6 +7,7 @@
 *.jpg
 *.png
 *.h5
+*.code-workspace
 
 src/freqfit/_version.py
 

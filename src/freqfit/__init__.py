@@ -7,6 +7,7 @@ from freqfit.experiment import Experiment
 from freqfit.limit import SetLimit
 from freqfit.superset import Superset
 from freqfit.toy import Toy
+from freqfit.workspace import Workspace
 
 __all__ = [
     "Dataset",
@@ -14,5 +15,6 @@ __all__ = [
     "SetLimit",
     "Superset",
     "Toy",
+    "Workspace"
     "PlotLimit" "__version__",
 ]
