@@ -11,7 +11,8 @@ from iminuit import Minuit
 from . import initial_guesses
 from .superset import Superset
 from .toy import Toy
-from .utils import grab_results, load_config
+from .utils import grab_results#, load_config
+from .workspace import Workspace
 
 SEED = 42
 
@@ -227,7 +228,7 @@ class Experiment(Superset):
         name: str = "",
     ):
         logging.warning('Experiment.file() will be deprecated, use Experiment.from_file() instead')
-        config = load_config(file=file)
+        config = Workspace.load_config(file=file)
         return cls(config=config, name=name)
 
     @classmethod
@@ -236,7 +237,7 @@ class Experiment(Superset):
         file: str,
         name: str = "",
     ):
-        config = load_config(file=file)
+        config = Workspace.load_config(file=file)
         return cls(config=config, name=name)
 
     @classmethod
@@ -245,7 +246,7 @@ class Experiment(Superset):
         input: str,
         name: str = "",
     ):
-        config = load_config(file=input)
+        config = Workspace.load_config(file=input)
         return cls(config=config, name=name)
         
     def initialguess(

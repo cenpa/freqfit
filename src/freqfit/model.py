@@ -62,18 +62,26 @@ class Model(ABC):
         pass
 
     @abstractmethod
-    def combine(
-        self, 
-        *parameters,
-    ) -> np.array:
-        pass
-
-    @abstractmethod
-    def cancombine(
+    def can_combine(
         self, 
         data: np.array,
         *parameters,
     ) -> bool:
+        """
+        Should take a set of data and parameters and decide whether it could be combined with another set of data 
+        and parameters. Decision must be made on the basis of the single set alone.
+        """
+        pass
+
+    @abstractmethod
+    def combine(
+        self, 
+        x: list,#List[Tuple[np.array,...]],
+    ) -> np.array:
+        """
+        Should take a list of N tuples of (data, parameters) and returned a combined single tuple of (data, parameters).
+        Assume that all passed datasets can be combined - this is checked by CombinedDataset using self.can_combine().
+        """
         pass
 
     @abstractmethod

@@ -5,6 +5,8 @@ import importlib
 import numpy as np
 import yaml
 
+from .dataset import Dataset, ToyDataset, CombinedDataset
+
 import logging
 
 log = logging.getLogger(__name__)
@@ -17,6 +19,77 @@ class Workspace:
         config: dict,
         name: str = "",
     ) -> None:
+
+        # load the config - done (move error checking to when loading the config and out of the other classes)
+        parameters = config['parameters']
+
+        # load in the global options
+        use_log = False
+        use_user_gradient = False
+
+        # create the Datasets
+        self.datasets = {}
+
+        alldspars = set()
+        for dsname, ds in config['datasets'].items():
+            dsobj = Dataset(
+                data=ds["data"],
+                model=ds["model"],
+                model_parameters=ds["model_parameters"],
+                parameters=parameters,
+                costfunction=ds["costfunction"],
+                name=dsname,
+                try_to_combine=ds['try_to_combine'] if 'try_to_combine' in ds else False,
+                combined_dataset=ds['combined_dataset'] if 'combined_dataset' in ds else None,
+                use_user_gradient=use_user_gradient,
+                use_log=use_log,
+            )
+
+            self.datasets[dsname] = dsobj
+
+            for par in ds["model_parameters"].values():
+                alldspars.add(par)
+
+        # create the CombinedDatasets
+        
+        # maybe there's more than one combined_dataset group
+        for cdsname, cds in config['combined_datasets'].items():
+            # find the Datasets to try to combine
+            ds_tocombine = []
+            dsname_tocombine = []
+            for dsname, ds in self.datasets.items():
+                if (
+                    ds.try_to_combine
+                    and ds.combined_dataset == cdsname
+                    and ds.model.can_combine(ds.data, *ds._parlist)
+                ):
+                    ds_tocombine.append(ds)
+                    dsname_tocombine.append(dsname)
+
+            if len(ds_tocombine) > 1:
+                combined_dataset = CombinedDataset(
+                    datasets=ds_tocombine,
+                    model=cds["model"],
+                    model_parameters=cds["model_parameters"],
+                    parameters=parameters,
+                    costfunction=cds["costfunction"],
+                    name=cdsname,
+                    use_user_gradient=use_user_gradient,
+                    use_log=use_log,
+                )
+
+                self.datasets[cdsname] = combined_dataset
+                
+                for dsname in dsname_tocombine:
+                    self.datasets.pop(dsname)
+
+            for par in cds["model_parameters"].values():
+                alldspars.add(par)
+
+        # create the Experiment
+
+        # create the ToyDatasets
+        # create the Toy
 
         return
 
@@ -70,14 +143,35 @@ class Workspace:
             if "model" in dataset:
                 models.add(dataset["model"])
             else:
-                msg = f"dataset `{datasetname}` has no `model`"
+                msg = f"dataset `{datasetname}` has no Model"
                 raise KeyError(msg)
 
             if "costfunction" in dataset:
-                costfunctions.add(dataset["costfunction"])
+                if dataset["costfunction"] in ["ExtendedUnbinnedNLL", "UnbinnedNLL"]:
+                    costfunctions.add(dataset["costfunction"])
+                else:
+                    msg = f"Dataset `{datasetname}`: only 'ExtendedUnbinnedNLL' or 'UnbinnedNLL' are \
+                        supported as cost functions"
+                    raise NotImplementedError(msg)                    
             else:
                 msg = f"dataset `{datasetname}` has no `costfunction`"
                 raise KeyError(msg)
+            
+            if "try_to_combine" in dataset and dataset["try_to_combine"]:
+                if "combined_dataset" not in dataset or not dataset["combined_dataset"]:
+                        msg = (f"Dataset `{datasetname}` has `try_combine` `{dataset['try_to_combine']}` but "
+                            + f"`combined_dataset` missing or empty")
+                        raise KeyError(msg)     
+                elif (("combined_datasets" not in config)
+                    or (dataset["combined_dataset"] not in config["combined_datasets"])):
+                        msg = (f"Dataset `{datasetname}` has `combined_dataset` `{dataset['combined_dataset']}` but " 
+                            + f"`combined_datasets` missing or does not contain `{dataset['combined_dataset']}`")
+                        raise KeyError(msg)   
+                elif (config["combined_datasets"][dataset["combined_dataset"]]["model"] != dataset["model"]):
+                        msg = (f" Dataset `{datasetname}` Model `{dataset['model']}` not the same as CombinedDataset "
+                            + f"`{dataset['combined_dataset']}` Model "
+                            + f"`{config['combined_datasets'][dataset['combined_dataset']]['model']}`")
+                        raise ValueError(msg)
 
         if "constraints" in config:
             for constraintname, constraint in config["constraints"].items():
@@ -104,7 +198,7 @@ class Workspace:
                 if "model" in group:
                     models.add(group["model"])
                 else:
-                    msg = f"combined_datasets `{groupname}` has no `model`"
+                    msg = f"combined_datasets `{groupname}` has no Model"
                     raise KeyError(msg)
 
             if "costfunction" in group:
