@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0" version="26.0.16">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0" version="27.0.2">
   <diagram name="Page-1" id="N17phzSXL9w7y8zX3gDE">
-    <mxGraphModel dx="2455" dy="901" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="1" shadow="0">
+    <mxGraphModel dx="2887" dy="1140" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="1" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -70,7 +70,7 @@
         <mxCell id="pB9OxfSEECygrkOrtsTo-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-9" target="pB9OxfSEECygrkOrtsTo-20" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-9" target="ZSnNDYF2Bw-W7KcPjIif-27">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-9" target="ZSnNDYF2Bw-W7KcPjIif-27" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="810" y="200" />
@@ -99,7 +99,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="pB9OxfSEECygrkOrtsTo-11" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma^{\star}\)\(\mathcal{L}(\Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data},&amp;nbsp;\vec{\tilde{\nu}})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="pB9OxfSEECygrkOrtsTo-11" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma^{\star}\)\(\mathcal{L}(\textrm{data},&amp;nbsp;\vec{\tilde{\nu}}&amp;nbsp; |&amp;nbsp;\Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) )\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="440" y="300" width="140" height="70" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-13" target="pB9OxfSEECygrkOrtsTo-31" edge="1">
@@ -122,7 +122,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="pB9OxfSEECygrkOrtsTo-17" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}|\Gamma^{\star}}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}| \textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="pB9OxfSEECygrkOrtsTo-17" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}|\Gamma^{\star}}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} | \Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}))}{\mathcal{L}(\textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime}| \hat{\Gamma} , \hat{\vec{\nu}})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="260" y="740" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-20" target="ZSnNDYF2Bw-W7KcPjIif-1" edge="1">
@@ -141,13 +141,13 @@
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-20" target="ZSnNDYF2Bw-W7KcPjIif-40" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="pB9OxfSEECygrkOrtsTo-20" value="&lt;div&gt;define data likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\Gamma, \vec{\nu}&amp;nbsp;| \textrm{data},&amp;nbsp;\vec{\tilde{\nu}} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="pB9OxfSEECygrkOrtsTo-20" value="&lt;div&gt;define data likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\textrm{data},&amp;nbsp;\vec{\tilde{\nu}} |&amp;nbsp;\Gamma, \vec{\nu} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="650" y="200" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-22" target="pB9OxfSEECygrkOrtsTo-28" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="pB9OxfSEECygrkOrtsTo-22" value="&lt;div&gt;evaluate data test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star})| \textrm{data}, \vec{\tilde{\nu}})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}} | \textrm{data},&amp;nbsp;\vec{\tilde{\nu}})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="pB9OxfSEECygrkOrtsTo-22" value="&lt;div&gt;evaluate data test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star}} = -2 \ln{ \dfrac{\mathcal{L}(\textrm{data}, \vec{\tilde{\nu}} |&amp;nbsp;\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) )}{\mathcal{L}(\textrm{data},&amp;nbsp;\vec{\tilde{\nu}} |&amp;nbsp; \hat{\Gamma} , \hat{\vec{\nu}} )}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="120" y="880" width="220" height="80" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-24" value="repeat many times " style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#FF5D07;fontStyle=0;fontSize=18;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
@@ -192,7 +192,7 @@
         <mxCell id="bBynNb3wQJQUOTrhg3W1-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-31" target="bBynNb3wQJQUOTrhg3W1-3" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="pB9OxfSEECygrkOrtsTo-31" value="&lt;div&gt;define toy likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\Gamma, \vec{\nu}&amp;nbsp;| \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="pB9OxfSEECygrkOrtsTo-31" value="&lt;div&gt;define toy likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} |&amp;nbsp;\Gamma, \vec{\nu} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="445" y="530" width="130" height="60" as="geometry" />
         </mxCell>
         <mxCell id="pB9OxfSEECygrkOrtsTo-32" value="repeat for all \( \Gamma^{\star} \geq 0\) " style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#D907FF;fontStyle=0;fontSize=18;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
@@ -205,8 +205,8 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-1" value="&lt;div&gt;find \(\hat{\Gamma} \geq 0, \hat{\vec{\nu}}\) that&amp;nbsp;maximize \( \mathcal{L}\) \(\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}} | \textrm{data},&amp;nbsp;\vec{\tilde{\nu}})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
-          <mxGeometry x="135" y="195" width="140" height="70" as="geometry" />
+        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-1" value="&lt;div&gt;find \(\hat{\Gamma} \geq 0, \hat{\vec{\nu}}\) that&amp;nbsp;maximize \( \mathcal{L}\) \(\mathcal{L}(\textrm{data},&amp;nbsp;\vec{\tilde{\nu}} |&amp;nbsp;\hat{\Gamma} , \hat{\vec{\nu}} )\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+          <mxGeometry x="140" y="192.5" width="135" height="75" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="bBynNb3wQJQUOTrhg3W1-7" target="pB9OxfSEECygrkOrtsTo-17" edge="1">
           <mxGeometry relative="1" as="geometry">
@@ -243,16 +243,16 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-29" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star} | \Gamma_0}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}| \textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-29" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma^{\star} | \Gamma_0}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} | \Gamma^{\star} , \hat{\hat{\vec{\nu}}}(\Gamma^{\star}))}{\mathcal{L}(\textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime} | \hat{\Gamma} , \hat{\vec{\nu}})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="790" y="740" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-30" value="repeat many times " style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontColor=#07A9FF;fontStyle=0;fontSize=18;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="780" y="820" width="170" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-33" target="ZSnNDYF2Bw-W7KcPjIif-37">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-33" target="ZSnNDYF2Bw-W7KcPjIif-37" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-33" target="ZSnNDYF2Bw-W7KcPjIif-35">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-33" target="ZSnNDYF2Bw-W7KcPjIif-35" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="987" y="610" />
@@ -260,28 +260,28 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-33" target="XF3HAn--ySpP8VppQo1m-11">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-33" target="XF3HAn--ySpP8VppQo1m-11" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-33" value="&lt;div&gt;define toy likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\Gamma, \vec{\nu}&amp;nbsp;| \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-33" value="&lt;div&gt;define toy likelihood&lt;/div&gt;&lt;div&gt;\(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} |&amp;nbsp;\Gamma, \vec{\nu} ) \)&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="975" y="530" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-35" target="ZSnNDYF2Bw-W7KcPjIif-29">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-35" target="ZSnNDYF2Bw-W7KcPjIif-29" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-35" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma^{\star}\)\(\mathcal{L}(\Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-35" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma^{\star}\)\(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} | \Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}))\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="810" y="630" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-37" target="ZSnNDYF2Bw-W7KcPjIif-29">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-37" target="ZSnNDYF2Bw-W7KcPjIif-29" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-37" target="XF3HAn--ySpP8VppQo1m-10">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-37" target="XF3HAn--ySpP8VppQo1m-10" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-37" value="&lt;div&gt;find \(\hat{\Gamma} \geq 0, \hat{\vec{\nu}}\) that&amp;nbsp;maximize \( \mathcal{L}\) \(\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}} | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-37" value="&lt;div&gt;find \(\hat{\Gamma} \geq 0, \hat{\vec{\nu}}\) that&amp;nbsp;maximize \( \mathcal{L}\) \(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime}| \hat{\Gamma} , \hat{\vec{\nu}} )\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="970" y="630" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-40" target="ZSnNDYF2Bw-W7KcPjIif-25">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="ZSnNDYF2Bw-W7KcPjIif-40" target="ZSnNDYF2Bw-W7KcPjIif-25" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1020" y="390" />
@@ -289,7 +289,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-40" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma_{0}\)\(\mathcal{L}(\Gamma_{0}, \hat{\hat{\vec{\nu}}}(\Gamma_{0}) | \textrm{data},&amp;nbsp;\vec{\tilde{\nu}})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="ZSnNDYF2Bw-W7KcPjIif-40" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma_{0}\)\(\mathcal{L}(\textrm{data},&amp;nbsp;\vec{\tilde{\nu}} |&amp;nbsp; \Gamma_{0}, \hat{\hat{\vec{\nu}}}(\Gamma_{0}) )\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="970" y="300" width="140" height="70" as="geometry" />
         </mxCell>
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;jumpStyle=gap;" parent="2PbKzhoj5yn5WGjKip5O-1" source="pB9OxfSEECygrkOrtsTo-9" target="pB9OxfSEECygrkOrtsTo-15" edge="1">
@@ -315,7 +315,7 @@
         <mxCell id="ZSnNDYF2Bw-W7KcPjIif-57" value="expected median exclusion at 90% C.L." style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="890" y="1130" width="130" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="bBynNb3wQJQUOTrhg3W1-3" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma_0\)\(\mathcal{L}(\Gamma_0, \hat{\hat{\vec{\nu}}}(\Gamma_0) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="bBynNb3wQJQUOTrhg3W1-3" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma_0\)\(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} | \Gamma_0, \hat{\hat{\vec{\nu}}}(\Gamma_0))\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="600" y="630" width="140" height="70" as="geometry" />
         </mxCell>
         <mxCell id="bBynNb3wQJQUOTrhg3W1-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="bBynNb3wQJQUOTrhg3W1-4" target="bBynNb3wQJQUOTrhg3W1-11" edge="1">
@@ -325,7 +325,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="bBynNb3wQJQUOTrhg3W1-4" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma_0|\Gamma^{\star}}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma_0 , \hat{\hat{\vec{\nu}}}(\Gamma_0) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}| \textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="bBynNb3wQJQUOTrhg3W1-4" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma_0|\Gamma^{\star}}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} |\Gamma_0 , \hat{\hat{\vec{\nu}}}(\Gamma_0) )}{\mathcal{L}(\textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime} | \hat{\Gamma} , \hat{\vec{\nu}})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="520" y="740" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="bBynNb3wQJQUOTrhg3W1-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="bBynNb3wQJQUOTrhg3W1-3" target="bBynNb3wQJQUOTrhg3W1-4" edge="1">
@@ -333,10 +333,10 @@
             <mxPoint x="745" y="740" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="bBynNb3wQJQUOTrhg3W1-7" value="&lt;div&gt;find \(\hat{\Gamma} \geq 0, \hat{\vec{\nu}}\) that&amp;nbsp;maximize \( \mathcal{L}\) \(\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}} | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="bBynNb3wQJQUOTrhg3W1-7" value="&lt;div&gt;find \(\hat{\Gamma} \geq 0, \hat{\vec{\nu}}\) that&amp;nbsp;maximize \( \mathcal{L}\) \(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} | \hat{\Gamma} , \hat{\vec{\nu}})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="440" y="630" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="bBynNb3wQJQUOTrhg3W1-8" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma^{\star}\)\(\mathcal{L}(\Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
+        <mxCell id="bBynNb3wQJQUOTrhg3W1-8" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma^{\star}\)\(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime} | \Gamma^{\star}, \hat{\hat{\vec{\nu}}}(\Gamma^{\star}))\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="280" y="630" width="140" height="70" as="geometry" />
         </mxCell>
         <mxCell id="bBynNb3wQJQUOTrhg3W1-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="bBynNb3wQJQUOTrhg3W1-7" target="bBynNb3wQJQUOTrhg3W1-4" edge="1">
@@ -357,31 +357,31 @@
         <mxCell id="bBynNb3wQJQUOTrhg3W1-11" value="find median \( \tilde{t}_{\Gamma_0 | \Gamma^{\star}}^{\prime} \)" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="567.5" y="880" width="130" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-10" target="XF3HAn--ySpP8VppQo1m-15">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-10" target="XF3HAn--ySpP8VppQo1m-15" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-10" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma_0 | \Gamma_0}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\Gamma_0 , \hat{\hat{\vec{\nu}}}(\Gamma_0) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})}{\mathcal{L}(\hat{\Gamma} , \hat{\vec{\nu}}| \textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-10" value="&lt;div&gt;calculate toy test statistic&lt;/div&gt;&lt;div&gt;&amp;nbsp;\(\tilde{t}_{\Gamma_0 | \Gamma_0}^{\prime} = -2 \ln{ \dfrac{\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime}&amp;nbsp; | \Gamma_0 , \hat{\hat{\vec{\nu}}}(\Gamma_0))}{\mathcal{L}(\textrm{data}^{\prime},\vec{\tilde{\nu}}^{\prime} | \hat{\Gamma} , \hat{\vec{\nu}})}} \)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="1050" y="740" width="240" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-11" target="XF3HAn--ySpP8VppQo1m-10">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-11" target="XF3HAn--ySpP8VppQo1m-10" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-11" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma_0\)\(\mathcal{L}(\Gamma_0, \hat{\hat{\vec{\nu}}}(\Gamma_0) | \textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime})\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-11" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}\) at \(\Gamma_0\)\(\mathcal{L}(\textrm{data}^{\prime},&amp;nbsp;\vec{\tilde{\nu}}^{\prime}| \Gamma_0, \hat{\hat{\vec{\nu}}}(\Gamma_0) )\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="1130" y="630" width="140" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-15" target="XF3HAn--ySpP8VppQo1m-17">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-15" target="XF3HAn--ySpP8VppQo1m-17" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-15" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma_0|\Gamma_0}^{\prime} ) \)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-15" value="build distribution of test statistics \( p(\tilde{t}_{\Gamma_0|\Gamma_0}^{\prime} ) \)" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="1105" y="880" width="130" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-17" target="XF3HAn--ySpP8VppQo1m-19">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="2PbKzhoj5yn5WGjKip5O-1" source="XF3HAn--ySpP8VppQo1m-17" target="XF3HAn--ySpP8VppQo1m-19" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-17" value="&lt;div&gt;evaluate \(p\)-value to&amp;nbsp;&lt;/div&gt;&lt;div&gt;reject \(\Gamma_0\) hypothesis&amp;nbsp;&lt;/div&gt;&lt;div&gt;at median \( \tilde{t}_{\Gamma_0 | \Gamma^{\star}}^{\prime} \) &lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-17" value="&lt;div&gt;evaluate \(p\)-value to&amp;nbsp;&lt;/div&gt;&lt;div&gt;reject \(\Gamma_0\) hypothesis&amp;nbsp;&lt;/div&gt;&lt;div&gt;at median \( \tilde{t}_{\Gamma_0 | \Gamma^{\star}}^{\prime} \) &lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="1105" y="1010" width="130" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="XF3HAn--ySpP8VppQo1m-19" value="expected discovery sensitivity at 3\(\sigma\)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2PbKzhoj5yn5WGjKip5O-1">
+        <mxCell id="XF3HAn--ySpP8VppQo1m-19" value="expected discovery sensitivity at 3\(\sigma\)" style="rounded=1;whiteSpace=wrap;html=1;" parent="2PbKzhoj5yn5WGjKip5O-1" vertex="1">
           <mxGeometry x="1105" y="1130" width="130" height="60" as="geometry" />
         </mxCell>
       </root>
