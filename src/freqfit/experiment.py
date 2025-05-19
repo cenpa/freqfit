@@ -18,6 +18,30 @@ SEED = 42
 
 log = logging.getLogger(__name__)
 
+class Experiment:
+    def __init_(
+        self,
+        datasets: dict,
+        parameters: dict,
+        constraints: dict = None,
+        name: str = "",
+    ) -> None:
+        
+        self.datasets = datasets # datasets directly passed by the Workspace
+        self.costfunction = None
+
+        # add the costfunctions together
+        first = True
+        for dsname in self.datasets.keys():
+            if first:
+                self.costfunction = self.datasets[dsname].costfunction
+                first = False
+            else:
+                self.costfunction += self.datasets[dsname].costfunction
+        
+        if constraints is not None:
+            self.costfunction = constraints.get_cost()
+
 
 class Experiment(Superset):
     def __init__(

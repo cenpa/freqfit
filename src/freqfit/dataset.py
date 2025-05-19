@@ -17,7 +17,7 @@ class Dataset:
         data: np.array,
         model,
         model_parameters: dict[str, str],
-        parameters: dict,
+        parameters,
         costfunction: cost.Cost,
         name: str = "",
         try_to_combine: bool = False,
@@ -77,30 +77,27 @@ class Dataset:
         self.data = np.asarray(data)  # the data of this Dataset
         self.name = name  # name of this Dataset
         self.model = model  # model object for this Dataset
-        self.model_parameters = (
-            model_parameters  # model parameter name : parameter name
-        )
+        # self.model_parameters = (
+        #     model_parameters  # model parameter name : parameter name
+        # )
 
         # self._costfunctioncall = None  # function call for the costfunction
         self.costfunction = None  # iminuit cost function object
 
-        self._parlist = (
-            []
-        )  # list that contains all of the parameters of the model for this Dataset in the correct order
-        self._parlist_indices = (
-            []
-        )  # indices in self._parlist of the the parameters to be fit
+        # list that contains the correctly ordered parameter names
+        self._parlist = []
+        # list that contains the values of the parameters of the model for this Dataset in the correct order
+        self._parlist_values = []
+        # indices in self._parlist of the the parameters to be fit
+        self._parlist_indices = []
 
         self.fitparameters = (
             {}
         )  # fit parameter names : index in self._parlist (same as in self._parlist_indices)
-        self._toy_pars_to_vary = (
-            {}
-        )  # parameter to vary for toys : index in self._parlist
 
-
-        self.use_user_gradient = use_user_gradient
-        self.use_log = use_log
+        # self._toy_pars_to_vary = (
+        #     {}
+        # )  # parameter to vary for toys : index in self._parlist
 
         # self._toy_data = None  # place to hold Toy data for this Dataset
         # self._toy_num_drawn = None  # place to hold the number of signal and number of background events drawn for a toy
@@ -111,12 +108,12 @@ class Dataset:
 
         # do something with these
         self.try_to_combine = try_to_combine  # whether to attempt to combine this Dataset into a combined_dataset
-        self.is_combined = (
-            False  # whether this Dataset is combined into a combined_dataset
-        )
-        self.combined_dataset = (
-            None  # name of the combined_dataset that this Dataset is part of
-        )
+        # self.is_combined = (
+        #     False  # whether this Dataset is combined into a combined_dataset
+        # )
+        # self.combined_dataset = (
+        #     None  # name of the combined_dataset that this Dataset is part of
+        # )
         if self.try_to_combine:
             self.combined_dataset = combined_dataset
 
@@ -136,7 +133,7 @@ class Dataset:
 
         # make the cost function
         # self._costfunctioncall = costfunction
-        if self.use_user_gradient:
+        if use_user_gradient:
             self.costfunction = costfunction(
                 self.data, self.density, grad=self.density_gradient
             )
@@ -154,31 +151,30 @@ class Dataset:
         for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):
             # if not passed, use default value (already checked that required parameters passed)
             if par not in model_parameters:
-                self._parlist.append(defaultvalue)
+                self._parlist_values.append(defaultvalue)
+                self._parlist.append("")
                 break  # no constraints on non-passed parameters
 
             # parameter was passed and should be included in the fit
-            elif ("includeinfit" in parameters[model_parameters[par]]) and (
-                parameters[model_parameters[par]]["includeinfit"]
-            ):
+            elif parameters(model_parameters[par])["includeinfit"]:
+                # limits set elsewhere
                 self.costfunction._parameters |= {
-                    model_parameters[par]: parameters[model_parameters[par]]["limits"]
-                    if "limits" in parameters[model_parameters[par]]
-                    else None
+                    model_parameters[par]: None
                 }
 
-                if "value" not in parameters[model_parameters[par]]:
-                    msg = (
-                        f"`Dataset` `{self.name}`: value for parameter `{par}` is required for"
-                        + f" model `{model}` parameter `{par}`"
-                    )
-                    raise KeyError(msg)
-                self._parlist.append(parameters[model_parameters[par]]["value"])
+                # if "value" not in parameters[model_parameters[par]]:
+                #     msg = (
+                #         f"`Dataset` `{self.name}`: value for parameter `{par}` is required for"
+                #         + f" model `{model}` parameter `{par}`"
+                #     )
+                #     raise KeyError(msg)
+                self._parlist.append(model_parameters[par])
+                self._parlist_values.append(parameters(model_parameters[par])["value"])
                 self._parlist_indices.append(i)
                 self.fitparameters |= {model_parameters[par]: i}
 
             else:  # parameter was passed but should not be included in the fit
-                if ("value" not in parameters[model_parameters[par]]) and (
+                if (parameters(model_parameters[par])["value"] is None) and (
                     defaultvalue == "nodefaultvalue"
                 ):
                     msg = (
@@ -186,14 +182,15 @@ class Dataset:
                         + f"model '{model}' parameter '{par}'"
                     )
                     raise KeyError(msg)
-                self._parlist.append(parameters[model_parameters[par]]["value"])
+                self._parlist.append(model_parameters[par])
+                self._parlist_values.append(parameters(model_parameters[par])["value"])
 
-            if ("vary_by_constraint" in parameters[model_parameters[par]]) and (
-                parameters[model_parameters[par]]["vary_by_constraint"]
-            ):
-                self._toy_pars_to_vary[model_parameters[par]] = i
-                msg = f"`Dataset` '{self.name}': adding parameter '{model_parameters[par]}' as parameter to vary for toys"
-                logging.info(msg)
+            # if ("vary_by_constraint" in parameters[model_parameters[par]]) and (
+            #     parameters(model_parameters[par])["vary_by_constraint"]
+            # ):
+            #     self._toy_pars_to_vary[model_parameters[par]] = i
+            #     msg = f"`Dataset` '{self.name}': adding parameter '{model_parameters[par]}' as parameter to vary for toys"
+            #     logging.info(msg)
 
         return
 
@@ -205,9 +202,9 @@ class Dataset:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]
+            self._parlist_values[self._parlist_indices[i]] = par[i]
 
-        return self.model.density(data, *self._parlist)
+        return self.model.density(data, *self._parlist_values)
 
     def log_density(
         self,
@@ -217,9 +214,9 @@ class Dataset:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]
+            self._parlist_values[self._parlist_indices[i]] = par[i]
 
-        return self.model.log_density(data, *self._parlist)
+        return self.model.log_density(data, *self._parlist_values)
 
     def density_gradient(
         self,
@@ -237,9 +234,9 @@ class Dataset:
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]
+            self._parlist_values[self._parlist_indices[i]] = par[i]
 
-        grad_cdf, grad_pdf = self.model.density_gradient(data, *self._parlist)
+        grad_cdf, grad_pdf = self.model.density_gradient(data, *self._parlist_values)
 
         # Mask the return values according to what the actual cost function expects
         return grad_cdf[self._parlist_indices], *grad_pdf[[self._parlist_indices], :]
@@ -272,10 +269,10 @@ class ToyDataset(Dataset):
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
-            self._parlist[self._parlist_indices[i]] = par[i]
+            self._parlist_values[self._parlist_indices[i]] = par[i]
 
         # TODO: extendedrvs here? make it more generic or require this in Model?
-        rvs, num_drawn = self.model.extendedrvs(*self._parlist, seed=seed)
+        rvs, num_drawn = self.model.extendedrvs(*self._parlist_values, seed=seed)
         return rvs, num_drawn
 
     # generates toy data and sets some attributes
@@ -308,26 +305,21 @@ class CombinedDataset(Dataset):
         self.datasets = datasets
         topass = []
         for ds in datasets:
-            topass.append((ds.data, *ds._parlist))
+            topass.append((ds.data, *ds._parlist_values))
         combination = model.combine(topass)
         combined_data = combination[0]
 
-        # now to set the parameters based on the combined results
-        combined_parameters = {}
         # model.parameters contains all parameters, including default valued ones
         for i, par in enumerate(model.parameters.keys()):
             # let Dataset handle errors if parameters are missing
             if par in model_parameters:
                 parname = model_parameters[par]
-                # this is a reference not a copy!
-                combined_parameters[parname] = parameters[parname]
                 # hence why it is important to check whether we should overwrite the value
-                if (
-                    "value_from_combine" in parameters[parname]
-                    and parameters[parname]["value_from_combine"]
+                if (parameters(parname)["value_from_combine"]
                 ):
                     # i+1 because data occupies index 0
-                    combined_parameters[parname]["value"] = combination[i + 1]
+                    # update value in Parameters based on the combination
+                    parameters(parname)["value"] = combination[i + 1]
         
         data = combination[0]
 
@@ -335,14 +327,14 @@ class CombinedDataset(Dataset):
             data,
             model,
             model_parameters,
-            combined_parameters,
+            parameters,
             costfunction,
             name,
             use_user_gradient=use_user_gradient,
             use_log=use_log,
         )
 
-        return
+        return 
 
 # temporary while refactoring
 def combine_datasets():

@@ -6,6 +6,8 @@ import numpy as np
 import yaml
 
 from .dataset import Dataset, ToyDataset, CombinedDataset
+from .parameters import Parameters
+from .constraints import Constraints
 
 import logging
 
@@ -21,37 +23,41 @@ class Workspace:
     ) -> None:
 
         # load the config - done (move error checking to when loading the config and out of the other classes)
-        parameters = config['parameters']
 
         # load in the global options
-        use_log = False
-        use_user_gradient = False
+        self.options = {}
+        self.options["use_log"] = False
+        self.options["use_user_gradient"] = False
+        self.options["use_grid_rounding"] = False
+
+        if "options" in config:
+            for opt in config["options"]:
+                self.options[opt] = config["options"][opt]
+
+        # create the Parameters
+        self.parameters = Parameters(config['parameters'])
 
         # create the Datasets
         self.datasets = {}
 
-        alldspars = set()
         for dsname, ds in config['datasets'].items():
             dsobj = Dataset(
                 data=ds["data"],
                 model=ds["model"],
                 model_parameters=ds["model_parameters"],
-                parameters=parameters,
+                parameters=self.parameters,
                 costfunction=ds["costfunction"],
                 name=dsname,
                 try_to_combine=ds['try_to_combine'] if 'try_to_combine' in ds else False,
                 combined_dataset=ds['combined_dataset'] if 'combined_dataset' in ds else None,
-                use_user_gradient=use_user_gradient,
-                use_log=use_log,
+                use_user_gradient=self.options["use_user_gradient"],
+                use_log=self.options["use_log"],
             )
 
             self.datasets[dsname] = dsobj
 
-            for par in ds["model_parameters"].values():
-                alldspars.add(par)
-
         # create the CombinedDatasets
-        
+
         # maybe there's more than one combined_dataset group
         for cdsname, cds in config['combined_datasets'].items():
             # find the Datasets to try to combine
@@ -71,20 +77,38 @@ class Workspace:
                     datasets=ds_tocombine,
                     model=cds["model"],
                     model_parameters=cds["model_parameters"],
-                    parameters=parameters,
+                    parameters=self.parameters,
                     costfunction=cds["costfunction"],
                     name=cdsname,
-                    use_user_gradient=use_user_gradient,
-                    use_log=use_log,
+                    use_user_gradient=self.options["use_user_gradient"],
+                    use_log=self.options["use_log"],
                 )
 
                 self.datasets[cdsname] = combined_dataset
                 
+                # delete the combined datasets
                 for dsname in dsname_tocombine:
                     self.datasets.pop(dsname)
 
-            for par in cds["model_parameters"].values():
-                alldspars.add(par)
+        # create the Constraints 
+        self.constraints = None
+        if config["constraints"] is None:
+            msg = "no constraints were provided"
+            logging.info(msg)
+        else:
+            msg = "all constraints will be combined into a single `NormalConstraint`"
+            logging.info(msg)
+
+            self.constraints = Constraints(config["constraints"])
+
+        print(self.constraints.get_constraints(self.parameters.get_parameters(self.datasets)))
+        
+        return
+
+        allfitpars = set()
+        for dsname, ds in self.datasets.items():
+            print(ds.model_parameters)
+            # alldspars.add(ds.model_parameters)
 
         # create the Experiment
 
@@ -238,14 +262,29 @@ class Workspace:
 
         # convert any limits from string to python object
         for par, pardict in config["parameters"].items():
+            if "limits" not in pardict:
+                pardict["limits"] = None
+
+            if "includeinfit" not in pardict:
+                pardict["includeinfit"] = False
+
+            if "value" not in pardict:
+                pardict["value"] = None
+
+            if "vary_by_constraint" not in pardict:
+                pardict["vary_by_constraint"] = False
+
             if "limits" in pardict and type(pardict["limits"]) is str:
                 pardict["limits"] = eval(pardict["limits"])
 
             if "physical_limits" in pardict and type(pardict["physical_limits"]) is str:
                 pardict["physical_limits"] = eval(pardict["physical_limits"])
             
-            if "value_from_combine" in pardict:
-                pardict["value"] = np.nan
+            if "value_from_combine" not in pardict:
+                pardict["value_from_combine"] = False
+
+            if pardict["value_from_combine"]:
+                pardict["value"] = None
 
         if "options" in config:
             for option, optionval in config["options"].items():
