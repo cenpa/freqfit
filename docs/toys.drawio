@@ -289,7 +289,7 @@
         <mxCell id="npHvEOHwPtpxPotPW_9_-73" value="&lt;div&gt;evaluate \(p\)-value to&amp;nbsp;&lt;/div&gt;&lt;div&gt;reject \(\Gamma^{\star}\) hypothesis&amp;nbsp;&lt;/div&gt;&lt;div&gt;at median \( \tilde{t}_{\Gamma^{\star} | \Gamma_0}^{\prime} \) &lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
           <mxGeometry x="890" y="1000" width="130" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="npHvEOHwPtpxPotPW_9_-74" value="expected median exclusion at 90% C.L." style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
+        <mxCell id="npHvEOHwPtpxPotPW_9_-74" value="exclusion sensitivity at 90% C.L." style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
           <mxGeometry x="890" y="1120" width="130" height="60" as="geometry" />
         </mxCell>
         <mxCell id="npHvEOHwPtpxPotPW_9_-75" value="&lt;div&gt;find \(\hat{\hat{\vec{\nu}}}\) that&amp;nbsp;&lt;/div&gt;&lt;div&gt;maximize \( \mathcal{L}^\prime\) at \(\Gamma_0\)\(\mathcal{L}^\prime(&amp;nbsp;\{E^\prime_i\}_k,&amp;nbsp;\tilde{\vec{\nu}}^{\prime}&amp;nbsp; |&amp;nbsp; \Gamma_0, \hat{\hat{\vec{\nu}}}(\Gamma_0) )\)&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
@@ -330,7 +330,7 @@
         <mxCell id="npHvEOHwPtpxPotPW_9_-85" value="&lt;div&gt;evaluate \(p\)-value to&amp;nbsp;&lt;/div&gt;&lt;div&gt;reject \(\Gamma_0\) hypothesis&amp;nbsp;&lt;/div&gt;&lt;div&gt;at median \( \tilde{t}_{\Gamma_0 | \Gamma^{\star}}^{\prime} \) &lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
           <mxGeometry x="567.5" y="1000" width="130" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="npHvEOHwPtpxPotPW_9_-86" value="expected discovery sensitivity at 3\(\sigma\)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
+        <mxCell id="npHvEOHwPtpxPotPW_9_-86" value="discovery sensitivity at 3\(\sigma\)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="npHvEOHwPtpxPotPW_9_-9">
           <mxGeometry x="567.5" y="1120" width="130" height="60" as="geometry" />
         </mxCell>
       </root>
