@@ -8,6 +8,7 @@ import yaml
 from .dataset import Dataset, ToyDataset, CombinedDataset
 from .parameters import Parameters
 from .constraints import Constraints
+from .experiment import Experiment
 
 import logging
 
@@ -19,17 +20,26 @@ class Workspace:
     def __init__(
         self,
         config: dict,
-        name: str = "",
     ) -> None:
 
         # load the config - done (move error checking to when loading the config and out of the other classes)
 
-        # load in the global options
+        # option defaults
         self.options = {}
+        self.options["backend"] = "minuit" # "minuit" or "scipy"
+        self.options["initial_guess_fcn"] = None
+        self.options["iminuit_precision"] = 1e-10
+        self.options["iminuit_strategy"] = 0
+        self.options["iminuit_tolerance"] = 1e-5
+        self.options["minimizer_options"] = {} # dict of options to pass to the iminuit minimizer
+        self.options["scipy_minimizer"] = None
+        self.options["try_to_combine_datasets"] = False
+        self.options["test_statistic"] = "t_mu"
+        self.options["use_grid_rounding"] = False # whether to stick parameters on a grid when evaluating the test statistic after minimizing
         self.options["use_log"] = False
         self.options["use_user_gradient"] = False
-        self.options["use_grid_rounding"] = False
 
+        # load in the global options
         if "options" in config:
             for opt in config["options"]:
                 self.options[opt] = config["options"][opt]
@@ -57,7 +67,6 @@ class Workspace:
             self.datasets[dsname] = dsobj
 
         # create the CombinedDatasets
-
         # maybe there's more than one combined_dataset group
         for cdsname, cds in config['combined_datasets'].items():
             # find the Datasets to try to combine
@@ -85,14 +94,20 @@ class Workspace:
                 )
 
                 self.datasets[cdsname] = combined_dataset
-                
+
+                msg = f"created CombinedDataset '{cdsname}'"
+                logging.info(msg)
+
                 # delete the combined datasets
                 for dsname in dsname_tocombine:
                     self.datasets.pop(dsname)
+                    
+                    msg = f"combined Dataset {dsname} into CombinedDataset {cdsname}"
+                    logging.info(msg)
 
         # create the Constraints 
         self.constraints = None
-        if config["constraints"] is None:
+        if not config["constraints"]:
             msg = "no constraints were provided"
             logging.info(msg)
         else:
@@ -101,8 +116,14 @@ class Workspace:
 
             self.constraints = Constraints(config["constraints"])
 
-        print(self.constraints.get_constraints(self.parameters.get_parameters(self.datasets)))
-        
+        # create the Experiment
+        self.experiment = Experiment(
+            datasets=self.datasets, 
+            parameters=self.parameters, 
+            constraints=self.constraints, 
+            options=self.options,
+            )
+
         return
 
         allfitpars = set()
@@ -110,7 +131,7 @@ class Workspace:
             print(ds.model_parameters)
             # alldspars.add(ds.model_parameters)
 
-        # create the Experiment
+        
 
         # create the ToyDatasets
         # create the Toy
@@ -121,19 +142,17 @@ class Workspace:
     def from_file(
         cls,
         file: str,
-        name: str = "",
     ):
         config = cls.load_config(file=file)
-        return cls(config=config, name=name)
+        return cls(config=config)
 
     @classmethod
     def from_dict(
         cls,
         input: dict,
-        name: str = "",
     ):
         config = cls.load_config(file=input)
-        return cls(config=config, name=name)
+        return cls(config=config)
 
     @staticmethod
     def load_config(
@@ -152,17 +171,20 @@ class Workspace:
         else:
             config = file
 
+        for item in ["datasets", "parameters"]:
+            if item not in config:
+                msg = f"{item} not found in `{file if file is not dict else 'provided `dict`'}`"
+                raise KeyError(msg)
+        
+        if "options" not in config:
+            config["options"] = {}
+        
+        if "constraints" not in config:
+            config["constraints"] = {}
+
         # get list of models and cost functions to import
         models = set()
         costfunctions = set()
-        if "datasets" not in config:
-            msg = f"`datasets` not found in `{file if file is not dict else 'provided `dict`'}`"
-            raise KeyError(msg)
-
-        if "parameters" not in config:
-            msg = f"`parameters` not found in `{file if file is not dict else 'provided `dict`'}`"
-            raise KeyError(msg)
-
         for datasetname, dataset in config["datasets"].items():
             if "model" in dataset:
                 models.add(dataset["model"])
@@ -197,25 +219,24 @@ class Workspace:
                             + f"`{config['combined_datasets'][dataset['combined_dataset']]['model']}`")
                         raise ValueError(msg)
 
-        if "constraints" in config:
-            for constraintname, constraint in config["constraints"].items():
-                if "parameters" not in constraint:
-                    msg = f"constraint `{constraintname}` has no `parameters`"
-                    raise KeyError(msg)
-                else:
-                    # these need to be lists for other stuff
-                    if not isinstance(constraint["parameters"], list):
-                        constraint["parameters"] = [constraint["parameters"]]
-                    if not isinstance(constraint["values"], list):
-                        constraint["values"] = [constraint["values"]]
-                    if "uncertainty" in constraint and not isinstance(
-                        constraint["uncertainty"], list
-                    ):
-                        constraint["uncertainty"] = [constraint["uncertainty"]]
-                    if "covariance" in constraint and not isinstance(
-                        constraint["covariance"], np.ndarray
-                    ):
-                        constraint["covariance"] = np.asarray(constraint["covariance"])
+        for constraintname, constraint in config["constraints"].items():
+            if "parameters" not in constraint:
+                msg = f"constraint `{constraintname}` has no `parameters`"
+                raise KeyError(msg)
+            else:
+                # these need to be lists for other stuff
+                if not isinstance(constraint["parameters"], list):
+                    constraint["parameters"] = [constraint["parameters"]]
+                if not isinstance(constraint["values"], list):
+                    constraint["values"] = [constraint["values"]]
+                if "uncertainty" in constraint and not isinstance(
+                    constraint["uncertainty"], list
+                ):
+                    constraint["uncertainty"] = [constraint["uncertainty"]]
+                if "covariance" in constraint and not isinstance(
+                    constraint["covariance"], np.ndarray
+                ):
+                    constraint["covariance"] = np.asarray(constraint["covariance"])
 
         if "combined_datasets" in config:
             for groupname, group in config["combined_datasets"].items():
@@ -230,6 +251,8 @@ class Workspace:
             else:
                 msg = f"combined_datasets `{groupname}` has no `costfunction`"
                 raise KeyError(msg)
+        else:
+            config["combined_datasets"] = {}
 
         # this is specific to set up of 0vbb model
         for model in models:
@@ -261,35 +284,43 @@ class Workspace:
                         group["costfunction"] = costfunction
 
         # convert any limits from string to python object
+        # set defaults if options missing
         for par, pardict in config["parameters"].items():
-            if "limits" not in pardict:
-                pardict["limits"] = None
 
-            if "includeinfit" not in pardict:
-                pardict["includeinfit"] = False
+            for item in ["limits", "value"]:
+                if item not in pardict:
+                    pardict[item] = None
 
-            if "value" not in pardict:
-                pardict["value"] = None
-
-            if "vary_by_constraint" not in pardict:
-                pardict["vary_by_constraint"] = False
+            for item in ["includeinfit", "fixed", "fix_if_no_data", "vary_by_constraint", "value_from_combine"]:
+                if item not in pardict:
+                    pardict[item] = False
 
             if "limits" in pardict and type(pardict["limits"]) is str:
                 pardict["limits"] = eval(pardict["limits"])
 
-            if "physical_limits" in pardict and type(pardict["physical_limits"]) is str:
+            if "physical_limits" not in pardict:
+                pardict["physical_limits"] = None
+            elif type(pardict["physical_limits"]) is str:
                 pardict["physical_limits"] = eval(pardict["physical_limits"])
             
-            if "value_from_combine" not in pardict:
-                pardict["value_from_combine"] = False
+        # options
+        for option, optionval in config["options"].items():
+            if optionval in ["none", "None"]:
+                config["options"][option] = None
+        
+        for item in ["user_gradient", "use_log", "scan", "use_grid_rounding"]:
+            if item not in config["options"]:
+                config["options"][item] = False
 
-            if pardict["value_from_combine"]:
-                pardict["value"] = None
+        for item in ["initial_guess_function"]:
+            if item not in config["options"]:
+                config["options"][item] = None
 
-        if "options" in config:
-            for option, optionval in config["options"].items():
-                if optionval in ["none", "None"]:
-                    config["options"][option] = None
+        if "minimizer_options" not in config["options"]:
+            config["options"]["minimizer_options"] = {}
+        
+        if not isinstance(config["options"]["minimizer_options"], dict):
+            raise ValueError("options: minimizer_options must be a dict")
 
         return config
 

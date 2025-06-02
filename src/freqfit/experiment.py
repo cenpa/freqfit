@@ -1,6 +1,7 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
+from collections.abc import Callable
 import itertools
 import logging
 from copy import deepcopy
@@ -12,23 +13,37 @@ from . import initial_guesses
 from .superset import Superset
 from .toy import Toy
 from .utils import grab_results#, load_config
-from .workspace import Workspace
+# from .workspace import Workspace
+from .constraints import Constraints
+from .parameters import Parameters
 
 SEED = 42
 
 log = logging.getLogger(__name__)
 
 class Experiment:
-    def __init_(
+    def __init__(
         self,
         datasets: dict,
-        parameters: dict,
-        constraints: dict = None,
-        name: str = "",
+        parameters: type[Parameters],
+        constraints: type[Constraints] = None,
+        options: dict = {},
     ) -> None:
         
-        self.datasets = datasets # datasets directly passed by the Workspace
+        self.datasets = datasets 
         self.costfunction = None
+        self.best = None
+
+        # set initial guess function
+        self.guessfcn = options["initial_guess_fcn"]
+        if self.guessfcn is None:
+            self.guessfcn = initial_guess
+
+        # check which nuisance parameters can be fixed in the fit due to no data
+        self.fixed_bc_no_data = {}  
+
+        # get the parameters of the fit
+        self.fitparameters = parameters.get_parameters(self.datasets)
 
         # add the costfunctions together
         first = True
@@ -39,11 +54,76 @@ class Experiment:
             else:
                 self.costfunction += self.datasets[dsname].costfunction
         
-        if constraints is not None:
-            self.costfunction = constraints.get_cost()
+        if not constraints:
+            self.costfunction += constraints.get_cost(self.fitparameters)
 
+        # evaluate the initial guess and store it for later
+        self.guess = self.guessfcn(self.datasets, parameters, constraints)
+        
+        # create the Minuit object
+        self.minuit = Minuit(self.costfunction, **self.guess)
 
-class Experiment(Superset):
+        # set Minuit options
+        self.minuit.tol = options["iminuit_tolerance"]  # set the tolerance
+        self.minuit.precision = options["iminuit_precision"]
+        self.minuit.strategy = options["iminuit_strategy"]
+        self.minuit.throw_nan = True # raise a RunTime error if function evaluates to NaN
+
+        # get parameters that are only part of Datasets with no data
+        parsnodata = parameters.get_parameters(self.datasets, nodata=True)
+
+        # now check which fit parameters can be fixed if no data and are not part of a Dataset that has data
+        for parname in parsnodata:
+            if parameters(parname)["fix_if_no_data"]:
+                self.fixed_bc_no_data[parname] = parameters(parname)["value"]
+
+        # to set limits and fixed variables
+        # this function will also fix those fit parameters which can be fixed because they are not part of a
+        # Dataset that has data
+        self.minuit_reset()
+
+    def minuit_reset(
+        self,
+        use_physical_limits: bool = True,  # for numerators of test statistics, want this to be False
+    ) -> None:
+        # resets the minimization and stuff
+        # does not change limits but does remove "fixed" attribute of variables
+        # 2024/08/09: This no longer seems to be true? Not sure if something changed in iminuit or if I was wrong?
+        self.minuit.reset()
+
+        # Restore the first initial guess
+        for key in self.guess.keys():
+            self.minuit.values[key] = self.guess[key]
+
+        # overwrite the limits
+        # also set which parameters are fixed
+        for parname, pardict in self.fitparameters.items():
+            if parname in self.minuit.parameters:
+                self.minuit.fixed[parname] = pardict["fixed"]
+                self.minuit.limits[parname] = pardict["limits"]
+                if use_physical_limits:
+                    self.minuit.limits[parname] = pardict["physical_limits"]
+                
+                # fix those nuisance parameters which can be fixed because they are not part of a
+                # Dataset that has data
+                if parname in self.fixed_bc_no_data:
+                    self.minuit.fixed[parname] = True
+                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
+
+        return
+
+# default initial guess function - user should probably provide their own
+def initial_guess(
+    datasets: dict,
+    parameters: type[Parameters],
+    constraints: type[Constraints] = None,
+    ) -> dict:
+
+    pars = parameters.get_parameters(datasets)
+
+    return {p:pars[p]["value"] for p in list(pars)}
+
+class OLDExperiment(Superset):
     def __init__(
         self,
         config: dict,
@@ -54,7 +134,6 @@ class Experiment(Superset):
         self.guess = None  # store the initial guess
         self.minuit = None  # Minuit object
 
-        self.try_to_combine_datasets = False
         self.test_statistic = "t_mu"
 
         # minimization options
@@ -86,33 +165,6 @@ class Experiment(Superset):
 
         combined_datasets = None
         if "options" in config:
-            if "try_to_combine_datasets" in config["options"]:
-                self.try_to_combine_datasets = config["options"][
-                    "try_to_combine_datasets"
-                ]
-                if "combined_datasets" in config:
-                    combined_datasets = config["combined_datasets"]
-                    msg = "found 'combined_datasets' in config"
-                    logging.info(msg)
-
-            if "name" in config["options"] and (name == ""):
-                name = config["options"]["name"]
-
-            if "backend" in config["options"]:
-                self.backend = config["options"]["backend"]
-
-            if "iminuit_tolerance" in config["options"]:
-                self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
-
-            if "iminuit_precision" in config["options"]:
-                self.iminuit_precision = config["options"]["iminuit_precision"]
-
-            if "minimizer_options" in config["options"]:
-                self.minimizer_options = config["options"]["minimizer_options"]
-
-                if not isinstance(self.minimizer_options, dict):
-                    raise ValueError("minimizer_options must be a dictionary")
-
             if self.backend == "scipy":
                 if "scipy_minimizer" in config["options"]:
                     self.scipy_minimizer = config["options"]["scipy_minimizer"]
@@ -138,11 +190,6 @@ class Experiment(Superset):
                             f"{self.scipy_minimizer} is not a valid minimizer"
                         )
 
-            if "user_gradient" in config["options"]:
-                self.user_gradient = config["options"]["user_gradient"]
-
-            if "use_log" in config["options"]:
-                self.use_log = config["options"]["use_log"]
 
             if "scan" in config["options"]:
                 self.scan = config["options"]["scan"]
@@ -150,14 +197,6 @@ class Experiment(Superset):
                 if "scan_grid" in config["options"]:
                     self.scan_grid = config["options"]["scan_grid"]
 
-            if "initial_guess_function" in config["options"]:
-                self.initial_guess_function = config["options"][
-                    "initial_guess_function"
-                ]
-
-            if "use_grid_rounding" in config["options"]:
-                self.use_grid_rounding = config["options"]["use_grid_rounding"]
-                logging.info("using grid rounding")
 
             if "test_statistic" in config["options"]:
                 if config["options"]["test_statistic"] in [
@@ -173,14 +212,6 @@ class Experiment(Superset):
                 msg = "setting test statistic to default: t_mu"
                 logging.info(msg)
 
-        constraints = None
-        if "constraints" in config:
-            constraints = config["constraints"]
-            msg = "found 'constraints' in config"
-            logging.info(msg)
-        else:
-            msg = "did not find 'constraints' in config"
-            logging.info(msg)
 
         super().__init__(
             datasets=config["datasets"],
@@ -245,34 +276,6 @@ class Experiment(Superset):
         if (self.scan) and (self.scan_grid is not None):
             self.hypercube_grid = self.create_hypercube(self.scan_grid)
 
-    @classmethod
-    def file(
-        cls,
-        file: str,
-        name: str = "",
-    ):
-        logging.warning('Experiment.file() will be deprecated, use Experiment.from_file() instead')
-        config = Workspace.load_config(file=file)
-        return cls(config=config, name=name)
-
-    @classmethod
-    def from_file(
-        cls,
-        file: str,
-        name: str = "",
-    ):
-        config = Workspace.load_config(file=file)
-        return cls(config=config, name=name)
-
-    @classmethod
-    def from_dict(
-        cls,
-        input: str,
-        name: str = "",
-    ):
-        config = Workspace.load_config(file=input)
-        return cls(config=config, name=name)
-        
     def initialguess(
         self,
     ) -> dict:
@@ -298,42 +301,6 @@ class Experiment(Superset):
         # for that reason, I'm commenting out the few lines above.
 
         return guess
-
-    def minuit_reset(
-        self,
-        use_physical_limits: bool = True,  # for numerators of test statistics, want this to be False
-    ) -> None:
-        # resets the minimization and stuff
-        # does not change limits but does remove "fixed" attribute of variables
-        # 2024/08/09: This no longer seems to be true? Not sure if something changed in iminuit or if I was wrong?
-        self.minuit.reset()
-
-        # Restore the first initial guess
-        self.minuit.values[:] = list(self.guess.values())
-
-        # overwrite the limits
-        # note that this information can also be contained in a Dataset when instantiated
-        # and is overwritten here
-
-        # also set which parameters are fixed
-        for parname, pardict in self.parameters.items():
-            if parname in self.minuit.parameters:
-                self.minuit.fixed[parname] = False
-                self.minuit.limits[parname] = (-1.0 * np.inf, np.inf)
-
-                if "limits" in pardict:
-                    self.minuit.limits[parname] = pardict["limits"]
-                if use_physical_limits and "physical_limits" in pardict:
-                    self.minuit.limits[parname] = pardict["physical_limits"]
-                if "fixed" in pardict:
-                    self.minuit.fixed[parname] = pardict["fixed"]
-                # fix those nuisance parameters which can be fixed because they are not part of a
-                # Dataset that has data
-                if parname in self.fixed_bc_no_data:
-                    self.minuit.fixed[parname] = True
-                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
-
-        return
 
     def bestfit(
         self,

@@ -123,9 +123,7 @@ class Constraints:
 
         pars, values, covariance = self.get_constraints(parameters)
 
-        cost = cost.NormalConstraint(pars, values, error=covariance)
-
-        return cost
+        return cost.NormalConstraint(pars, values, error=covariance)
 
     # gets the appropriate values and covariance submatrix for the requested parameters, if they exist
     # returns a tuple that contains a list of parameters found constraints for, their values, covariance matrix

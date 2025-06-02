@@ -32,15 +32,23 @@ class Parameters:
     def get_parameters(
         self,
         datasets: dict,
+        nodata: bool = False,
     ) -> dict:
         """
         Takes dict of Dataset and returns all parameters used in them as a dict.
         """
 
         allpars = set()
+        parswdata = set()
         for ds in datasets.values():
-            allpars.update(ds._parlist)
+            allpars.update(list(ds.fitparameters.keys()))
+
+            if (ds.data.size > 0):
+                parswdata.update(list(ds.fitparameters.keys()))
+        
+        if nodata:
+            parsnodata = allpars.difference(parswdata)
+            return {p:self.parameters[p] for p in list(parsnodata)}
 
         return {p:self.parameters[p] for p in list(allpars)}
-
 
