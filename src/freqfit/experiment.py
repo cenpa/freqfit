@@ -9,10 +9,8 @@ from copy import deepcopy
 import numpy as np
 from iminuit import Minuit
 
-from . import initial_guesses
 from .superset import Superset
 from .toy import Toy
-from .utils import grab_results#, load_config
 # from .workspace import Workspace
 from .constraints import Constraints
 from .parameters import Parameters
@@ -31,6 +29,8 @@ class Experiment:
     ) -> None:
         
         self.datasets = datasets 
+        self.parameters = parameters
+        self.options = options
         self.costfunction = None
         self.best = None
 
@@ -43,7 +43,7 @@ class Experiment:
         self.fixed_bc_no_data = {}  
 
         # get the parameters of the fit
-        self.fitparameters = parameters.get_parameters(self.datasets)
+        self.fitparameters = parameters.get_fitparameters(self.datasets)
 
         # add the costfunctions together
         first = True
@@ -58,7 +58,7 @@ class Experiment:
             self.costfunction += constraints.get_cost(self.fitparameters)
 
         # evaluate the initial guess and store it for later
-        self.guess = self.guessfcn(self.datasets, parameters, constraints)
+        self.guess = self.guessfcn(self.datasets, self.parameters, constraints)
         
         # create the Minuit object
         self.minuit = Minuit(self.costfunction, **self.guess)
@@ -69,13 +69,13 @@ class Experiment:
         self.minuit.strategy = options["iminuit_strategy"]
         self.minuit.throw_nan = True # raise a RunTime error if function evaluates to NaN
 
-        # get parameters that are only part of Datasets with no data
-        parsnodata = parameters.get_parameters(self.datasets, nodata=True)
+        # get fit parameters that are only part of Datasets with no data
+        parsnodata = self.parameters.get_fitparameters(self.datasets, nodata=True)
 
         # now check which fit parameters can be fixed if no data and are not part of a Dataset that has data
         for parname in parsnodata:
             if parameters(parname)["fix_if_no_data"]:
-                self.fixed_bc_no_data[parname] = parameters(parname)["value"]
+                self.fixed_bc_no_data[parname] = self.parameters(parname)["value"]
 
         # to set limits and fixed variables
         # this function will also fix those fit parameters which can be fixed because they are not part of a
@@ -111,7 +111,316 @@ class Experiment:
                     self.minuit.values[parname] = self.fixed_bc_no_data[parname]
 
         return
+    
+    def grab_results(
+        self,
+    ) -> dict:
+        # I checked whether we need to shallow/deep copy these and it seems like we do not
 
+        toreturn = {}
+        toreturn["errors"] = self.minuit.errors.to_dict()  # returns dict
+        toreturn["fixed"] = self.minuit.fixed.to_dict()  # returns dict
+        toreturn["fval"] = self.minuit.fval  # returns float
+        toreturn["nfit"] = self.minuit.nfit  # returns int
+        toreturn["npar"] = self.minuit.npar  # returns int
+        toreturn["parameters"] = self.minuit.parameters  # returns tuple of str
+        toreturn["tol"] = self.minuit.tol  # returns float
+        toreturn["valid"] = self.minuit.valid  # returns bool
+        toreturn["values"] = self.minuit.values.to_dict()  # returns dict
+
+        if self.options["use_grid_rounding"]:
+            toreturn["values"] = {
+                key: np.round(value, self.parameters(key)["grid_rounding_num_decimals"])
+                for key, value in self.minuit.values.to_dict().items()
+            }  # returns dict
+
+            # overwrite the fval at the truncated params point in parameter space
+            toreturn["fval"] = self.minuit._fcn(
+                toreturn["values"].values()
+            )  
+
+        return toreturn
+
+    def bestfit(
+        self,
+        force: bool = False,
+        use_physical_limits: bool = True,
+    ) -> dict:
+        """
+        force
+            By default (`False`), if `self.best` has a result, the minimization will be skipped and that
+            result will be returned instead. If `True`, the minimization will be run and the result returned and
+            stored as `self.best`
+
+        Performs a global minimization and returns a `dict` with the results. These results are also stored in
+        `self.best`.
+        """
+        # don't run this more than once if we don't have to
+        if self.best is not None and not force:
+            return self.best
+
+        # remove any previous minimizations
+        self.minuit_reset(use_physical_limits=use_physical_limits)
+
+        try:
+            if self.options["backend"] == "minuit":
+                self.minuit.migrad(**self.options["minimizer_options"])
+            else: # scipy
+                self.minuit.scipy(
+                    method=self.scipy_minimizer, 
+                    options=self.options["minimizer_options"],
+                )
+        except RuntimeError:
+            msg = "Experiment has invalid best fit"
+            logging.debug(msg)
+
+        if not self.minuit.valid:
+            msg = "Experiment has invalid best fit"
+            logging.debug(msg)
+
+        self.best = self.grab_results()
+
+        if self.guess == self.best["values"]:
+            msg = "Experiment has best fit values very close to initial guess"
+            logging.debug(msg)
+
+        return self.best
+
+    def profile(
+        self,
+        parameters: dict,
+        use_physical_limits: bool = True,
+    ) -> dict:
+        """
+        parameters
+            `dict` where keys are names of parameters to fix and values are the value that the parameter should be
+            fixed to
+        """
+
+        self.minuit_reset(use_physical_limits=use_physical_limits)
+
+        # set fixed parameters
+        for parname, parvalue in parameters.items():
+            self.minuit.fixed[parname] = True
+            self.minuit.values[parname] = parvalue
+
+        try:
+            if self.options["backend"] == "minuit":
+                self.minuit.migrad(**self.options["minimizer_options"])
+            else: # scipy
+                self.minuit.scipy(
+                    method=self.scipy_minimizer, 
+                    options=self.options["minimizer_options"],
+                )
+
+        except RuntimeError:
+            msg = f"Experiment throwing NaN has invalid profile at {parameters}"
+            logging.debug(msg)
+
+        if not self.minuit.valid:
+            msg = "Experiment has invalid profile"
+            logging.debug(msg)
+
+        results = self.grab_results()
+
+        if self.guess == results["values"]:
+            msg = "Experiment has profile fit values very close to initial guess"
+            logging.debug(msg)
+
+        # also include the fixed parameters
+        for parname, parvalue in parameters.items():
+            results["values"][parname] = parvalue
+
+        return results
+
+    def ts(
+        self,
+        profile_parameters: dict,
+        force: bool = False,
+    ) -> float:
+        """
+        Compute the profiled test statistic at some point in the parameter space of interest, profiling out the other 
+        parameters.
+
+        To use the t_mu_tilde test statistic, you must specify a physical limit on the parameters or interest. 
+        Otherwise, the test statistic computed is t_mu (which is correct under no physical limit on the parameter). 
+        It is up to the user to specify this, and it is not checked.
+
+        Parameters
+        ----------
+        profile_parameters : dict
+            which parameters to fix and at what value (rest are profiled out)
+        force : bool, optional
+            Whether to use the stored best fit (default: `False`) or to recompute it (`True`). 
+            See `experiment.bestfit()` for description.
+        """
+
+        use_physical_limits = False  # for t_mu and q_mu
+        if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde":
+            use_physical_limits = True
+
+        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
+            "fval"
+        ]
+
+        # see G. Cowan, K. Cranmer, E. Gross, and O. Vitells,  Eur. Phys. J. C 71, 1554 (2011) - eqns 14 and 16
+        if self.options["test_statistic"] == "q_mu" or self.options["test_statistic"] == "q_mu_tilde":
+            for parname, parvalue in profile_parameters.items():
+                if self.best["values"][parname] > parvalue:
+                    return 0.0, 0.0, 0.0
+
+        num = self.profile(
+            parameters=profile_parameters, use_physical_limits=use_physical_limits
+        )["fval"]
+
+        ts = num - denom
+
+        if ts < 0:
+            msg = f"Experiment gave test statistic below zero: {ts}"
+            logging.debug(msg)
+
+        # because these are already -2*ln(L) from iminuit
+        return ts, denom, num
+
+    # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
+    # plots slightly differently
+    def visualize(
+        self,
+        parameters: dict,
+        component_kwargs=None,
+    ) -> None:
+        """
+        Visualize data and model agreement (requires matplotlib).
+
+        The visualization is drawn with matplotlib.pyplot into the current figure.
+        Subplots are created to visualize each part of the cost function, the figure
+        height is increased accordingly. Parts without a visualize method are silently
+        ignored.
+
+        Does not draw Datasets that are empty (have no events).
+
+        Parameters
+        ----------
+        args : array-like
+            Parameter values.
+        component_kwargs : dict of dicts, optional
+            Dict that maps an index to dict of keyword arguments. This can be
+            used to pass keyword arguments to a visualize method of a component with
+            that index.
+        **kwargs :
+            Other keyword arguments are forwarded to all components.
+        """
+        from matplotlib import pyplot as plt
+
+        args = []
+        for par in self.fitparameters:
+            if par not in parameters:
+                msg = f"parameter {par} was not provided"
+                raise KeyError(msg)
+            args.append(parameters[par])
+
+        n = 0
+        for comp in self.costfunction:
+            if hasattr(comp, "visualize"):
+                if hasattr(comp, "data"):
+                    if len(comp.data) > 0:
+                        n += 1
+                else:
+                    n += 1
+
+        fig = plt.gcf()
+        fig.set_figwidth(n * fig.get_figwidth() / 1.5)
+        _, ax = plt.subplots(1, n, num=fig.number)
+
+        if component_kwargs is None:
+            component_kwargs = {}
+
+        i = 0
+        for k, (comp, cargs) in enumerate(self.costfunction._split(args)):
+            if not hasattr(comp, "visualize"):
+                continue
+            if hasattr(comp, "data") and len(comp.data) == 0:
+                continue
+            kwargs = component_kwargs.get(k, {})
+            plt.sca(ax[i])
+            comp.visualize(cargs, **kwargs)
+            # relies on ordering, but this should be the same
+            ax[i].set_title(self.datasets[list(self.datasets.keys())[k]].name)
+            i += 1
+        
+        return fig
+
+    # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
+    # plots slightly differently
+    def pull_plot(
+        self,
+        parameters: dict,
+        component_kwargs=None,
+    ) -> None:
+        """
+        Visualize data and model agreement (requires matplotlib).
+
+        The visualization is drawn with matplotlib.pyplot into the current figure.
+        Subplots are created to visualize each part of the cost function, the figure
+        height is increased accordingly. Parts without a visualize method are silently
+        ignored.
+
+        Does not draw Datasets that are empty (have no events).
+
+        Parameters
+        ----------
+        args : array-like
+            Parameter values.
+        component_kwargs : dict of dicts, optional
+            Dict that maps an index to dict of keyword arguments. This can be
+            used to pass keyword arguments to a visualize method of a component with
+            that index.
+        **kwargs :
+            Other keyword arguments are forwarded to all components.
+        """
+        from matplotlib import pyplot as plt
+
+        args = []
+        for par in self.fitparameters:
+            if par not in parameters:
+                msg = f"parameter {par} was not provided"
+                raise KeyError(msg)
+            args.append(parameters[par])
+
+        n = 0
+        totnum = 0
+        for comp in self.costfunction:
+            totnum += 1
+            if hasattr(comp, "visualize"):
+                if hasattr(comp, "data"):
+                    if len(comp.data) > 0:
+                        n += 1
+                else:
+                    n += 1
+
+        fig = plt.gcf()
+        # fig.set_figwidth(n * fig.get_figwidth() / 1.5)
+        _, ax = plt.subplots(1, 1, num=fig.number)
+
+        if component_kwargs is None:
+            component_kwargs = {}
+
+        i = 0
+        for k, (comp, cargs) in enumerate(self.costfunction._split(args)):
+            # assumes nuisance constraints are the last cost function...
+            if k != totnum - 1:
+                continue
+            if not hasattr(comp, "visualize"):
+                continue
+            if hasattr(comp, "data") and len(comp.data) == 0:
+                continue
+            kwargs = component_kwargs.get(k, {})
+            plt.sca(ax)
+            comp.visualize(cargs, **kwargs)
+            i += 1
+        
+        return fig
+        
 # default initial guess function - user should probably provide their own
 def initial_guess(
     datasets: dict,
@@ -119,7 +428,8 @@ def initial_guess(
     constraints: type[Constraints] = None,
     ) -> dict:
 
-    pars = parameters.get_parameters(datasets)
+    # get fit parameters of these datasets
+    pars = parameters.get_fitparameters(datasets)
 
     return {p:pars[p]["value"] for p in list(pars)}
 

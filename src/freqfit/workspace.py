@@ -34,7 +34,7 @@ class Workspace:
         self.options["minimizer_options"] = {} # dict of options to pass to the iminuit minimizer
         self.options["scipy_minimizer"] = None
         self.options["try_to_combine_datasets"] = False
-        self.options["test_statistic"] = "t_mu"
+        self.options["test_statistic"] = "t_mu" # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
         self.options["use_grid_rounding"] = False # whether to stick parameters on a grid when evaluating the test statistic after minimizing
         self.options["use_log"] = False
         self.options["use_user_gradient"] = False
@@ -43,6 +43,9 @@ class Workspace:
         if "options" in config:
             for opt in config["options"]:
                 self.options[opt] = config["options"][opt]
+
+        msg = f"setting backend to {config['options']['backend']}"
+        logging.info(msg)
 
         # create the Parameters
         self.parameters = Parameters(config['parameters'])
@@ -102,7 +105,7 @@ class Workspace:
                 for dsname in dsname_tocombine:
                     self.datasets.pop(dsname)
                     
-                    msg = f"combined Dataset {dsname} into CombinedDataset {cdsname}"
+                    msg = f"combined Dataset '{dsname}' into CombinedDataset '{cdsname}'"
                     logging.info(msg)
 
         # create the Constraints 
@@ -111,7 +114,7 @@ class Workspace:
             msg = "no constraints were provided"
             logging.info(msg)
         else:
-            msg = "all constraints will be combined into a single `NormalConstraint`"
+            msg = "all constraints will be combined into a single NormalConstraint"
             logging.info(msg)
 
             self.constraints = Constraints(config["constraints"])
@@ -125,12 +128,6 @@ class Workspace:
             )
 
         return
-
-        allfitpars = set()
-        for dsname, ds in self.datasets.items():
-            print(ds.model_parameters)
-            # alldspars.add(ds.model_parameters)
-
         
 
         # create the ToyDatasets
@@ -294,6 +291,9 @@ class Workspace:
             for item in ["includeinfit", "fixed", "fix_if_no_data", "vary_by_constraint", "value_from_combine"]:
                 if item not in pardict:
                     pardict[item] = False
+            
+            if "grid_rounding_num_decimals" not in pardict:
+                pardict["grid_rounding_num_decimals"] = 128
 
             if "limits" in pardict and type(pardict["limits"]) is str:
                 pardict["limits"] = eval(pardict["limits"])
@@ -315,6 +315,14 @@ class Workspace:
         for item in ["initial_guess_function"]:
             if item not in config["options"]:
                 config["options"][item] = None
+        
+        if "backend" not in config["options"]:
+            config["options"]["backend"] = "minuit"
+        
+        if config["options"]["backend"] not in ["minuit", "scipy"]:
+            raise NotImplementedError(
+              "backend is not set to 'minuit' or 'scipy'"  
+            )
 
         if "minimizer_options" not in config["options"]:
             config["options"]["minimizer_options"] = {}
