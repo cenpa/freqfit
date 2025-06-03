@@ -81,7 +81,10 @@ class Dataset:
         #     model_parameters  # model parameter name : parameter name
         # )
 
-        # self._costfunctioncall = None  # function call for the costfunction
+        self.use_log = use_log
+        self.use_user_gradient = use_user_gradient
+
+        self._costfunctioncall = costfunction  # function call for the costfunction
         self.costfunction = None  # iminuit cost function object
 
         # list that contains the correctly ordered parameter names
@@ -245,44 +248,131 @@ class Dataset:
 class ToyDataset(Dataset):
     def __init__(        
         self,
-        *args,
+        toy_model,
+        toy_model_parameters: dict[str, str],
+        model,
+        model_parameters: dict[str, str],
+        parameters,
+        costfunction: cost.Cost,
+        name: str = "",
+        try_to_combine: bool = False,
+        combined_dataset: str = None,
+        use_user_gradient: bool = False,
+        use_log: bool = False,
     ) -> None:
 
-        super().__init__(*args)
+        self.toy_model = toy_model
+        self.num_drawn = 0
 
-        self.num_drawn = None
+        # list that contains the correctly ordered parameter names
+        self._toy_parlist = []
+        # list that contains the values of the parameters of the model for this Dataset in the correct order
+        self._toy_parlist_values = []
+        # indices in self._parlist of the the parameters to be fit parname: parindex
+        self._toy_parlist_indices = {}
+
+        # dict of form parname: [parindex, parvalue]
+        self._toy_pars = {}
+
+        # now we make the parameters of the cost function
+        # need to go in order of the model
+        for i, (par, defaultvalue) in enumerate(self.toy_model.parameters.items()):
+            # if not passed, use default value (already checked that required parameters passed)
+            if par not in toy_model_parameters:
+                self._toy_parlist_values.append(defaultvalue)
+                self._toy_parlist.append("")
+                self._toy_pars[f"default{i}"] = [i, defaultvalue]
+                break  # no constraints on non-passed parameters
+
+            # parameter was passed and should be included in the fit
+            elif parameters(toy_model_parameters[par])["includeinfit"]:
+                self._toy_parlist.append(toy_model_parameters[par])
+                self._toy_parlist_values.append(parameters(toy_model_parameters[par])["value"])
+                self._toy_parlist_indices[toy_model_parameters[par]] = i
+                self._toy_pars[toy_model_parameters[par]] = [i, parameters(toy_model_parameters[par])["value"]]
+
+            else:  # parameter was passed but should not be included in the fit
+                if (parameters(toy_model_parameters[par])["value"] is None) and (
+                    defaultvalue == "nodefaultvalue"
+                ):
+                    msg = (
+                        f"ToyDataset '{self.name}': value for parameter '{par}' is required for"
+                        + f"toy model '{model}' parameter '{par}'"
+                    )
+                    raise KeyError(msg)
+                self._toy_parlist.append(toy_model_parameters[par])
+                self._toy_parlist_values.append(parameters(toy_model_parameters[par])["value"])
+                self._toy_parlist_indices[toy_model_parameters[par]] = i
+                self._toy_pars[toy_model_parameters[par]] = [i, parameters(toy_model_parameters[par])["value"]]
+
+        super().__init__(
+            data = [],
+            model = model,            
+            model_parameters = model_parameters,
+            parameters = parameters,
+            costfunction = costfunction,
+            name = name,
+            try_to_combine = try_to_combine,
+            combined_dataset = combined_dataset,
+            use_user_gradient = use_user_gradient,
+            use_log = use_log,
+        )        
+
 
     # resets some toy attributes
     def reset(
         self,
     ) -> None:
-        self.data = None
-        self.num_drawn = None
+        """
+        Resets some toy attributes.
+        """
+
+        self.data = []
+        self.num_drawn = 0
         self.is_combined = False
+        self.costfunction = None
+
         return
 
-    def _rvs(
-        self,
-        par,
-        seed: int = SEED,
-    ) -> np.array:
-        # par should be 1D array like
-        # assign the positional parameters to the correct places in the model parameter list
-        for i in range(len(par)):
-            self._parlist_values[self._parlist_indices[i]] = par[i]
-
-        # TODO: extendedrvs here? make it more generic or require this in Model?
-        rvs, num_drawn = self.model.extendedrvs(*self._parlist_values, seed=seed)
-        return rvs, num_drawn
-
     # generates toy data and sets some attributes
-    def toy(
+    def rvs(
         self,
-        par,
+        parameters: dict,
         seed: int = SEED,
     ) -> None:
+        """
+        Generates toy data and sets some attributes.
+
+        Parameters
+        ----------
+        parameters: dict
+            Dict containing pairs of parameter name : parameter value for the toy generation. If a value for a parameter
+            is not provided, that parameter's value will not be changed.
+        """
+
         self.reset()
-        self.data, self.num_drawn = self.rvs(par, seed=seed)
+
+        for par, parval in parameters.items():
+            if par in self._toy_pars:
+                self._toy_pars[par][1] = parval
+
+        # TODO: extendedrvs here? make it more generic or require this in Model?
+        self.data, self.num_drawn = self.toy_model.extendedrvs(*[self._toy_pars[par][1] for par in self._toy_pars], seed=seed)
+    
+        # make the cost function
+        if self.use_user_gradient:
+            self.costfunction = self._costfunctioncall(
+                self.data, self.density, grad=self.density_gradient
+            )
+        elif self.use_log:
+            self.costfunction = self._costfunctioncall(
+                self.data,
+                self.log_density,
+                log=True,
+            )
+        else:
+            self.costfunction = self._costfunctioncall(self.data, self.density)
+
         return
 
 

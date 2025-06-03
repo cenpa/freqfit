@@ -24,8 +24,8 @@ class Experiment:
         self,
         datasets: dict,
         parameters: type[Parameters],
-        constraints: type[Constraints] = None,
-        options: dict = {},
+        constraints: type[Constraints],
+        options: dict,
     ) -> None:
         
         self.datasets = datasets 
@@ -420,7 +420,7 @@ class Experiment:
             i += 1
         
         return fig
-        
+
 # default initial guess function - user should probably provide their own
 def initial_guess(
     datasets: dict,
@@ -764,43 +764,6 @@ class OLDExperiment(Superset):
 
         return results
 
-    # this corresponds to t_mu or t_mu^tilde depending on whether there is a physical limit on the parameters
-    def ts(
-        self,
-        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
-        force: bool = False,
-    ) -> float:
-        """
-        force
-            See `experiment.bestfit()` for description. Default is `False`.
-        """
-
-        use_physical_limits = False  # for t_mu and q_mu
-        if self.test_statistic == "t_mu_tilde" or self.test_statistic == "q_mu_tilde":
-            use_physical_limits = True
-
-        denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
-            "fval"
-        ]
-
-        # see Cowan (2011) Eq. 14 and Eq. 16
-        if self.test_statistic == "q_mu" or self.test_statistic == "q_mu_tilde":
-            for parname, parvalue in profile_parameters.items():
-                if self.best["values"][parname] > parvalue:
-                    return 0.0, 0.0, 0.0
-
-        num = self.profile(
-            parameters=profile_parameters, use_physical_limits=use_physical_limits
-        )["fval"]
-
-        ts = num - denom
-
-        if ts < 0:
-            msg = f"`Experiment` gave test statistic below zero: {ts}"
-            logging.debug(msg)
-
-        # because these are already -2*ln(L) from iminuit
-        return ts, denom, num
 
     def maketoy(
         self,
@@ -889,143 +852,7 @@ class OLDExperiment(Superset):
             numerators,
         )
 
-    # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
-    # plots slightly differently
-    def visualize(
-        self,
-        parameters: dict,
-        component_kwargs=None,
-    ) -> None:
-        """
-        Visualize data and model agreement (requires matplotlib).
 
-        The visualization is drawn with matplotlib.pyplot into the current figure.
-        Subplots are created to visualize each part of the cost function, the figure
-        height is increased accordingly. Parts without a visualize method are silently
-        ignored.
-
-        Does not draw Datasets that are empty (have no events).
-
-        Parameters
-        ----------
-        args : array-like
-            Parameter values.
-        component_kwargs : dict of dicts, optional
-            Dict that maps an index to dict of keyword arguments. This can be
-            used to pass keyword arguments to a visualize method of a component with
-            that index.
-        **kwargs :
-            Other keyword arguments are forwarded to all components.
-        """
-        from matplotlib import pyplot as plt
-
-        args = []
-        for par in self.fitparameters:
-            if par not in parameters:
-                msg = f"parameter {par} was not provided"
-                raise KeyError(msg)
-            args.append(parameters[par])
-
-        n = 0
-        for comp in self.costfunction:
-            if hasattr(comp, "visualize"):
-                if hasattr(comp, "data"):
-                    if len(comp.data) > 0:
-                        n += 1
-                else:
-                    n += 1
-
-        fig = plt.gcf()
-        fig.set_figwidth(n * fig.get_figwidth() / 1.5)
-        _, ax = plt.subplots(1, n, num=fig.number)
-
-        if component_kwargs is None:
-            component_kwargs = {}
-
-        i = 0
-        for k, (comp, cargs) in enumerate(self.costfunction._split(args)):
-            if not hasattr(comp, "visualize"):
-                continue
-            if hasattr(comp, "data") and len(comp.data) == 0:
-                continue
-            kwargs = component_kwargs.get(k, {})
-            plt.sca(ax[i])
-            comp.visualize(cargs, **kwargs)
-            i += 1
-        
-        return fig
-
-    # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
-    # plots slightly differently
-    def pull_plot(
-        self,
-        parameters: dict,
-        component_kwargs=None,
-    ) -> None:
-        """
-        Visualize data and model agreement (requires matplotlib).
-
-        The visualization is drawn with matplotlib.pyplot into the current figure.
-        Subplots are created to visualize each part of the cost function, the figure
-        height is increased accordingly. Parts without a visualize method are silently
-        ignored.
-
-        Does not draw Datasets that are empty (have no events).
-
-        Parameters
-        ----------
-        args : array-like
-            Parameter values.
-        component_kwargs : dict of dicts, optional
-            Dict that maps an index to dict of keyword arguments. This can be
-            used to pass keyword arguments to a visualize method of a component with
-            that index.
-        **kwargs :
-            Other keyword arguments are forwarded to all components.
-        """
-        from matplotlib import pyplot as plt
-
-        args = []
-        for par in self.fitparameters:
-            if par not in parameters:
-                msg = f"parameter {par} was not provided"
-                raise KeyError(msg)
-            args.append(parameters[par])
-
-        n = 0
-        totnum = 0
-        for comp in self.costfunction:
-            totnum += 1
-            if hasattr(comp, "visualize"):
-                if hasattr(comp, "data"):
-                    if len(comp.data) > 0:
-                        n += 1
-                else:
-                    n += 1
-
-        fig = plt.gcf()
-        # fig.set_figwidth(n * fig.get_figwidth() / 1.5)
-        _, ax = plt.subplots(1, 1, num=fig.number)
-
-        if component_kwargs is None:
-            component_kwargs = {}
-
-        i = 0
-        for k, (comp, cargs) in enumerate(self.costfunction._split(args)):
-            # assumes nuisance constraints are the last cost function...
-            if k != totnum - 1:
-                continue
-            if not hasattr(comp, "visualize"):
-                continue
-            if hasattr(comp, "data") and len(comp.data) == 0:
-                continue
-            kwargs = component_kwargs.get(k, {})
-            plt.sca(ax)
-            comp.visualize(cargs, **kwargs)
-            i += 1
-        
-        return fig
-        
 
     def create_hypercube(self, scan_grid) -> list:
         """

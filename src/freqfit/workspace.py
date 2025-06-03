@@ -54,7 +54,7 @@ class Workspace:
         self.datasets = {}
 
         for dsname, ds in config['datasets'].items():
-            dsobj = Dataset(
+            self.datasets[dsname] = Dataset(
                 data=ds["data"],
                 model=ds["model"],
                 model_parameters=ds["model_parameters"],
@@ -66,8 +66,6 @@ class Workspace:
                 use_user_gradient=self.options["use_user_gradient"],
                 use_log=self.options["use_log"],
             )
-
-            self.datasets[dsname] = dsobj
 
         # create the CombinedDatasets
         # maybe there's more than one combined_dataset group
@@ -125,12 +123,26 @@ class Workspace:
             parameters=self.parameters, 
             constraints=self.constraints, 
             options=self.options,
-            )
-
-        return
-        
+            )       
 
         # create the ToyDatasets
+        self.toy_datasets = {}
+        for dsname, ds in config['datasets'].items():
+            self.toy_datasets["toy_"+dsname] = ToyDataset(
+                toy_model=ds["toy_model"] if "toy_model" in ds else ds["model"],
+                toy_model_parameters=ds["toy_model_parameters"] if "toy_model_parameters" in ds else ds["model_parameters"],
+                model=ds["model"],
+                model_parameters=ds["model_parameters"],
+                parameters=self.parameters,
+                costfunction=ds["costfunction"],
+                name="toy_"+dsname,
+                try_to_combine=ds['try_to_combine'] if 'try_to_combine' in ds else False,
+                combined_dataset=ds['combined_dataset'] if 'combined_dataset' in ds else None,
+                use_user_gradient=self.options["use_user_gradient"],
+                use_log=self.options["use_log"],                
+            )
+
+
         # create the Toy
 
         return
