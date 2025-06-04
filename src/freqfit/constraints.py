@@ -10,6 +10,9 @@ SEED = 42
 
 log = logging.getLogger(__name__)
 
+# this class is going to need to re-worked at some point. Not really capable of
+# handling multiple constraints on the same parameter right now.
+
 class Constraints:
 
     def __init__(
@@ -17,93 +20,46 @@ class Constraints:
         constraints: dict,
     ) -> None:
 
+        self._constraint_groups = {
+            "constraint_group_0":{
+                "constraint_names":[],
+                "parameters":[], 
+                "values":None,
+                "covariance":None}}
+
+        # make groups of constraints based on what parameters are in them - to reduce overall # of constraints
+        for ctname, ct in constraints.items():
+            for grpname, grp in self._constraint_groups.items():
+                noparsin = True
+                for par in ct["parameters"]:
+                    if par in grp["parameters"]:
+                        noparsin = False
+                
+                if noparsin:
+                    grp["constraint_names"].append(ctname)
+                    for par in ct["parameters"]:
+                        grp["parameters"].append(par)
+
+        # now combine the constraints in each group into a single constraint
+        for grpname, grp in self._constraint_groups.items():
+            grp["values"] = np.full(len(grp["parameters"], np.nan))
+            grp["covariance"] = np.identity(len(grp["parameters"]))
+
+
         self.constraints_parameters = {}
-
-        # shove all the constraints in one big matrix
-        for constraintname, constraint in constraints.items():
-            # would love to move this somewhere else, maybe sanitize the config before doing anything
-            if len(constraint["parameters"]) != len(constraint["values"]):
-                if len(constraint["values"]) == 1:
-                    constraint["values"] = np.full(
-                        len(constraint["parameters"]), constraint["values"]
-                    )
-                    msg = f"in constraint '{constraintname}', assigning 1 provided value to all {len(constraint['parameters'])} 'parameters'"
-                    logging.warning(msg)
-                else:
-                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['values'])} 'values'"
-                    logging.error(msg)
-                    raise ValueError(msg)
-
-            if "covariance" in constraint and "uncertainty" in constraint:
-                msg = f"constraint '{constraintname}' has both 'covariance' and 'uncertainty'; this is ambiguous - use only one!"
-                logging.error(msg)
-                raise KeyError(msg)
-
-            if "covariance" not in constraint and "uncertainty" not in constraint:
-                msg = f"constraint '{constraintname}' has neither 'covariance' nor 'uncertainty' - one (and only one) must be provided!"
-                logging.error(msg)
-                raise KeyError(msg)
-
-            # do some cleaning up of the config here
-            if "uncertainty" in constraint:
-                if len(constraint["uncertainty"]) > 1:
-                    constraint["uncertainty"] = np.full(
-                        len(constraint["parameters"]), constraint["uncertainty"]
-                    )
-                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} parameters but only 1 uncertainty - assuming this is constant uncertainty for each parameter"
-                    logging.warning(msg)
-
-                if len(constraint["uncertainty"]) != len(constraint["parameters"]):
-                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['uncertainty'])} 'uncertainty' - should be same length or single uncertainty"
-                    logging.error(msg)
-                    raise ValueError(msg)
-
-                # convert to covariance matrix so that we're always working with the same type of object
-                constraint["covariance"] = np.diag(constraint["uncertainty"]) ** 2
-                del constraint["uncertainty"]
-
-                msg = f"constraint '{constraintname}': converting provided 'uncertainty' to 'covariance'"
-                logging.info(msg)
-
-            else:  # we have the covariance matrix for this constraint
-                if len(constraint["parameters"]) == 1:
-                    msg = f"constraint '{constraintname}' has one parameter but uses 'covariance' - taking this at face value"
-                    logging.info(msg)
-
-                if np.shape(constraint["covariance"]) != (
-                    len(constraint["parameters"]),
-                    len(constraint["parameters"]),
-                ):
-                    msg = f"constraint '{constraintname}' has 'covariance' of shape {np.shape(constraint['covariance'])} but it should be shape {(len(constraint['parameters']), len(constraint['parameters']))}"
-                    logging.error(msg)
-                    raise ValueError(msg)
-
-                if not np.allclose(
-                    constraint["covariance"], np.asarray(constraint["covariance"]).T
-                ):
-                    msg = f"constraint '{constraintname}' has non-symmetric 'covariance' matrix - this is not allowed."
-                    logging.error(msg)
-                    raise ValueError(msg)
-
-                sigmas = np.sqrt(np.diag(np.asarray(constraint["covariance"])))
-                cov = np.outer(sigmas, sigmas)
-                corr = constraint["covariance"] / cov
-                if not np.all(np.logical_or(np.abs(corr) < 1, np.isclose(corr, 1))):
-                    msg = f"constraint '{constraintname}' 'covariance' matrix does not seem to contain proper correlation matrix"
-                    logging.error(msg)
-                    raise ValueError(msg)
-
-            for par in constraint["parameters"]:
-                self.constraints_parameters[par] = len(self.constraints_parameters)
+        self.constraints_parameters[par] = len(self.constraints_parameters)
 
         # initialize now that we know how large to make them
         self.constraints_values = np.full(len(self.constraints_parameters), np.nan)
         self.constraints_covariance = np.identity(len(self.constraints_parameters))
-
+        self.pars_to_vary = []
         for constraintname, constraint in constraints.items():
             # now put the values in
             for par, value in zip(constraint["parameters"], constraint["values"]):
                 self.constraints_values[self.constraints_parameters[par]] = value
+                
+                if constraint["vary"]:
+                    self.pars_to_vary.append(par)
 
             # now put the covariance matrix in
             for i in range(len(constraint["parameters"])):
@@ -112,6 +68,7 @@ class Constraints:
                         self.constraints_parameters[constraint["parameters"][i]],
                         self.constraints_parameters[constraint["parameters"][j]],
                     ] = constraint["covariance"][i, j]
+
 
 
         return None
@@ -145,4 +102,29 @@ class Constraints:
         covar = self.constraints_covariance[np.ix_(inds, inds)]
 
         return (pars, values, covar)
+
+    def rvs(
+        self,
+        parameters:dict,
+    ) -> dict:
+        """
+        varies the provided parameters which are expected to be varied
+        """
+
+        pars, values, covar = self.get_constraints(self.pars_to_vary)
+
+        # set central values to the provided ones
+        for i, par in enumerate(pars):
+            if par in parameters:
+                values[i] = parameters[par]
+
+        rvs = []
+        # check if parameters are all independent, draw from simpler distribution if so
+        if np.all(covar == np.diag(np.diagonal(covar))):
+            rvs = np.random.normal(values, np.sqrt(np.diagonal(covar)))
+        else:
+            rvs = np.random.multivariate_normal(
+                values, covar
+            )  # sooooooooo SLOW        
+        
 

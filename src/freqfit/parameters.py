@@ -26,8 +26,7 @@ class Parameters:
         par: str,
     ) -> dict:
 
-        if type(par) is str:
-            return self.parameters[par]
+        return self.parameters[par]
     
     def get_parameters(
         self,

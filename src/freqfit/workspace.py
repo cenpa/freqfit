@@ -129,23 +129,47 @@ class Workspace:
         self.toy_datasets = {}
         for dsname, ds in config['datasets'].items():
             self.toy_datasets["toy_"+dsname] = ToyDataset(
-                toy_model=ds["toy_model"] if "toy_model" in ds else ds["model"],
+                toy_model=ds["toy_model"],
                 toy_model_parameters=ds["toy_model_parameters"] if "toy_model_parameters" in ds else ds["model_parameters"],
                 model=ds["model"],
                 model_parameters=ds["model_parameters"],
                 parameters=self.parameters,
                 costfunction=ds["costfunction"],
                 name="toy_"+dsname,
-                try_to_combine=ds['try_to_combine'] if 'try_to_combine' in ds else False,
-                combined_dataset=ds['combined_dataset'] if 'combined_dataset' in ds else None,
+                try_to_combine=ds['try_to_combine'],
+                combined_dataset=ds['combined_dataset'],
                 use_user_gradient=self.options["use_user_gradient"],
                 use_log=self.options["use_log"],                
             )
 
 
-        # create the Toy
 
         return
+
+    def toy(
+        self,
+        toy_parameters: dict,
+        seed: int = SEED,
+    ) -> Experiment:
+        """
+        returns an Experiment with toy data that has been varied according to the provided parameters
+
+        Parameters
+        ----------
+        toy_parameters: dict
+            Dictionary containing values of the parameters at which the toy data should be generated.
+            Format is parameter name : parameter value.
+        """
+
+        # vary the datasets
+        rvs_datasets = {}
+        for dsname, ds in self.toy_datasets.items():
+            ds.rvs(toy_parameters, seed)
+            rvs_dataset[dsname] = ds
+
+        # vary the constraints
+
+        # now we initiate the Experiment to get access to its methods
 
     @classmethod
     def from_file(
@@ -168,7 +192,13 @@ class Workspace:
         file: str | dict,
     ) -> dict:
         """
-        Loads a config file or dict and converts `str` for some fields to the appropriate objects.
+        Loads a config file or dict and converts `str` for some fields to the appropriate objects. Performs some
+        error checking and sets defaults for missing fields where possible.
+
+        Parameters
+        ----------
+        file : str | dict
+            path to a config file or a config dictionary
         """
 
         # if it's not a dict, it might be a path to a file
@@ -176,7 +206,6 @@ class Workspace:
             with open(file) as stream:
                 # switch from safe_load to load in order to check for duplicate keys
                 config = yaml.load(stream, Loader=UniqueKeyLoader)
-
         else:
             config = file
 
@@ -184,98 +213,173 @@ class Workspace:
             if item not in config:
                 msg = f"{item} not found in `{file if file is not dict else 'provided `dict`'}`"
                 raise KeyError(msg)
-        
-        if "options" not in config:
-            config["options"] = {}
-        
-        if "constraints" not in config:
-            config["constraints"] = {}
+
+        for item in ["options", "constraints", "combined_datasets"]:
+            if item not in config:
+                config[item] = {}
 
         # get list of models and cost functions to import
         models = set()
         costfunctions = set()
-        for datasetname, dataset in config["datasets"].items():
-            if "model" in dataset:
-                models.add(dataset["model"])
-            else:
-                msg = f"dataset `{datasetname}` has no Model"
-                raise KeyError(msg)
+        for dsname, ds in config["datasets"].items():
 
-            if "costfunction" in dataset:
-                if dataset["costfunction"] in ["ExtendedUnbinnedNLL", "UnbinnedNLL"]:
-                    costfunctions.add(dataset["costfunction"])
-                else:
-                    msg = f"Dataset `{datasetname}`: only 'ExtendedUnbinnedNLL' or 'UnbinnedNLL' are \
-                        supported as cost functions"
-                    raise NotImplementedError(msg)                    
-            else:
-                msg = f"dataset `{datasetname}` has no `costfunction`"
-                raise KeyError(msg)
+            for item in ["model", "costfunction"]:
+                if item not in ds:
+                    msg = f"Dataset '{dsname} has no '{item}'"
+                    raise KeyError(msg)
+
+            for item in ["try_to_combine"]:
+                if item not in ds:
+                    ds[item] = False
+
+            models.add(ds["model"])
             
-            if "try_to_combine" in dataset and dataset["try_to_combine"]:
-                if "combined_dataset" not in dataset or not dataset["combined_dataset"]:
-                        msg = (f"Dataset `{datasetname}` has `try_combine` `{dataset['try_to_combine']}` but "
+            if "toy_model" not in ds:
+                ds["toy_model"] = ds["model"]
+
+            models.add(ds["toy_model"])
+
+            if ds["costfunction"] not in ["ExtendedUnbinnedNLL", "UnbinnedNLL"]:
+                msg = f"Dataset '{dsname}': only 'ExtendedUnbinnedNLL' or 'UnbinnedNLL' are \
+                    supported as cost functions"
+                raise NotImplementedError(msg)   
+
+            costfunctions.add(ds["costfunction"])                 
+            
+            if ds["try_to_combine"]:
+                if "combined_dataset" not in ds or not ds["combined_dataset"]:
+                        msg = (f"Dataset `{dsname}` has `try_combine` `{ds['try_to_combine']}` but "
                             + f"`combined_dataset` missing or empty")
                         raise KeyError(msg)     
                 elif (("combined_datasets" not in config)
-                    or (dataset["combined_dataset"] not in config["combined_datasets"])):
-                        msg = (f"Dataset `{datasetname}` has `combined_dataset` `{dataset['combined_dataset']}` but " 
-                            + f"`combined_datasets` missing or does not contain `{dataset['combined_dataset']}`")
+                    or (ds["combined_dataset"] not in config["combined_datasets"])):
+                        msg = (f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but " 
+                            + f"`combined_datasets` missing or does not contain `{ds['combined_dataset']}`")
                         raise KeyError(msg)   
-                elif (config["combined_datasets"][dataset["combined_dataset"]]["model"] != dataset["model"]):
-                        msg = (f" Dataset `{datasetname}` Model `{dataset['model']}` not the same as CombinedDataset "
-                            + f"`{dataset['combined_dataset']}` Model "
-                            + f"`{config['combined_datasets'][dataset['combined_dataset']]['model']}`")
+                elif (config["combined_datasets"][ds["combined_dataset"]]["model"] != ds["model"]):
+                        msg = (f" Dataset `{dsname}` Model `{ds['model']}` not the same as CombinedDataset "
+                            + f"`{ds['combined_dataset']}` Model "
+                            + f"`{config['combined_datasets'][ds['combined_dataset']]['model']}`")
                         raise ValueError(msg)
 
         for constraintname, constraint in config["constraints"].items():
             if "parameters" not in constraint:
                 msg = f"constraint `{constraintname}` has no `parameters`"
                 raise KeyError(msg)
-            else:
-                # these need to be lists for other stuff
-                if not isinstance(constraint["parameters"], list):
-                    constraint["parameters"] = [constraint["parameters"]]
-                if not isinstance(constraint["values"], list):
-                    constraint["values"] = [constraint["values"]]
-                if "uncertainty" in constraint and not isinstance(
-                    constraint["uncertainty"], list
-                ):
-                    constraint["uncertainty"] = [constraint["uncertainty"]]
-                if "covariance" in constraint and not isinstance(
-                    constraint["covariance"], np.ndarray
-                ):
-                    constraint["covariance"] = np.asarray(constraint["covariance"])
+            
+            if "vary" not in constraint:
+                constraint["vary"] = False
 
-        if "combined_datasets" in config:
-            for groupname, group in config["combined_datasets"].items():
-                if "model" in group:
-                    models.add(group["model"])
+            if "covariance" in constraint and "uncertainty" in constraint:
+                msg = f"constraint '{constraintname}' has both 'covariance' and 'uncertainty'; this is ambiguous - use only one!"
+                logging.error(msg)
+                raise KeyError(msg)
+
+            if "covariance" not in constraint and "uncertainty" not in constraint:
+                msg = f"constraint '{constraintname}' has neither 'covariance' nor 'uncertainty' - one (and only one) must be provided!"
+                logging.error(msg)
+                raise KeyError(msg)
+                
+            # these need to be lists for other stuff
+            if not isinstance(constraint["parameters"], list):
+                constraint["parameters"] = [constraint["parameters"]]
+            if not isinstance(constraint["values"], list):
+                constraint["values"] = [constraint["values"]]
+            if "uncertainty" in constraint and not isinstance(
+                constraint["uncertainty"], list
+            ):
+                constraint["uncertainty"] = [constraint["uncertainty"]]
+            if "covariance" in constraint and not isinstance(
+                constraint["covariance"], np.ndarray
+            ):
+                constraint["covariance"] = np.asarray(constraint["covariance"])
+
+            if len(constraint["parameters"]) != len(constraint["values"]):
+                if len(constraint["values"]) == 1:
+                    constraint["values"] = np.full(
+                        len(constraint["parameters"]), constraint["values"]
+                    )
+                    msg = f"in constraint '{constraintname}', assigning 1 provided value to all {len(constraint['parameters'])} 'parameters'"
+                    logging.warning(msg)
                 else:
-                    msg = f"combined_datasets `{groupname}` has no Model"
+                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['values'])} 'values'"
+                    logging.error(msg)
+                    raise ValueError(msg)
+
+            # do some cleaning up of the config here
+            if "uncertainty" in constraint:
+                if len(constraint["uncertainty"]) > 1:
+                    constraint["uncertainty"] = np.full(
+                        len(constraint["parameters"]), constraint["uncertainty"]
+                    )
+                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} parameters but only 1 uncertainty - assuming this is constant uncertainty for each parameter"
+                    logging.warning(msg)
+
+                if len(constraint["uncertainty"]) != len(constraint["parameters"]):
+                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['uncertainty'])} 'uncertainty' - should be same length or single uncertainty"
+                    logging.error(msg)
+                    raise ValueError(msg)
+
+                # convert to covariance matrix so that we're always working with the same type of object
+                constraint["covariance"] = np.diag(constraint["uncertainty"]) ** 2
+                del constraint["uncertainty"]
+
+                msg = f"constraint '{constraintname}': converting provided 'uncertainty' to 'covariance'"
+                logging.info(msg)
+
+            else:  # we have the covariance matrix for this constraint
+                if len(constraint["parameters"]) == 1:
+                    msg = f"constraint '{constraintname}' has one parameter but uses 'covariance' - taking this at face value"
+                    logging.info(msg)
+
+                if np.shape(constraint["covariance"]) != (
+                    len(constraint["parameters"]),
+                    len(constraint["parameters"]),
+                ):
+                    msg = f"constraint '{constraintname}' has 'covariance' of shape {np.shape(constraint['covariance'])} but it should be shape {(len(constraint['parameters']), len(constraint['parameters']))}"
+                    logging.error(msg)
+                    raise ValueError(msg)
+
+                if not np.allclose(
+                    constraint["covariance"], np.asarray(constraint["covariance"]).T
+                ):
+                    msg = f"constraint '{constraintname}' has non-symmetric 'covariance' matrix - this is not allowed."
+                    logging.error(msg)
+                    raise ValueError(msg)
+
+                sigmas = np.sqrt(np.diag(np.asarray(constraint["covariance"])))
+                cov = np.outer(sigmas, sigmas)
+                corr = constraint["covariance"] / cov
+                if not np.all(np.logical_or(np.abs(corr) < 1, np.isclose(corr, 1))):
+                    msg = f"constraint '{constraintname}' 'covariance' matrix does not seem to contain proper correlation matrix"
+                    logging.error(msg)
+                    raise ValueError(msg)
+                    
+        # combined datasets
+        for cdsname, cds in config["combined_datasets"].items():
+            for item in ["model", "costfunction"]:
+                if item not in cds:
+                    msg = f"combined_datasets '{cdsname}' has no '{item}"
                     raise KeyError(msg)
 
-            if "costfunction" in group:
-                costfunctions.add(group["costfunction"])
-            else:
-                msg = f"combined_datasets `{groupname}` has no `costfunction`"
-                raise KeyError(msg)
-        else:
-            config["combined_datasets"] = {}
+            models.add(cds["model"])
+            costfunctions.add(cds["costfunction"])
 
         # this is specific to set up of 0vbb model
         for model in models:
             modelclassname = model.split(".")[-1]
             modelclass = getattr(importlib.import_module(model), modelclassname)
 
-            for datasetname, dataset in config["datasets"].items():
-                if dataset["model"] == model:
-                    dataset["model"] = modelclass
+            for dsname, ds in config["datasets"].items():
+                if ds["model"] == model:
+                    ds["model"] = modelclass
+                
+                if ds["toy_model"] == model:
+                    ds["toy_model"] = modelclass
 
-            if "combined_datasets" in config:
-                for groupname, group in config["combined_datasets"].items():
-                    if group["model"] == model:
-                        group["model"] = modelclass
+            for cdsname, cds in config["combined_datasets"].items():
+                if cds["model"] == model:
+                    cds["model"] = modelclass
 
         # specific to iminuit
         for costfunctionname in costfunctions:
@@ -283,38 +387,33 @@ class Workspace:
                 importlib.import_module("iminuit.cost"), costfunctionname
             )
 
-            for datasetname, dataset in config["datasets"].items():
-                if dataset["costfunction"] == costfunctionname:
-                    dataset["costfunction"] = costfunction
+            for dsname, ds in config["datasets"].items():
+                if ds["costfunction"] == costfunctionname:
+                    ds["costfunction"] = costfunction
 
-            if "combined_datasets" in config:
-                for groupname, group in config["combined_datasets"].items():
-                    if group["costfunction"] == costfunctionname:
-                        group["costfunction"] = costfunction
+            for cdsname, cds in config["combined_datasets"].items():
+                if cds["costfunction"] == costfunctionname:
+                    cds["costfunction"] = costfunction
 
         # convert any limits from string to python object
         # set defaults if options missing
         for par, pardict in config["parameters"].items():
 
-            for item in ["limits", "value"]:
+            for item in ["limits", "physical_limits", "value"]:
                 if item not in pardict:
                     pardict[item] = None
 
-            for item in ["includeinfit", "fixed", "fix_if_no_data", "vary_by_constraint", "value_from_combine"]:
+            for item in ["includeinfit", "fixed", "fix_if_no_data", "value_from_combine"]:
                 if item not in pardict:
                     pardict[item] = False
             
             if "grid_rounding_num_decimals" not in pardict:
                 pardict["grid_rounding_num_decimals"] = 128
 
-            if "limits" in pardict and type(pardict["limits"]) is str:
-                pardict["limits"] = eval(pardict["limits"])
+            for item in ["limits", "physical_limits"]:
+                if type(pardict[item]) is str:
+                    pardict[item] = eval(pardict[item])
 
-            if "physical_limits" not in pardict:
-                pardict["physical_limits"] = None
-            elif type(pardict["physical_limits"]) is str:
-                pardict["physical_limits"] = eval(pardict["physical_limits"])
-            
         # options
         for option, optionval in config["options"].items():
             if optionval in ["none", "None"]:

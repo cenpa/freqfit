@@ -433,6 +433,47 @@ def initial_guess(
 
     return {p:pars[p]["value"] for p in list(pars)}
 
+# class Toy(Experiment):
+#     def __init__(
+#         self,
+#         datasets: dict,
+#         parameters: type[Parameters],
+#         constraints: type[Constraints],
+#         options: dict,
+#     ) -> None:
+
+#         # stores these for later when needed for rvs
+#              # doesn't provide access to Experiment class methods until toy data has been generated
+
+#         self.toy_datasets = datasets
+#         self.options = options
+#         self.parameters = parameters
+#         self.toy_constraints = constraints
+
+#     def reset(
+#         self,
+#     ) -> None:
+#         self.validtoy = False
+    
+#     def rvs(
+#         self,
+#         toy_parameters: dict,
+#     ) -> None:
+
+
+#         self.reset()
+
+
+#         super.init(
+#             datasets=rvs_datasets,
+#             parameters=self.parameters,
+#             constraints=rvs_constraints,
+#             options=self.options
+#         )
+
+#         self.validtoy = True
+
+
 class OLDExperiment(Superset):
     def __init__(
         self,
