@@ -2,8 +2,6 @@ import numba as nb
 import numpy as np
 
 import freqfit.models.constants as constants
-# from freqfit.utils import inspectparameters
-
 from freqfit.model import Model
 
 nb_kwd = {

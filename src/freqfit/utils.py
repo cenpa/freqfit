@@ -7,7 +7,7 @@ import yaml
 log = logging.getLogger(__name__)
 
 #-----------------------------
-# moved to Model
+# moved to Model - here until all models are updated
 #-----------------------------
 # takes a model function and returns a dict of its parameters with their default value
 def inspectparameters(
@@ -38,36 +38,6 @@ def inspectparameters(
 
     return r
 
-
-
-def grab_results(
-    minuit,
-    use_grid_rounding: bool = False,
-    grid_rounding_num_decimals: dict = {},  # noqa: B006
-) -> dict:
-    # I checked whether we need to shallow/deep copy these and it seems like we do not
-
-    toreturn = {}
-    toreturn["errors"] = minuit.errors.to_dict()  # returns dict
-    toreturn["fixed"] = minuit.fixed.to_dict()  # returns dict
-    toreturn["fval"] = minuit.fval  # returns float
-    toreturn["nfit"] = minuit.nfit  # returns int
-    toreturn["npar"] = minuit.npar  # returns int
-    toreturn["parameters"] = minuit.parameters  # returns tuple of str
-    toreturn["tol"] = minuit.tol  # returns float
-    toreturn["valid"] = minuit.valid  # returns bool
-    toreturn["values"] = minuit.values.to_dict()  # returns dict
-
-    if use_grid_rounding:
-        toreturn["values"] = {
-            key: np.around(value, grid_rounding_num_decimals[key])
-            for key, value in minuit.values.to_dict().items()
-        }  # returns dict
-        toreturn["fval"] = minuit._fcn(
-            toreturn["values"].values()
-        )  # overwrite the fval with the truncated params
-
-    return toreturn
 
 
 
