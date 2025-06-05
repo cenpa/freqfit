@@ -9,7 +9,6 @@ from copy import deepcopy
 import numpy as np
 from iminuit import Minuit
 
-# from .workspace import Workspace
 from .constraints import Constraints
 from .parameters import Parameters
 

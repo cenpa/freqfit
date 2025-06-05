@@ -11,8 +11,6 @@ SEED = 42
 
 log = logging.getLogger(__name__)
 
-# this class is going to need to re-worked at some point. Not really capable of
-# handling multiple constraints on the same parameter right now.
 
 class Constraints:
 
