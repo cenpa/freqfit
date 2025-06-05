@@ -24,25 +24,8 @@ class Workspace:
 
         # load the config - done (move error checking to when loading the config and out of the other classes)
 
-        # option defaults
-        self.options = {}
-        self.options["backend"] = "minuit" # "minuit" or "scipy"
-        self.options["initial_guess_fcn"] = None
-        self.options["iminuit_precision"] = 1e-10
-        self.options["iminuit_strategy"] = 0
-        self.options["iminuit_tolerance"] = 1e-5
-        self.options["minimizer_options"] = {} # dict of options to pass to the iminuit minimizer
-        self.options["scipy_minimizer"] = None
-        self.options["try_to_combine_datasets"] = False
-        self.options["test_statistic"] = "t_mu" # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
-        self.options["use_grid_rounding"] = False # whether to stick parameters on a grid when evaluating the test statistic after minimizing
-        self.options["use_log"] = False
-        self.options["use_user_gradient"] = False
-
-        # load in the global options
-        if "options" in config:
-            for opt in config["options"]:
-                self.options[opt] = config["options"][opt]
+        # load in the global options - defaults and error checking in load_config
+        self.options = config["options"]
 
         msg = f"setting backend to {config['options']['backend']}"
         logging.info(msg)
@@ -67,9 +50,11 @@ class Workspace:
                 use_log=self.options["use_log"],
             )
 
+        self._combined_datasets = config['combined_datasets']
+
         # create the CombinedDatasets
         # maybe there's more than one combined_dataset group
-        for cdsname, cds in config['combined_datasets'].items():
+        for cdsname, cds in self._combined_datasets.items():
             # find the Datasets to try to combine
             ds_tocombine = []
             dsname_tocombine = []
@@ -112,9 +97,8 @@ class Workspace:
             msg = "no constraints were provided"
             logging.info(msg)
         else:
-            msg = "all constraints will be combined into a single NormalConstraint"
+            msg = "constraints were provided"
             logging.info(msg)
-
             self.constraints = Constraints(config["constraints"])
 
         # create the Experiment
@@ -165,9 +149,42 @@ class Workspace:
         rvs_datasets = {}
         for dsname, ds in self.toy_datasets.items():
             ds.rvs(toy_parameters, seed)
-            rvs_dataset[dsname] = ds
+            rvs_dataset["toy_" + dsname] = ds
+
+        # combine the datasets
+        for cdsname, cds in self._combined_datasets.items():
+            # find the Datasets to try to combine
+            ds_tocombine = []
+            dsname_tocombine = []
+            for dsname, ds in self.toy_datasets.items():
+                if (
+                    ds.try_to_combine
+                    and ds.combined_dataset == cdsname
+                    and ds.model.can_combine(ds.data, *ds._parlist)
+                ):
+                    ds_tocombine.append(ds)
+                    dsname_tocombine.append(dsname)
+
+            if len(ds_tocombine) > 1:
+                combined_dataset = CombinedDataset(
+                    datasets=ds_tocombine,
+                    model=cds["model"],
+                    model_parameters=cds["model_parameters"],
+                    parameters=self.parameters,
+                    costfunction=cds["costfunction"],
+                    name="toy_" + cdsname,
+                    use_user_gradient=self.options["use_user_gradient"],
+                    use_log=self.options["use_log"],
+                )
+
+                self.toy_datasets[cdsname] = combined_dataset
+
+                # delete the combined datasets
+                for dsname in dsname_tocombine:
+                    self.toy_datasets.pop(dsname)
 
         # vary the constraints
+        self.constraints.rvs_cost(toy_fit_parameters)
 
         # now we initiate the Experiment to get access to its methods
 
@@ -262,21 +279,22 @@ class Workspace:
                             + f"`{config['combined_datasets'][ds['combined_dataset']]['model']}`")
                         raise ValueError(msg)
 
-        for constraintname, constraint in config["constraints"].items():
+        # constraints
+        for ctname, constraint in config["constraints"].items():
             if "parameters" not in constraint:
-                msg = f"constraint `{constraintname}` has no `parameters`"
+                msg = f"constraint `{ctname}` has no `parameters`"
                 raise KeyError(msg)
             
             if "vary" not in constraint:
                 constraint["vary"] = False
 
             if "covariance" in constraint and "uncertainty" in constraint:
-                msg = f"constraint '{constraintname}' has both 'covariance' and 'uncertainty'; this is ambiguous - use only one!"
+                msg = f"constraint '{ctname}' has both 'covariance' and 'uncertainty'; this is ambiguous - use only one!"
                 logging.error(msg)
                 raise KeyError(msg)
 
             if "covariance" not in constraint and "uncertainty" not in constraint:
-                msg = f"constraint '{constraintname}' has neither 'covariance' nor 'uncertainty' - one (and only one) must be provided!"
+                msg = f"constraint '{ctname}' has neither 'covariance' nor 'uncertainty' - one (and only one) must be provided!"
                 logging.error(msg)
                 raise KeyError(msg)
                 
@@ -299,10 +317,10 @@ class Workspace:
                     constraint["values"] = np.full(
                         len(constraint["parameters"]), constraint["values"]
                     )
-                    msg = f"in constraint '{constraintname}', assigning 1 provided value to all {len(constraint['parameters'])} 'parameters'"
+                    msg = f"in constraint '{ctname}', assigning 1 provided value to all {len(constraint['parameters'])} 'parameters'"
                     logging.warning(msg)
                 else:
-                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['values'])} 'values'"
+                    msg = f"constraint '{ctname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['values'])} 'values'"
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -312,11 +330,11 @@ class Workspace:
                     constraint["uncertainty"] = np.full(
                         len(constraint["parameters"]), constraint["uncertainty"]
                     )
-                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} parameters but only 1 uncertainty - assuming this is constant uncertainty for each parameter"
+                    msg = f"constraint '{ctname}' has {len(constraint['parameters'])} parameters but only 1 uncertainty - assuming this is constant uncertainty for each parameter"
                     logging.warning(msg)
 
                 if len(constraint["uncertainty"]) != len(constraint["parameters"]):
-                    msg = f"constraint '{constraintname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['uncertainty'])} 'uncertainty' - should be same length or single uncertainty"
+                    msg = f"constraint '{ctname}' has {len(constraint['parameters'])} 'parameters' but {len(constraint['uncertainty'])} 'uncertainty' - should be same length or single uncertainty"
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -324,26 +342,26 @@ class Workspace:
                 constraint["covariance"] = np.diag(constraint["uncertainty"]) ** 2
                 del constraint["uncertainty"]
 
-                msg = f"constraint '{constraintname}': converting provided 'uncertainty' to 'covariance'"
+                msg = f"constraint '{ctname}': converting provided 'uncertainty' to 'covariance'"
                 logging.info(msg)
 
             else:  # we have the covariance matrix for this constraint
                 if len(constraint["parameters"]) == 1:
-                    msg = f"constraint '{constraintname}' has one parameter but uses 'covariance' - taking this at face value"
+                    msg = f"constraint '{ctname}' has one parameter but uses 'covariance' - taking this at face value"
                     logging.info(msg)
 
                 if np.shape(constraint["covariance"]) != (
                     len(constraint["parameters"]),
                     len(constraint["parameters"]),
                 ):
-                    msg = f"constraint '{constraintname}' has 'covariance' of shape {np.shape(constraint['covariance'])} but it should be shape {(len(constraint['parameters']), len(constraint['parameters']))}"
+                    msg = f"constraint '{ctname}' has 'covariance' of shape {np.shape(constraint['covariance'])} but it should be shape {(len(constraint['parameters']), len(constraint['parameters']))}"
                     logging.error(msg)
                     raise ValueError(msg)
 
                 if not np.allclose(
                     constraint["covariance"], np.asarray(constraint["covariance"]).T
                 ):
-                    msg = f"constraint '{constraintname}' has non-symmetric 'covariance' matrix - this is not allowed."
+                    msg = f"constraint '{ctname}' has non-symmetric 'covariance' matrix - this is not allowed."
                     logging.error(msg)
                     raise ValueError(msg)
 
@@ -351,7 +369,7 @@ class Workspace:
                 cov = np.outer(sigmas, sigmas)
                 corr = constraint["covariance"] / cov
                 if not np.all(np.logical_or(np.abs(corr) < 1, np.isclose(corr, 1))):
-                    msg = f"constraint '{constraintname}' 'covariance' matrix does not seem to contain proper correlation matrix"
+                    msg = f"constraint '{ctname}' 'covariance' matrix does not seem to contain proper correlation matrix"
                     logging.error(msg)
                     raise ValueError(msg)
                     
@@ -415,28 +433,36 @@ class Workspace:
                     pardict[item] = eval(pardict[item])
 
         # options
+
+        # defaults
+        options_defaults = {
+            "backend"                   : "minuit"  ,   # "minuit" or "scipy"
+            "iminuit_precision"         : 1e-10     ,
+            "iminuit_strategy"          : 0         , 
+            "iminuit_tolerance"         : 1e-5      ,
+            "initial_guess_fcn"    : None      ,
+            "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
+            "scan"                      : False     ,
+            "scipy_minimizer"           : None      ,
+            "try_to_combine_datasets"   : False     ,
+            "test_statistic"            : "t_mu"    ,   # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
+            "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing
+            "use_log"                   : False     ,
+            "use_user_gradient"         : False     ,
+        }
+
+        for key, val in options_defaults.items():
+            if key not in config["options"]:
+                config["options"][key] = val
+
         for option, optionval in config["options"].items():
             if optionval in ["none", "None"]:
                 config["options"][option] = None
-        
-        for item in ["user_gradient", "use_log", "scan", "use_grid_rounding"]:
-            if item not in config["options"]:
-                config["options"][item] = False
-
-        for item in ["initial_guess_function"]:
-            if item not in config["options"]:
-                config["options"][item] = None
-        
-        if "backend" not in config["options"]:
-            config["options"]["backend"] = "minuit"
         
         if config["options"]["backend"] not in ["minuit", "scipy"]:
             raise NotImplementedError(
               "backend is not set to 'minuit' or 'scipy'"  
             )
-
-        if "minimizer_options" not in config["options"]:
-            config["options"]["minimizer_options"] = {}
         
         if not isinstance(config["options"]["minimizer_options"], dict):
             raise ValueError("options: minimizer_options must be a dict")

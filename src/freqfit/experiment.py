@@ -54,7 +54,7 @@ class Experiment:
             else:
                 self.costfunction += self.datasets[dsname].costfunction
         
-        if not constraints:
+        if constraints:
             self.costfunction += constraints.get_cost(self.fitparameters)
 
         # evaluate the initial guess and store it for later
@@ -345,7 +345,8 @@ class Experiment:
             plt.sca(ax[i])
             comp.visualize(cargs, **kwargs)
             # relies on ordering, but this should be the same
-            ax[i].set_title(self.datasets[list(self.datasets.keys())[k]].name)
+            if k < len(self.datasets):
+                ax[i].set_title(self.datasets[list(self.datasets.keys())[k]].name)
             i += 1
         
         return fig
