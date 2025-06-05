@@ -113,25 +113,33 @@ class Dataset:
                 msg = f"`Dataset` `{self.name}`: required model parameter `{parameter}` not found in model_parameters"
                 raise KeyError(msg)
 
+        # find the parameters for the fit
+        for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):
+            if parameters(model_parameters[par])["includeinfit"]:
+                self.fitparameters |= {model_parameters[par]: i}
+
         # make the cost function
         if self.use_user_gradient:
             self.costfunction = self._costfunctioncall(
                 self.data, 
                 self.density, 
                 grad=self.density_gradient,
+                name=list(self.fitparameters.keys()),
             )
         elif self.use_log:
             self.costfunction = self._costfunctioncall(
                 self.data,
                 self.log_density,
                 log=True,
+                name=list(self.fitparameters.keys()),
             )
         else:
             self.costfunction = self._costfunctioncall(
                 self.data,
                 self.density,
+                name=list(self.fitparameters.keys()),
             )
-            
+        
         # now we make the parameters of the cost function
         # need to go in order of the model
         for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):
@@ -151,7 +159,6 @@ class Dataset:
                 self._parlist.append(model_parameters[par])
                 self._parlist_values.append(parameters(model_parameters[par])["value"])
                 self._parlist_indices.append(i)
-                self.fitparameters |= {model_parameters[par]: i}
 
             else:  # parameter was passed but should not be included in the fit
                 if (parameters(model_parameters[par])["value"] is None) and (
@@ -164,13 +171,6 @@ class Dataset:
                     raise KeyError(msg)
                 self._parlist.append(model_parameters[par])
                 self._parlist_values.append(parameters(model_parameters[par])["value"])
-
-            # if ("vary_by_constraint" in parameters[model_parameters[par]]) and (
-            #     parameters(model_parameters[par])["vary_by_constraint"]
-            # ):
-            #     self._toy_pars_to_vary[model_parameters[par]] = i
-            #     msg = f"`Dataset` '{self.name}': adding parameter '{model_parameters[par]}' as parameter to vary for toys"
-            #     logging.info(msg)
 
         return
 
@@ -333,27 +333,29 @@ class ToyDataset(Dataset):
                 self._toy_pars[par][1] = toy_parameters[par]
                 
         # TODO: extendedrvs here? make it more generic or require this in Model?
-        self.data, self.num_drawn = self.toy_model.extendedrvs(*[self._toy_pars[par][1] for par in self._toy_pars], seed=seed)
-    
+        self.data, self.num_drawn = self.toy_model.extendedrvs(*[self._toy_pars[par][1] for par in self._toy_pars], seed=seed) 
+        
         # make the cost function
         if self.use_user_gradient:
             self.costfunction = self._costfunctioncall(
                 self.data, 
                 self.density, 
                 grad=self.density_gradient,
+                name=list(self.fitparameters.keys()),
             )
         elif self.use_log:
             self.costfunction = self._costfunctioncall(
                 self.data,
                 self.log_density,
                 log=True,
+                name=list(self.fitparameters.keys()),
             )
         else:
             self.costfunction = self._costfunctioncall(
                 self.data,
                 self.density,
+                name=list(self.fitparameters.keys()),
             )
-
         return
 
 

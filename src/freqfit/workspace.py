@@ -7,7 +7,7 @@ import yaml
 
 from .dataset import Dataset, ToyDataset, CombinedDataset
 from .parameters import Parameters
-from .constraints import Constraints
+from .constraints import Constraints, ToyConstraints
 from .experiment import Experiment
 
 import logging
@@ -34,10 +34,9 @@ class Workspace:
         self.parameters = Parameters(config['parameters'])
 
         # create the Datasets
-        self.datasets = {}
-
+        datasets = {}
         for dsname, ds in config['datasets'].items():
-            self.datasets[dsname] = Dataset(
+            datasets[dsname] = Dataset(
                 data=ds["data"],
                 model=ds["model"],
                 model_parameters=ds["model_parameters"],
@@ -50,6 +49,23 @@ class Workspace:
                 use_log=self.options["use_log"],
             )
 
+        # create the ToyDatasets
+        self._toy_datasets = {}
+        for dsname, ds in config['datasets'].items():
+            self._toy_datasets[dsname] = ToyDataset(
+                toy_model=ds["toy_model"],
+                toy_model_parameters=ds["toy_model_parameters"] if "toy_model_parameters" in ds else ds["model_parameters"],
+                model=ds["model"],
+                model_parameters=ds["model_parameters"],
+                parameters=self.parameters,
+                costfunction=ds["costfunction"],
+                name=dsname,
+                try_to_combine=ds['try_to_combine'],
+                combined_dataset=ds['combined_dataset'],
+                use_user_gradient=self.options["use_user_gradient"],
+                use_log=self.options["use_log"],                
+            )
+
         self._combined_datasets = config['combined_datasets']
 
         # create the CombinedDatasets
@@ -58,7 +74,7 @@ class Workspace:
             # find the Datasets to try to combine
             ds_tocombine = []
             dsname_tocombine = []
-            for dsname, ds in self.datasets.items():
+            for dsname, ds in datasets.items():
                 if (
                     ds.try_to_combine
                     and ds.combined_dataset == cdsname
@@ -79,19 +95,19 @@ class Workspace:
                     use_log=self.options["use_log"],
                 )
 
-                self.datasets[cdsname] = combined_dataset
+                datasets[cdsname] = combined_dataset
 
                 msg = f"created CombinedDataset '{cdsname}'"
                 logging.info(msg)
 
                 # delete the combined datasets
                 for dsname in dsname_tocombine:
-                    self.datasets.pop(dsname)
+                    datasets.pop(dsname)
                     
                     msg = f"combined Dataset '{dsname}' into CombinedDataset '{cdsname}'"
                     logging.info(msg)
 
-        # create the Constraints 
+        # create the Constraints and ToyConstraints
         self.constraints = None
         if not config["constraints"]:
             msg = "no constraints were provided"
@@ -100,37 +116,22 @@ class Workspace:
             msg = "constraints were provided"
             logging.info(msg)
             self.constraints = Constraints(config["constraints"])
+            self.toy_constraints = ToyConstraints(config["constraints"])
 
         # create the Experiment
         self.experiment = Experiment(
-            datasets=self.datasets, 
+            datasets=datasets, 
             parameters=self.parameters, 
             constraints=self.constraints, 
             options=self.options,
             )       
 
-        # create the ToyDatasets
-        self.toy_datasets = {}
-        for dsname, ds in config['datasets'].items():
-            self.toy_datasets["toy_"+dsname] = ToyDataset(
-                toy_model=ds["toy_model"],
-                toy_model_parameters=ds["toy_model_parameters"] if "toy_model_parameters" in ds else ds["model_parameters"],
-                model=ds["model"],
-                model_parameters=ds["model_parameters"],
-                parameters=self.parameters,
-                costfunction=ds["costfunction"],
-                name="toy_"+dsname,
-                try_to_combine=ds['try_to_combine'],
-                combined_dataset=ds['combined_dataset'],
-                use_user_gradient=self.options["use_user_gradient"],
-                use_log=self.options["use_log"],                
-            )
 
 
 
         return
 
-    def toy(
+    def make_toy(
         self,
         toy_parameters: dict,
         seed: int = SEED,
@@ -143,20 +144,22 @@ class Workspace:
         toy_parameters: dict
             Dictionary containing values of the parameters at which the toy data should be generated.
             Format is parameter name : parameter value.
+        seed: int
+            seed for random number generation
         """
 
         # vary the datasets
         rvs_datasets = {}
-        for dsname, ds in self.toy_datasets.items():
+        for dsname, ds in self._toy_datasets.items():
             ds.rvs(toy_parameters, seed)
-            rvs_dataset["toy_" + dsname] = ds
+            rvs_datasets["toy_" + dsname] = ds
 
         # combine the datasets
         for cdsname, cds in self._combined_datasets.items():
             # find the Datasets to try to combine
             ds_tocombine = []
             dsname_tocombine = []
-            for dsname, ds in self.toy_datasets.items():
+            for dsname, ds in rvs_datasets.items():
                 if (
                     ds.try_to_combine
                     and ds.combined_dataset == cdsname
@@ -177,16 +180,24 @@ class Workspace:
                     use_log=self.options["use_log"],
                 )
 
-                self.toy_datasets[cdsname] = combined_dataset
+                rvs_datasets[cdsname] = combined_dataset
 
                 # delete the combined datasets
                 for dsname in dsname_tocombine:
-                    self.toy_datasets.pop(dsname)
+                    rvs_datasets.pop(dsname)
 
-        # vary the constraints
-        self.constraints.rvs_cost(toy_fit_parameters)
+        # vary the toy constraints
+        self.toy_constraints.rvs(toy_parameters, seed)
 
-        # now we initiate the Experiment to get access to its methods
+        # create the Experiment
+        self.toy = Experiment(
+            datasets=rvs_datasets, 
+            parameters=self.parameters, 
+            constraints=self.toy_constraints, 
+            options=self.options,
+            )  
+
+        return self.toy     
 
     @classmethod
     def from_file(

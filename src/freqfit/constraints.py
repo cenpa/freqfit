@@ -2,6 +2,7 @@
 A class that holds constraints, which can represent auxialiary measurements.
 """
 import logging
+from copy import deepcopy
 
 import numpy as np
 from iminuit import cost
@@ -140,12 +141,27 @@ class Constraints:
                 toreturn[grpname]["covariance"] = grp["covariance"][np.ix_(inds, inds)]
                 toreturn[grpname]["vary"] = grp["vary"]
 
+
         return toreturn
 
-    def rvs_cost(
+class ToyConstraints(Constraints):
+
+    def __init__(
+        self,
+        constraints: dict,
+    ) -> None:
+
+        super().__init__(constraints)
+
+        self._base_constraint_groups = deepcopy(self._constraint_groups)
+
+        return None
+
+    def rvs(
         self,
         parameters:dict,
-    ) -> type[cost.Cost]:
+        seed: int = SEED,
+    ) -> None:
         """
         Returns a cost with varied parameters if applicable. Using the provided central values of the parameters,
         varies the provided parameters which are expected to be varied.
@@ -155,15 +171,18 @@ class Constraints:
 
         """
 
-        constraint_groups = self.get_constraints(list(parameters.keys()))
+        self._constraint_groups = deepcopy(self._base_constraint_groups)
 
-        for grpname, grp in constraint_groups.items():
+        np.random.seed(seed=seed)
+
+        for grpname, grp in self._constraint_groups.items():
 
             if grp["vary"]:
 
                 for i, par in enumerate(grp["parameters"].keys()):
+
+                    # set central values to the provided ones, keep the rest as is
                     if par in parameters:
-                        # set central values to the provided ones
                         grp["values"][i] = parameters[par]
 
                 # check if parameters are all independent, draw from simpler distribution if so
@@ -172,23 +191,8 @@ class Constraints:
                 else:
                     grp["values"] = np.random.multivariate_normal(
                         grp["values"], grp["covariance"]
-                    )  # sooooooooo SLOW       
-        
-        # add the costfunctions together
-        toycost = None
-        first = True
-        for grpname, grp in constraint_groups.items():
-            if first:
-                toycost = cost.NormalConstraint(
-                    list(grp["parameters"].keys()), 
-                    grp["values"], 
-                    error=grp["covariance"])
+                    )  # sooooooooo SLOW    
 
-                first = False
-            else:
-                toycost += cost.NormalConstraint(
-                    list(grp["parameters"].keys()), 
-                    grp["values"], 
-                    error=grp["covariance"])
+        # TODO: check if variables within physical limits (or limits?)!   
 
-        return toycost
+        return 

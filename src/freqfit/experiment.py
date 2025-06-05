@@ -47,19 +47,23 @@ class Experiment:
 
         # add the costfunctions together
         first = True
-        for dsname in self.datasets.keys():
+        for dsname, ds in self.datasets.items():
             if first:
-                self.costfunction = self.datasets[dsname].costfunction
+                self.costfunction = ds.costfunction
                 first = False
             else:
-                self.costfunction += self.datasets[dsname].costfunction
+                self.costfunction += ds.costfunction
         
         if constraints:
-            self.costfunction += constraints.get_cost(self.fitparameters)
+            fit_constraints = constraints.get_cost(self.fitparameters)
+
+            # possible that all no constraints apply to these fit parameters
+            if fit_constraints:
+                self.costfunction += fit_constraints
 
         # evaluate the initial guess and store it for later
         self.guess = self.guessfcn(self.datasets, self.parameters, constraints)
-        
+
         # create the Minuit object
         self.minuit = Minuit(self.costfunction, **self.guess)
 

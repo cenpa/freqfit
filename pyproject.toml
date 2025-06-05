@@ -32,7 +32,7 @@ requires-python = ">=3.8"
 dependencies = [
     "h5py>=3.2",
     "colorlog",
-    "iminuit==2.26",
+    "iminuit>=2.31",
     "matplotlib",
     "numba==0.58.1",
     "numpy>=1.21",
