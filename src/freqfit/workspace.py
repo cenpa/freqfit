@@ -126,9 +126,6 @@ class Workspace:
             options=self.options,
             )       
 
-
-
-
         return
 
     def make_toy(
@@ -189,7 +186,7 @@ class Workspace:
         # vary the toy constraints
         self.toy_constraints.rvs(toy_parameters, seed)
 
-        # create the Experiment
+        # create the toy Experiment
         self.toy = Experiment(
             datasets=rvs_datasets, 
             parameters=self.parameters, 
@@ -197,7 +194,9 @@ class Workspace:
             options=self.options,
             )  
 
-        return self.toy     
+        return self.toy    
+
+    # now need methods for toy_ts (see old experiment) 
 
     @classmethod
     def from_file(
@@ -247,7 +246,7 @@ class Workspace:
                 config[item] = {}
 
         # get list of models and cost functions to import
-        models = set()
+        models = []
         costfunctions = set()
         for dsname, ds in config["datasets"].items():
 
@@ -260,13 +259,15 @@ class Workspace:
                 if item not in ds:
                     ds[item] = False
 
-            models.add(ds["model"])
+            if ds["model"] not in models:
+                models.append(ds["model"])
             
             if "toy_model" not in ds:
                 ds["toy_model"] = ds["model"]
 
-            models.add(ds["toy_model"])
-
+            if ds["toy_model"] not in models:
+                models.append(ds["toy_model"])
+            
             if ds["costfunction"] not in ["ExtendedUnbinnedNLL", "UnbinnedNLL"]:
                 msg = f"Dataset '{dsname}': only 'ExtendedUnbinnedNLL' or 'UnbinnedNLL' are \
                     supported as cost functions"
@@ -285,9 +286,9 @@ class Workspace:
                             + f"`combined_datasets` missing or does not contain `{ds['combined_dataset']}`")
                         raise KeyError(msg)   
                 elif (config["combined_datasets"][ds["combined_dataset"]]["model"] != ds["model"]):
-                        msg = (f" Dataset `{dsname}` Model `{ds['model']}` not the same as CombinedDataset "
+                        msg = (f" Dataset `{dsname}` Model `{ds['model']['name']}` not the same as CombinedDataset "
                             + f"`{ds['combined_dataset']}` Model "
-                            + f"`{config['combined_datasets'][ds['combined_dataset']]['model']}`")
+                            + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['name']}`")
                         raise ValueError(msg)
 
         # constraints
@@ -391,13 +392,16 @@ class Workspace:
                     msg = f"combined_datasets '{cdsname}' has no '{item}"
                     raise KeyError(msg)
 
-            models.add(cds["model"])
+            if cds["model"] not in models:
+                models.append(cds["model"])
             costfunctions.add(cds["costfunction"])
 
         # this is specific to set up of 0vbb model
         for model in models:
-            modelclassname = model.split(".")[-1]
-            modelclass = getattr(importlib.import_module(model), modelclassname)
+            # modelclassname = model.split(".")[-1]
+            # modelclass = getattr(importlib.import_module(model), modelclassname)
+
+            modelclass = Workspace.load_class(model)
 
             for dsname, ds in config["datasets"].items():
                 if ds["model"] == model:
@@ -424,7 +428,7 @@ class Workspace:
                 if cds["costfunction"] == costfunctionname:
                     cds["costfunction"] = costfunction
 
-        # convert any limits from string to python object
+        # convert any limits from string to fpython object
         # set defaults if options missing
         for par, pardict in config["parameters"].items():
 
@@ -451,7 +455,7 @@ class Workspace:
             "iminuit_precision"         : 1e-10     ,
             "iminuit_strategy"          : 0         , 
             "iminuit_tolerance"         : 1e-5      ,
-            "initial_guess_fcn"    : None      ,
+            "initial_guess_fcn"         : None      ,
             "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
             "scan"                      : False     ,
             "scipy_minimizer"           : None      ,
@@ -480,7 +484,32 @@ class Workspace:
 
         return config
 
+    @staticmethod
+    def load_class(
+        info: dict,
+    ):
 
+        if "module" in info:
+            thisclass = getattr(importlib.import_module(info["module"]), info["name"])
+
+            msg = f"loaded class '{info['name']}' from module '{info['module']}'"
+            logging.info(msg)
+
+            return thisclass
+
+        if "path" in info:
+            spec = importlib.util.spec_from_file_location("fakemodule", info["path"])
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            thisclass = getattr(module, info["name"])
+
+            msg = f"loaded class '{info['name']}' from path '{info['path']}'"
+            logging.info(msg)
+
+            return thisclass
+        
+        raise KeyError("missing 'module' or 'path' key when attempting to load class")
+        
 # use this YAML loader to detect duplicate keys in a config file
 # https://stackoverflow.com/a/76090386 
 class UniqueKeyLoader(yaml.SafeLoader):
