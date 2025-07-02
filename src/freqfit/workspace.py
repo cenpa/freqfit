@@ -500,25 +500,28 @@ class Workspace:
         info: dict,
     ):
 
-        if "module" in info:
-            thisclass = getattr(importlib.import_module(info["module"]), info["name"])
+        try: 
+            thisclass = getattr(importlib.import_module(info["module"]), info["fcn"])
 
-            msg = f"loaded class '{info['name']}' from module '{info['module']}'"
+            msg = f"loaded class '{info['fcn']}' from module '{info['module']}'"
             logging.info(msg)
 
             return thisclass
+        except:
+            try:
+                spec = importlib.util.spec_from_file_location("fakemodule", info["module"])
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                thisclass = getattr(module, info["fcn"])
 
-        if "path" in info:
-            spec = importlib.util.spec_from_file_location("fakemodule", info["path"])
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            thisclass = getattr(module, info["name"])
+                msg = f"loaded class '{info['fcn']}' from path '{info['module']}'"
+                logging.info(msg)
 
-            msg = f"loaded class '{info['name']}' from path '{info['path']}'"
-            logging.info(msg)
+                return thisclass
+            
+            except:
+                pass
 
-            return thisclass
-        
         raise KeyError("missing 'module' or 'path' key when attempting to load class")
         
 # use this YAML loader to detect duplicate keys in a config file
