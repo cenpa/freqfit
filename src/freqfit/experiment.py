@@ -32,7 +32,7 @@ class Experiment:
         self.best = None
 
         # set initial guess function
-        self.guessfcn = options["initial_guess_fcn"]
+        self.guessfcn = options["initial_guess"]
         if self.guessfcn is None:
             self.guessfcn = initial_guess
 
@@ -59,7 +59,7 @@ class Experiment:
                 self.costfunction += fit_constraints
 
         # evaluate the initial guess and store it for later
-        self.guess = self.guessfcn(self.datasets, self.parameters, constraints)
+        self.guess = self.guessfcn(self)
 
         # create the Minuit object
         self.minuit = Minuit(self.costfunction, **self.guess)
@@ -425,13 +425,14 @@ class Experiment:
 
 # default initial guess function - user should probably provide their own
 def initial_guess(
-    datasets: dict,
-    parameters: type[Parameters],
-    constraints: type[Constraints] = None,
+    experiment: type[Experiment],
+    # datasets: dict,
+    # parameters: type[Parameters],
+    # constraints: type[Constraints] = None,
     ) -> dict:
 
     # get fit parameters of these datasets
-    pars = parameters.get_fitparameters(datasets)
+    pars = experiment.parameters.get_fitparameters(experiment.datasets)
 
     return {p:pars[p]["value"] for p in list(pars)}
 

@@ -5,6 +5,9 @@ Script for users to write their own initial guesses and pass them into the `expe
 import numpy as np
 from iminuit import Minuit
 
+from .experiment import Experiment
+from .guess import Guess
+
 from .models import constants as constants
 from .models.box_model_0vbb import box_model_0vbb_gen
 from .models.correlated_efficiency_0vbb import (
@@ -42,90 +45,100 @@ for i in range(len(WINDOW)):
 QBB = constants.QBB
 
 
-def zero_nu_initial_guess(experiment):
-    # figure out if this is a toy or not:
-    if hasattr(experiment, "experiment"):
-        is_toy = True
-        loop_exp = experiment.experiment
-    else:
-        is_toy = False
-        loop_exp = experiment
-    # Loop through the datasets and grab the exposures, efficiencies, and sigma from all datasets
-    totexp = 0.0
-    sigma_expweighted = 0.0
-    eff_expweighted = 0.0
-    effunc_expweighted = 0.0
-    Es = []
+class zero_nu_initial_guess(Guess):
+    def __init__(
+        self
+    ):
+        pass
 
-    # Find which datasets share a background index
-    BI_list = [par for par in experiment.fitparameters if "BI" in par]
-    ds_list = []
-    ds_names = []
+    def guess(
+        self,
+        experiment: Experiment,
+    ) -> dict:
 
-    for BI in BI_list:
-        ds_per_BI = []
-        for ds in loop_exp.datasets.values():
-            if is_toy:
-                if (BI in ds.fitparameters) & (not ds._toy_is_combined):
-                    ds_per_BI.append(ds)
-            else:
-                if (BI in ds.fitparameters) & (not ds.is_combined):
-                    ds_per_BI.append(ds)
-
-        if is_toy:
-            for ds in experiment.combined_datasets.values():
-                if BI in ds.fitparameters:
-                    ds_per_BI.append(ds)
+        # figure out if this is a toy or not:
+        if hasattr(experiment, "experiment"):
+            is_toy = True
+            loop_exp = experiment.experiment
         else:
-            for ds in loop_exp.combined_datasets.values():
-                if BI in ds.fitparameters:
-                    ds_per_BI.append(ds)
+            is_toy = False
+            loop_exp = experiment
+        # Loop through the datasets and grab the exposures, efficiencies, and sigma from all datasets
+        totexp = 0.0
+        sigma_expweighted = 0.0
+        eff_expweighted = 0.0
+        effunc_expweighted = 0.0
+        Es = []
 
-        ds_list.append(ds_per_BI)
+        # Find which datasets share a background index
+        BI_list = [par for par in experiment.fitparameters if "BI" in par]
+        ds_list = []
+        ds_names = []
 
-        ds_names.append([ds.name for ds in ds_per_BI])
+        for BI in BI_list:
+            ds_per_BI = []
+            for ds in loop_exp.datasets.values():
+                if is_toy:
+                    if (BI in ds.fitparameters) & (not ds._toy_is_combined):
+                        ds_per_BI.append(ds)
+                else:
+                    if (BI in ds.fitparameters) & (not ds.is_combined):
+                        ds_per_BI.append(ds)
 
-    # Fix all the fit parameters in the minuit object, then loosen S, all the BI and the global_effuncscale
-    if is_toy:
-        guess = {}
-        for par in experiment.fitparameters:
-            guess |= {
-                par: experiment.experiment.toy_params_for_initial_guess[par]["value"]
+            if is_toy:
+                for ds in experiment.combined_datasets.values():
+                    if BI in ds.fitparameters:
+                        ds_per_BI.append(ds)
+            else:
+                for ds in loop_exp.combined_datasets.values():
+                    if BI in ds.fitparameters:
+                        ds_per_BI.append(ds)
+
+            ds_list.append(ds_per_BI)
+
+            ds_names.append([ds.name for ds in ds_per_BI])
+
+        # Fix all the fit parameters in the minuit object, then loosen S, all the BI and the global_effuncscale
+        if is_toy:
+            guess = {}
+            for par in experiment.fitparameters:
+                guess |= {
+                    par: experiment.experiment.toy_params_for_initial_guess[par]["value"]
+                }
+        else:
+            guess = {
+                fitpar: experiment.parameters[fitpar]["value"]
+                if "value" in experiment.parameters[fitpar]
+                else None
+                for fitpar in experiment.fitparameters
             }
-    else:
-        guess = {
-            fitpar: experiment.parameters[fitpar]["value"]
-            if "value" in experiment.parameters[fitpar]
-            else None
-            for fitpar in experiment.fitparameters
-        }
 
-    minuit = Minuit(experiment.costfunction, **guess)
-    for par in minuit.parameters:
-        minuit.fixed[par] = True
+        minuit = Minuit(experiment.costfunction, **guess)
+        for par in minuit.parameters:
+            minuit.fixed[par] = True
 
-    if "global_S" in list(minuit.fixed):
-        minuit.fixed["global_S"] = False
-        minuit.limits["global_S"] = (0, None)
+        if "global_S" in list(minuit.fixed):
+            minuit.fixed["global_S"] = False
+            minuit.limits["global_S"] = (0, None)
 
-    if "global_m_bb" in list(minuit.fixed):
-        minuit.fixed["global_m_bb"] = False
-        minuit.limits["global_m_bb"] = (0, None)
+        if "global_m_bb" in list(minuit.fixed):
+            minuit.fixed["global_m_bb"] = False
+            minuit.limits["global_m_bb"] = (0, None)
 
-    # minuit.fixed["global_effuncscale"] = True
-    # minuit.limits["global_effuncscale"] = (-100, 100)
-    for BI in BI_list:
-        minuit.fixed[f"{BI}"] = False
-        minuit.limits[f"{BI}"] = (0, None)
+        # minuit.fixed["global_effuncscale"] = True
+        # minuit.limits["global_effuncscale"] = (-100, 100)
+        for BI in BI_list:
+            minuit.fixed[f"{BI}"] = False
+            minuit.limits[f"{BI}"] = (0, None)
 
-        if "empty" in BI:
-            minuit.fixed[f"{BI}"] = True
+            if "empty" in BI:
+                minuit.fixed[f"{BI}"] = True
 
-    # minuit.simplex()
-    minuit.migrad()
-    guess = minuit.values.to_dict()
+        # minuit.simplex()
+        minuit.migrad()
+        guess = minuit.values.to_dict()
 
-    return guess
+        return guess
 
 
 def guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted):  # noqa: N802

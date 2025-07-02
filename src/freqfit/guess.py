@@ -4,12 +4,13 @@ for each fit parameter.
 """
 
 from abc import ABC, abstractmethod
+from .experiment import Experiment
 
 class Guess(ABC):
     @abstractmethod
     def guess(
         self, 
-        experiment:
+        experiment: Experiment,
     ) -> dict:
         pass
 

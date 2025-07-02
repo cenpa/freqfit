@@ -10,6 +10,7 @@ from .parameters import Parameters
 from .constraints import Constraints, ToyConstraints
 from .experiment import Experiment
 from .model import Model
+from .guess import Guess
 
 import logging
 
@@ -483,8 +484,14 @@ class Workspace:
         if not isinstance(config["options"]["minimizer_options"], dict):
             raise ValueError("options: minimizer_options must be a dict")
 
-        if config["initial_guess"] is not None:
-            config["initial_guess"] = Workspace.load_class(config["initial_guess"])
+        if config["options"]["initial_guess"] is not None:
+            config["options"]["initial_guess"] = Workspace.load_class(config["options"]["initial_guess"])
+
+            if not issubclass(config["options"]["initial_guess"], Guess):
+                raise TypeError(f"initial guess must inherit from 'Guess'")
+
+            # instantiate guess class and set guess function
+            config["options"]["initial_guess"] = config["options"]["initial_guess"]().guess
 
         return config
 
