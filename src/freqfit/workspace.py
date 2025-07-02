@@ -9,6 +9,7 @@ from .dataset import Dataset, ToyDataset, CombinedDataset
 from .parameters import Parameters
 from .constraints import Constraints, ToyConstraints
 from .experiment import Experiment
+from .model import Model
 
 import logging
 
@@ -396,12 +397,12 @@ class Workspace:
                 models.append(cds["model"])
             costfunctions.add(cds["costfunction"])
 
-        # this is specific to set up of 0vbb model
+        # load models
         for model in models:
-            # modelclassname = model.split(".")[-1]
-            # modelclass = getattr(importlib.import_module(model), modelclassname)
-
             modelclass = Workspace.load_class(model)
+
+            if not issubclass(modelclass.__class__, Model):
+                raise TypeError(f"model '{modelclass}' must inherit from 'Model'")
 
             for dsname, ds in config["datasets"].items():
                 if ds["model"] == model:
@@ -455,7 +456,7 @@ class Workspace:
             "iminuit_precision"         : 1e-10     ,
             "iminuit_strategy"          : 0         , 
             "iminuit_tolerance"         : 1e-5      ,
-            "initial_guess_fcn"         : None      ,
+            "initial_guess"             : None      ,
             "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
             "scan"                      : False     ,
             "scipy_minimizer"           : None      ,
@@ -481,6 +482,9 @@ class Workspace:
         
         if not isinstance(config["options"]["minimizer_options"], dict):
             raise ValueError("options: minimizer_options must be a dict")
+
+        if config["initial_guess"] is not None:
+            config["initial_guess"] = Workspace.load_class(config["initial_guess"])
 
         return config
 
