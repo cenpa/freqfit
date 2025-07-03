@@ -7,8 +7,6 @@ from copy import deepcopy
 import numpy as np
 from iminuit import cost
 
-SEED = 42
-
 log = logging.getLogger(__name__)
 
 
@@ -158,7 +156,6 @@ class ToyConstraints(Constraints):
     def rvs(
         self,
         parameters:dict,
-        seed: int = SEED,
     ) -> None:
         """
         Returns a cost with varied parameters if applicable. Using the provided central values of the parameters,
@@ -170,8 +167,6 @@ class ToyConstraints(Constraints):
         """
 
         self._constraint_groups = deepcopy(self._base_constraint_groups)
-
-        np.random.seed(seed=seed)
 
         for grpname, grp in self._constraint_groups.items():
 

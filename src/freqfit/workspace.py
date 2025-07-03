@@ -153,7 +153,7 @@ class Workspace:
         # vary the datasets
         rvs_datasets = {}
         for dsname, ds in self._toy_datasets.items():
-            ds.rvs(toy_parameters, seed)
+            ds.rvs(toy_parameters)
             rvs_datasets["toy_" + dsname] = ds
 
         # combine the datasets

@@ -3,8 +3,6 @@ A class that holds the parameters and associated functions.
 """
 import logging
 
-SEED = 42
-
 log = logging.getLogger(__name__)
 
 class Parameters:

@@ -12,8 +12,6 @@ from iminuit import Minuit
 from .constraints import Constraints
 from .parameters import Parameters
 
-SEED = 42
-
 log = logging.getLogger(__name__)
 
 class Experiment:

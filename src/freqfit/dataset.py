@@ -6,8 +6,6 @@ import logging
 import numpy as np
 from iminuit import cost
 
-SEED = 42
-
 log = logging.getLogger(__name__)
 
 
@@ -310,7 +308,6 @@ class ToyDataset(Dataset):
     def rvs(
         self,
         toy_parameters: dict,
-        seed: int = SEED,
     ) -> None:
         """
         Generates toy data and sets some attributes.
@@ -333,7 +330,7 @@ class ToyDataset(Dataset):
                 self._toy_pars[par][1] = toy_parameters[par]
                 
         # TODO: extendedrvs here? make it more generic or require this in Model?
-        self.data, self.num_drawn = self.toy_model.extendedrvs(*[self._toy_pars[par][1] for par in self._toy_pars], seed=seed) 
+        self.data, self.num_drawn = self.toy_model.extendedrvs(*[self._toy_pars[par][1] for par in self._toy_pars]) 
         
         # make the cost function
         if self.use_user_gradient:
