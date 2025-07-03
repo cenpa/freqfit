@@ -15,7 +15,7 @@ import numba as nb
 import numpy as np
 
 import freqfit.models.constants as constants
-from freqfit.utils import inspectparameters
+from freqfit.model import Model
 
 nb_kwd = {
     "nopython": True,
@@ -41,7 +41,6 @@ WINDOWSIZE = 0.0
 for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
-SEED = 42  # set the default random seed
 
 limit = np.log(sys.float_info.max) / 10
 
@@ -399,7 +398,6 @@ def nb_rvs(
     sigma: float,
     tau: float,
     gamma: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -418,16 +416,12 @@ def nb_rvs(
         scale parameter of the tail in keV
     gamma
         scaling parameter for tau and sigma
-    seed
-        specify a seed, otherwise uses default seed
 
     Notes
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-
-    np.random.seed(seed)
 
     # preallocate for draws
     Es = np.append(np.zeros(n_sig), np.zeros(n_bkg))
@@ -482,7 +476,6 @@ def nb_extendedrvs(
     effunc: float,
     effuncscale: float,
     exp: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -509,8 +502,6 @@ def nb_extendedrvs(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
-    seed
-        specify a seed, otherwise uses default seed
 
     Notes
     -----
@@ -521,12 +512,12 @@ def nb_extendedrvs(
     n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
-    return nb_rvs(n_sig, n_bkg, frac, delta, sigma, tau, gamma, seed=seed), (n_sig, n_bkg)
+    return nb_rvs(n_sig, n_bkg, frac, delta, sigma, tau, gamma), (n_sig, n_bkg)
 
 
-class mjd_0vbb_gen:
+class mjd_0vbb_gen(Model):
     def __init__(self):
-        self.parameters = inspectparameters(self.density)
+        self.parameters = self.inspectparameters(self.density)
         del self.parameters["check_window"]  # this should not be seen by iminuit
 
     def pdf(
@@ -561,6 +552,25 @@ class mjd_0vbb_gen:
             check_window,
         )
 
+    def logpdf(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        frac: float,
+        delta: float,
+        sigma: float,
+        tau: float,
+        gamma: float,
+        eff: float,
+        effunc: float,
+        effuncscale: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+        raise NotImplementedError
+        return
+
     # for iminuit ExtendedUnbinnedNLL
     def density(
         self,
@@ -594,6 +604,44 @@ class mjd_0vbb_gen:
             check_window,
         )
 
+    def graddensity(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        frac: float,
+        delta: float,
+        sigma: float,
+        tau: float,
+        gamma: float,
+        eff: float,
+        effunc: float,
+        effuncscale: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+        raise NotImplementedError
+        return
+
+    def logdensity(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        frac: float,
+        delta: float,
+        sigma: float,
+        tau: float,
+        gamma: float,
+        eff: float,
+        effunc: float,
+        effuncscale: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+        raise NotImplementedError
+        return
+
     # should we have an rvs method for drawing a random number of events?
     # `extendedrvs`
     # needs to use same parameters as the rest of the functions...
@@ -606,9 +654,8 @@ class mjd_0vbb_gen:
         sigma: float,
         tau: float,
         gamma: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, frac, delta, sigma, tau, gamma, seed=seed)
+        return nb_rvs(n_sig, n_bkg, frac, delta, sigma, tau, gamma)
 
     def extendedrvs(
         self,
@@ -623,83 +670,72 @@ class mjd_0vbb_gen:
         effunc: float,
         effuncscale: float,
         exp: float,
-        seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(
-            S, BI, frac, delta, sigma, tau, gamma, eff, effunc, effuncscale, exp, seed=seed
+            S, BI, frac, delta, sigma, tau, gamma, eff, effunc, effuncscale, exp
         )
 
-    # function call needs to take the same parameters as the other function calls, in the same order repeated twice
-    # order is Es, S, BI, frac, delta, sigma, tau, gamma, eff, effunc, effuncscale, exp, check_window
-    # this is intended only for empty datasets
-    # returns `None` if we couldn't combine the datasets (a dataset was not empty)
     def combine(
         self,
-        a_Es: np.array,
-        a_S: float,
-        a_BI: float,
-        a_frac: float,
-        a_delta: float,
-        a_sigma: float,
-        a_tau: float,
-        a_gamma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
-        b_Es: np.array,
-        b_S: float,
-        b_BI: float,
-        b_frac: float,
-        b_delta: float,
-        b_sigma: float,
-        b_tau: float,
-        b_gamma: float,
-        b_eff: float,
-        b_effunc: float,
-        b_effuncscale: float,
-        b_exp: float,
-    ) -> list | None:
-        # datasets must be empty to be combined
-        if len(a_Es) != 0 or len(b_Es) != 0:
-            return None
+        datasets: list,#List[Tuple[np.array,...],...],
+    ) -> list:
 
         Es = np.array([])  # both of these datasets are empty
         S = 0.0  # this should be overwritten in the fit later
         BI = 0.0  # this should be overwritten in the fit later
+        effuncscale = 0.0  # this should be overwritten in the fit later
 
-        exp = a_exp + b_exp  # total exposure
+        num = len(datasets)
 
-        # exposure weighted fixed parameters (important to calculate correctly)
-        sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
-        eff = (a_exp * a_eff + b_exp * b_eff) / exp
-        delta = (a_exp * a_delta + b_exp * b_delta) / exp
-        tau = (a_exp * a_tau + b_exp * b_tau) / exp
-        gamma = (a_exp * a_gamma + b_exp * b_gamma) / exp
-        frac = (a_exp * a_frac + b_exp * b_frac) / exp
+        fracs = np.zeros(num)
+        deltas = np.zeros(num)
+        sigmas = np.zeros(num)
+        taus = np.zeros(num)
+        gammas = np.zeros(num)
+        effs = np.zeros(num)
+        effuncs = np.zeros(num)
+        effuncscales = np.zeros(num)
+        exps = np.zeros(num)
+        for i, dataset in enumerate(datasets):
+            # first few elements not needed (we know data is empty)
+            fracs[i]        = dataset[3]
+            deltas[i]       = dataset[4]
+            sigmas[i]       = dataset[5]
+            taus[i]         = dataset[6]
+            gammas[i]       = dataset[7]
+            effs[i]         = dataset[8]
+            effuncs[i]      = dataset[9]
+            effuncscales[i] = dataset[10]
+            exps[i]         = dataset[11]        
+
+        totexp = np.sum(exps)  # total exposure
+        eff = np.sum(exps * effs) / totexp # exposure weighted efficiency
+        sigma = np.sum(sigmas * exps * effs) / (totexp * eff) # sensitive exposure weighted resolution
+        delta = np.sum(deltas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+        tau = np.sum(taus * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+        frac = np.sum(fracs * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+        gamma = np.sum(gamma * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
 
         # these are fully correlated in this model so the direct sum is appropriate
         # (maybe still appropriate even if not fully correlated?)
-        effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+        effunc = np.sum(exps * effuncs) / totexp
 
-        effuncscale = 0.0  # this should be overwritten in the fit later
-
-        return [Es, S, BI, frac, delta, sigma, tau, gamma, eff, effunc, effuncscale, exp]
+        return [Es, S, BI, frac, delta, sigma, tau, gamma, eff, effunc, effuncscale, totexp]
 
     def can_combine(
         self,
-        a_Es: np.array,
-        a_S: float,
-        a_BI: float,
-        a_frac: float,
-        a_delta: float,
-        a_sigma: float,
-        a_tau: float,
-        a_gamma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
+        Es: np.array,
+        S: float,
+        BI: float,
+        frac: float,
+        delta: float,
+        sigma: float,
+        tau: float,
+        gamma: float,
+        eff: float,
+        effunc: float,
+        effuncscale: float,
+        exp: float,
     ) -> bool:
         """
         This sets an arbitrary rule if this dataset can be combined with other datasets.

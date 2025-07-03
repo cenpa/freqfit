@@ -221,6 +221,7 @@ class Workspace:
             whether to return additional information about the toys (default: False)     
         """
 
+        # if seeds aren't provided, we need to generate them ourselves so all toys aren't the same
         if seeds is None:
             seeds = np.random.randint(1e9, size=num)
         
@@ -538,8 +539,11 @@ class Workspace:
             "iminuit_tolerance"         : 1e-5      ,
             "initial_guess"             : None      ,
             "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
+            "num_cores"                 : 1         ,
+            "num_toys"                  : 1000      ,
             "scan"                      : False     ,
             "scipy_minimizer"           : None      ,
+            "seed_start"                : 0         ,
             "try_to_combine_datasets"   : False     ,
             "test_statistic"            : "t_mu"    ,   # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
             "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing

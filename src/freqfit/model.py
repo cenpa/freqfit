@@ -84,14 +84,6 @@ class Model(ABC):
         """
         pass
 
-    @abstractmethod
-    def initialguess(
-        self, 
-        data: np.array,
-        *parameters,
-    ) -> np.array:
-        pass
-
     # takes a model function and returns a dict of its parameters with their default value
     @staticmethod
     def inspectparameters(

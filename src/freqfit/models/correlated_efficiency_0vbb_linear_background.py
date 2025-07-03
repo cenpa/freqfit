@@ -3,7 +3,7 @@ import numba as nb
 import numpy as np
 
 import freqfit.models.constants as constants
-from freqfit.utils import inspectparameters
+from freqfit.model import Model
 
 nb_kwd = {
     "nopython": True,
@@ -30,9 +30,6 @@ for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
 FULLWINDOWSIZE = WINDOW[-1][1] - WINDOW[0][0]
-
-
-SEED = 42  # set the default random seed
 
 
 @nb.jit(**nb_kwd)
@@ -278,7 +275,6 @@ def nb_rvs(
     n_bkg: int,
     delta: float,
     sigma: float,
-    seed: int = SEED,
 ) -> np.array:
     raise NotImplementedError
     return
@@ -295,7 +291,6 @@ def nb_extendedrvs(
     effuncscale: float,
     exp: float,
     a: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -408,9 +403,9 @@ def nb_extendedrvs(
     return Es, (n_sig, n_bkg)
 
 
-class correlated_efficiency_0vbb_linear_background_gen:
+class correlated_efficiency_0vbb_linear_background_gen(Model):
     def __init__(self):
-        self.parameters = inspectparameters(self.density)
+        self.parameters = self.inspectparameters(self.density)
         pass
 
     def pdf(
@@ -463,7 +458,7 @@ class correlated_efficiency_0vbb_linear_background_gen:
         return nb_density(Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, a)
 
     # for iminuit ExtendedUnbinnedNLL
-    def density_gradient(
+    def graddensity(
         self,
         Es: np.array,
         S: float,
@@ -481,7 +476,7 @@ class correlated_efficiency_0vbb_linear_background_gen:
         )
 
     # for iminuit ExtendedUnbinnedNLL
-    def log_density(
+    def logdensity(
         self,
         Es: np.array,
         S: float,
@@ -517,9 +512,8 @@ class correlated_efficiency_0vbb_linear_background_gen:
         delta: float,
         sigma: float,
         a: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, delta, sigma, a, seed=seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma, a)
 
     def extendedrvs(
         self,
@@ -532,10 +526,9 @@ class correlated_efficiency_0vbb_linear_background_gen:
         effuncscale: float,
         exp: float,
         a: float,
-        seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(
-            S, BI, delta, sigma, eff, effunc, effuncscale, exp, a, seed=seed
+            S, BI, delta, sigma, eff, effunc, effuncscale, exp, a
         )
 
     def plot(
@@ -558,68 +551,57 @@ class correlated_efficiency_0vbb_linear_background_gen:
         plt.step(Es, y)
         plt.show()
 
-    # function call needs to take the same parameters as the other function calls, in the same order repeated twice
-    # this is intended only for empty datasets
-    # returns `None` if we couldn't combine the datasets (a dataset was not empty)
     def combine(
         self,
-        a_Es: np.array,
-        a_S: float,
-        a_BI: float,
-        a_delta: float,
-        a_sigma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
-        a_m: float,
-        b_Es: np.array,
-        b_S: float,
-        b_BI: float,
-        b_delta: float,
-        b_sigma: float,
-        b_eff: float,
-        b_effunc: float,
-        b_effuncscale: float,
-        b_exp: float,
-        b_m: float,
-    ) -> list | None:
-        # datasets must be empty to be combined
-        if len(a_Es) != 0 or len(b_Es) != 0:
-            return None
+        datasets: list,
+    ) -> list :
 
         Es = np.array([])  # both of these datasets are empty
         S = 0.0  # this should be overwritten in the fit later
         BI = 0.0  # this should be overwritten in the fit later
-        m = 0.0  # this should be overwritten in the fit later
+        effuncscale = 0.0  # this should be overwritten in the fit later
+        a = 0.0 # this should be overwritten in the fit later
 
-        exp = a_exp + b_exp  # total exposure
+        num = len(datasets)
 
-        # exposure weighted fixed parameters (important to calculate correctly)
-        sigma = (a_exp * a_sigma + b_exp * b_sigma) / exp
-        eff = (a_exp * a_eff + b_exp * b_eff) / exp
-        delta = (a_exp * a_delta + b_exp * b_delta) / exp
+        deltas = np.zeros(num)
+        sigmas = np.zeros(num)
+        effs = np.zeros(num)
+        effuncs = np.zeros(num)
+        effuncscales = np.zeros(num)
+        exps = np.zeros(num)
+        for i, dataset in enumerate(datasets):
+            # first few elements not needed (we know data is empty)
+            deltas[i]       = dataset[3]
+            sigmas[i]       = dataset[4]
+            effs[i]         = dataset[5]
+            effuncs[i]      = dataset[6]
+            effuncscales[i] = dataset[7]
+            exps[i]         = dataset[8]
+
+        totexp = np.sum(exps)  # total exposure
+        eff = np.sum(exps * effs) / totexp # exposure weighted efficiency
+        sigma = np.sum(sigmas * exps * effs) / (totexp * eff) # sensitive exposure weighted resolution
+        delta = np.sum(deltas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
 
         # these are fully correlated in this model so the direct sum is appropriate
         # (maybe still appropriate even if not fully correlated?)
-        effunc = (a_exp * a_effunc + b_exp * b_effunc) / exp
+        effunc = np.sum(exps * effuncs) / totexp
 
-        effuncscale = 0.0  # this should be overwritten in the fit later
-
-        return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, exp, m]
+        return [Es, S, BI, delta, sigma, eff, effunc, effuncscale, totexp, a]
 
     def can_combine(
         self,
-        a_Es: np.array,
-        a_S: float,
-        a_BI: float,
-        a_delta: float,
-        a_sigma: float,
-        a_eff: float,
-        a_effunc: float,
-        a_effuncscale: float,
-        a_exp: float,
-        a_m: float,
+        Es: np.array,
+        S: float,
+        BI: float,
+        delta: float,
+        sigma: float,
+        eff: float,
+        effunc: float,
+        effuncscale: float,
+        exp: float,
+        a: float,
     ) -> bool:
         """
         This sets an arbitrary rule if this dataset can be combined with other datasets.

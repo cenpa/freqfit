@@ -3,7 +3,7 @@ import numba as nb
 import numpy as np
 
 import freqfit.models.constants as constants
-from freqfit.utils import inspectparameters
+from freqfit.model import Model
 
 nb_kwd = {
     "nopython": True,
@@ -26,8 +26,6 @@ for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
 FULLWINDOWSIZE = WINDOW[-1][1] - WINDOW[0][0]
-
-SEED = 42  # set the default random seed
 
 
 @nb.jit(**nb_kwd)
@@ -233,9 +231,9 @@ def nb_extendedrvs(
 
     return (Es, (n_bkg, 0))
 
-class linear_bkg_gen:
+class linear_bkg_gen(Model):
     def __init__(self):
-        self.parameters = inspectparameters(self.density)
+        self.parameters = self.inspectparameters(self.density)
         del self.parameters["check_window"] # used for plotting and stuff, screws up rvs since not present there
         pass
 
@@ -265,8 +263,74 @@ class linear_bkg_gen:
         a: float,
         BI: float,
         exp: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(a, BI, exp, seed=seed)
+        return nb_extendedrvs(a, BI, exp)
+    
+    def logpdf(
+        self,
+        Es: np.array,
+        a: float,
+        BI: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+
+        raise NotImplementedError
+        return
+
+    def graddensity(
+        self,
+        Es: np.array,
+        a: float,
+        BI: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+    
+        raise NotImplementedError
+        return
+
+    def logdensity(
+        self,
+        Es: np.array,
+        a: float,
+        BI: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+    
+        raise NotImplementedError
+        return
+
+    def rvs(
+        self,
+        Es: np.array,
+        a: float,
+        BI: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> np.array:
+    
+        raise NotImplementedError
+        return
+
+    # not supported
+    def can_combine(
+        self,
+        Es: np.array,
+        a: float,
+        BI: float,
+        exp: float,
+        check_window: bool = False,
+    ) -> bool:
+        return False
+    
+    def combine(
+        self,
+        datasets: list,#List[Tuple[np.array,...],...],
+    ) -> list:
+    
+        raise NotImplementedError
+        return
 
 linear_bkg = linear_bkg_gen()
