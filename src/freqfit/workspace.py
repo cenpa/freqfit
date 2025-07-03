@@ -147,6 +147,9 @@ class Workspace:
             seed for random number generation
         """
 
+        # seed here
+        np.random.seed(seed)
+
         # vary the datasets
         rvs_datasets = {}
         for dsname, ds in self._toy_datasets.items():
@@ -198,7 +201,83 @@ class Workspace:
 
         return self.toy    
 
-    # now need methods for toy_ts (see old experiment) 
+    # has to allow for parallelization
+    def toy_ts(
+        self,
+        toy_parameters: dict, # parameters and values needed to generate the toys
+        parameters: dict, # which parameters to fix and their value (rest are profiled)
+        num: int = 1,
+        seeds: np.array = None,   
+        info: bool = False,     
+    ) -> tuple[np.array, dict]:
+        """
+        Makes a number of toys and returns their test statistics.
+        Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
+
+        parameters
+            `dict` where keys are names of parameters to fix and values are the value that the parameter should be
+            fixed to during profiling   
+        info
+            whether to return additional information about the toys (default: False)     
+        """
+
+        if seeds is None:
+            seeds = np.random.randint(1e9, size=num)
+        
+        if len(seed) != num:
+                raise ValueError("Seeds must have same length as the number of toys!")
+        
+        if isinstance(profile_parameters, dict):
+            profile_parameters = [profile_parameters]
+
+        ts = np.zeros((len(profile_parameters), num))
+        numerators = np.zeros((len(profile_parameters), num))
+        denominators = np.zeros((len(profile_parameters), num))
+        data_to_return = []
+        paramvalues_to_return = []
+        num_drawn = []
+        for i in range(num):
+            thistoy = self.make_toy(parameters=parameters, seed=seed[i])
+            for j in range(len(profile_parameters)):
+                ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
+                    profile_parameters=profile_parameters[j]
+                )
+            data_to_return.append(thistoy.toy_data_to_save)
+            paramvalues_to_return.append(thistoy.parameters_to_save)
+            num_drawn.append(thistoy.toy_num_drawn_to_save)
+
+        if info:
+            # Need to flatten the data_to_return in order to save it in h5py
+            data_to_return_flat = (
+                np.ones(
+                    (len(data_to_return), np.nanmax([len(arr) for arr in data_to_return]))
+                )
+                * np.nan
+            )
+            for i, arr in enumerate(data_to_return):
+                data_to_return_flat[i, : len(arr)] = arr
+
+            num_drawn_to_return_flat = (
+                np.ones((len(num_drawn), np.nanmax([len(arr) for arr in num_drawn])))
+                * np.nan
+            )
+            for i, arr in enumerate(num_drawn):
+                num_drawn_to_return_flat[i, : len(arr)] = arr
+
+            info_to_return = {
+                "data": data_to_return_flat,
+                "paramvalues": paramvalues_to_return,
+                "num_drawn": num_drawn_to_return_flat,
+                "denominators": denominators,
+                "numerators": numerators,
+                }
+
+            return (
+                ts,
+                info_to_return,
+            )
+
+        return (ts, {})
 
     @classmethod
     def from_file(

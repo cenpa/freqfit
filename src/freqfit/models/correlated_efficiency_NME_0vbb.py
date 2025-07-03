@@ -31,8 +31,6 @@ WINDOWSIZE = 0.0
 for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
 
-SEED = 42  # set the default random seed
-
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
@@ -390,7 +388,6 @@ def nb_rvs(
     n_bkg: int,
     delta: float,
     sigma: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -403,16 +400,12 @@ def nb_rvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    seed
-        specify a seed, otherwise uses default seed
 
     Notes
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-
-    np.random.seed(seed)
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
@@ -451,7 +444,6 @@ def nb_extendedrvs(
     effuncscale: float,
     exp: float,
     NME: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -474,16 +466,12 @@ def nb_extendedrvs(
         The exposure, in kg*yr
     NME
         The nuclear matrix element
-    seed
-        specify a seed, otherwise uses default seed
 
     Notes
     -----
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-
-    np.random.seed(seed)
 
     n_sig = np.random.poisson(m_bb**2 * NME**2 * (eff + effuncscale * effunc) * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
@@ -615,9 +603,8 @@ class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
         n_bkg: int,
         delta: float,
         sigma: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, delta, sigma, seed=seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma)
 
     def extendedrvs(
         self,
@@ -630,10 +617,9 @@ class correlated_efficiency_NME_0vbb_gen:  # noqa: N816
         effuncscale: float,
         exp: float,
         NME: float,
-        seed: int = SEED,
     ) -> np.array:
         return nb_extendedrvs(
-            m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME, seed=seed
+            m_bb, BI, delta, sigma, eff, effunc, effuncscale, exp, NME
         )
 
     def plot(

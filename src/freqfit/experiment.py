@@ -426,9 +426,6 @@ class Experiment:
 # default initial guess function - user should probably provide their own
 def initial_guess(
     experiment: type[Experiment],
-    # datasets: dict,
-    # parameters: type[Parameters],
-    # constraints: type[Constraints] = None,
     ) -> dict:
 
     # get fit parameters of these datasets
