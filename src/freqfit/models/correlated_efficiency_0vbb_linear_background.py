@@ -311,8 +311,6 @@ def nb_extendedrvs(
         scaling parameter of the efficiency
     exp
         The exposure, in kg*yr
-    seed
-        specify a seed, otherwise uses default seed
 
     Notes
     -----
@@ -321,8 +319,6 @@ def nb_extendedrvs(
     """
     # S *= 0.01
     # BI *= 0.0001
-
-    np.random.seed(seed)
 
     n_sig = np.random.poisson(S * (eff + effuncscale * effunc) * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)

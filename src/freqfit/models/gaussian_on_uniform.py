@@ -229,8 +229,6 @@ def nb_rvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    seed
-        specify a seed, otherwise uses default seed
     window
         uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
         where edges of window are monotonically increasing (this is not checked), in keV.
@@ -288,8 +286,6 @@ def nb_extendedrvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    seed
-        specify a seed, otherwise uses default seed
     window
         uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
         where edges of window are monotonically increasing (this is not checked), in keV.

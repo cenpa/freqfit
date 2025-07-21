@@ -205,7 +205,7 @@ class Workspace:
     def toy_ts(
         self,
         toy_parameters: dict, # parameters and values needed to generate the toys
-        parameters: dict, # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seeds: np.array = None,   
         info: bool = False,     
@@ -225,7 +225,7 @@ class Workspace:
         if seeds is None:
             seeds = np.random.randint(1e9, size=num)
         
-        if len(seed) != num:
+        if len(seeds) != num:
                 raise ValueError("Seeds must have same length as the number of toys!")
         
         if isinstance(profile_parameters, dict):
@@ -238,7 +238,7 @@ class Workspace:
         paramvalues_to_return = []
         num_drawn = []
         for i in range(num):
-            thistoy = self.make_toy(parameters=parameters, seed=seed[i])
+            thistoy = self.make_toy(parameters=toy_parameters, seed=seeds[i])
             for j in range(len(profile_parameters)):
                 ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
                     profile_parameters=profile_parameters[j]
@@ -368,9 +368,9 @@ class Workspace:
                             + f"`combined_datasets` missing or does not contain `{ds['combined_dataset']}`")
                         raise KeyError(msg)   
                 elif (config["combined_datasets"][ds["combined_dataset"]]["model"] != ds["model"]):
-                        msg = (f" Dataset `{dsname}` Model `{ds['model']['name']}` not the same as CombinedDataset "
+                        msg = (f" Dataset `{dsname}` Model `{ds['model']['fcn']}` not the same as CombinedDataset "
                             + f"`{ds['combined_dataset']}` Model "
-                            + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['name']}`")
+                            + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['fcn']}`")
                         raise ValueError(msg)
 
         # constraints
@@ -582,30 +582,43 @@ class Workspace:
     def load_class(
         info: dict,
     ):
+        if "fcn" not in info or "module" not in info:
+            msg = f"missing 'module' or 'path' key when attempting to load {info}"
+            logging.info(msg)
 
+            raise KeyError(msg)
+        
         try: 
-            thisclass = getattr(importlib.import_module(info["module"]), info["fcn"])
+            lib = importlib.import_module(info["module"])
+            thisclass = getattr(lib, info["fcn"])
 
-            msg = f"loaded class '{info['fcn']}' from module '{info['module']}'"
+            msg = f"loaded '{info['fcn']}' from module '{info['module']}'"
             logging.info(msg)
 
             return thisclass
-        except:
+        except Exception as e:
+            msg = f"tried to load '{info['fcn']}' from '{info['module']}' but not a module, try as a path"
+            logging.info(msg)
+            logging.info(e)
+
             try:
                 spec = importlib.util.spec_from_file_location("fakemodule", info["module"])
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 thisclass = getattr(module, info["fcn"])
 
-                msg = f"loaded class '{info['fcn']}' from path '{info['module']}'"
+                msg = f"loaded '{info['fcn']}' from path '{info['module']}'"
                 logging.info(msg)
 
                 return thisclass
             
-            except:
+            except Exception as e:
+                msg = f"tried to load '{info['fcn']}' from '{info['module']}' but not a module or path - aborting"
+                logging.info(msg)
+                logging.info(e)
                 pass
 
-        raise KeyError("missing 'module' or 'path' key when attempting to load class")
+        raise KeyError(msg)
         
 # use this YAML loader to detect duplicate keys in a config file
 # https://stackoverflow.com/a/76090386 

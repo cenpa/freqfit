@@ -9,7 +9,6 @@ from .experiment import Experiment
 from .guess import Guess
 
 from .models import constants as constants
-from .models.box_model_0vbb import box_model_0vbb_gen
 from .models.correlated_efficiency_0vbb import (
     correlated_efficiency_0vbb_gen,
 )
@@ -22,14 +21,9 @@ from .models.correlated_efficiency_0vbb_exponential_background import (
 from .models.correlated_efficiency_0vbb_linear_background import (
     correlated_efficiency_0vbb_linear_background_gen,
 )
-from .models.correlated_efficiency_NME_0vbb import (
-    correlated_efficiency_NME_0vbb_gen,
-)
+
 from .models.mjd_0vbb import mjd_0vbb_gen
-from .models.mjd_NME_0vbb import mjd_NME_0vbb_gen
-from .models.truncated_correlated_efficiency_0vbb import (
-    truncated_correlated_efficiency_0vbb_gen,
-)
+
 
 # default analysis window and width
 # window
@@ -299,9 +293,6 @@ def poisson_initial_guess(experiment):
         for ds in ds_BI:
             if (
                 isinstance(ds.model, correlated_efficiency_0vbb_gen)
-                or isinstance(ds.model, box_model_0vbb_gen)
-                or isinstance(ds.model, truncated_correlated_efficiency_0vbb_gen)
-                or isinstance(ds.model, correlated_efficiency_NME_0vbb_gen)
                 or isinstance(ds.model, correlated_efficiency_0vbb_correlate_delta_gen)
                 or isinstance(
                     ds.model, correlated_efficiency_0vbb_linear_background_gen

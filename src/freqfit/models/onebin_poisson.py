@@ -50,10 +50,8 @@ def nb_density(
 def nb_extendedrvs(
     S: float,
     B: float,
-    seed: int = SEED,
 ) -> np.array:
 
-    np.random.seed(seed)
 
     n_sig = np.random.poisson(S + B)
     

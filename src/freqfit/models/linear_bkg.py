@@ -154,7 +154,6 @@ def nb_extendedrvs(
     a: float,
     BI: float,
     exp: float,
-    seed: int = SEED,
 ) -> (np.array, int):
     """
     Parameters
@@ -169,7 +168,6 @@ def nb_extendedrvs(
         exposure
     """
 
-    np.random.seed(seed)
 
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 

@@ -1,0 +1,211 @@
+options:
+  backend: minuit
+  iminuit_precision: 1.0e-10
+  iminuit_tolerance: 1.0e-05
+  initial_guess_function: zero_nu_initial_guess
+  minimizer_options:
+    iterate: 100
+    ncall: 10000
+  name: scenario 2
+  scipy_minimizer: ~
+  test_statistic: t_mu_tilde
+  use_grid_rounding: true
+  user_gradient: false
+
+datasets:
+  p1:
+    combined_dataset: empty
+    costfunction: ExtendedUnbinnedNLL
+    data: [2000, 2150]
+    model:
+      fcn: correlated_efficiency_0vbb
+      module:  freqfit.models
+    model_parameters:
+      BI: BI
+      S: S
+      delta: delta_p1
+      eff: eff_p1
+      effunc: effunc_p1
+      effuncscale: alpha
+      exp: exp_p1
+      sigma: sigma_p1
+    try_to_combine: true
+
+  p2:
+    combined_dataset: empty
+    costfunction: ExtendedUnbinnedNLL
+    data: [2000]
+    model:
+      fcn: correlated_efficiency_0vbb
+      module:  freqfit.models
+    model_parameters:
+      BI: BI
+      S: S
+      delta: delta_p2
+      eff: eff_p2
+      effunc: effunc_p2
+      effuncscale: alpha
+      exp: exp_p2
+      sigma: sigma_p2
+    try_to_combine: true
+
+  p3:
+    combined_dataset: empty
+    costfunction: ExtendedUnbinnedNLL
+    data: []
+    model:
+      fcn: correlated_efficiency_0vbb
+      module:  freqfit.models
+    model_parameters:
+      BI: BI
+      S: S
+      delta: delta_p2
+      eff: eff_p2
+      effunc: effunc_p2
+      effuncscale: alpha
+      exp: exp_p2
+      sigma: sigma_p2
+    try_to_combine: true
+
+  p4:
+    combined_dataset: empty
+    costfunction: ExtendedUnbinnedNLL
+    data: []
+    model:
+      fcn: correlated_efficiency_0vbb
+      module:  freqfit.models
+    model_parameters:
+      BI: BI
+      S: S
+      delta: delta_p2
+      eff: eff_p2
+      effunc: effunc_p2
+      effuncscale: alpha
+      exp: exp_p2
+      sigma: sigma_p2
+    try_to_combine: true
+
+combined_datasets:
+  empty:
+    costfunction: ExtendedUnbinnedNLL
+    model:
+      fcn: correlated_efficiency_0vbb
+      module:  freqfit.models
+    model_parameters:
+      BI: BI
+      S: S
+      delta: delta_empty
+      eff: eff_empty
+      effunc: effunc_empty
+      effuncscale: alpha
+      exp: exp_empty
+      sigma: sigma_empty
+
+parameters:
+  S:
+    grid_rounding_num_decimals: 6
+    includeinfit: true
+    physical_limits: '[1.0e-9, None]'
+    value: 1.0e-09
+  BI:
+    grid_rounding_num_decimals: 6
+    includeinfit: true
+    limits: '[1.0e-9, None]'
+    value: 0.001
+  alpha:
+    grid_rounding_num_decimals: 2
+    includeinfit: false
+    value: 0.0
+
+  delta_p1:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 0.0
+    vary_by_constraint: false
+  eff_p1:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 0.5
+    vary_by_constraint: false
+  effunc_p1:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 0.05
+    vary_by_constraint: false
+  exp_p1:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 1.0
+    vary_by_constraint: false
+  sigma_p1:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 1.0
+    vary_by_constraint: false
+
+  delta_p2:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 0.0
+    vary_by_constraint: false
+  eff_p2:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 0.5
+    vary_by_constraint: false
+  effunc_p2:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 0.05
+    vary_by_constraint: false
+  exp_p2:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 1.0
+    vary_by_constraint: false
+  sigma_p2:
+    fix_if_no_data: true
+    grid_rounding_num_decimals: 3
+    includeinfit: false
+    value: 1.0
+    vary_by_constraint: false
+    
+  delta_empty:
+    value_from_combine: true
+    fix_if_no_data: true
+    includeinfit: true
+  eff_empty:
+    value_from_combine: true
+    fix_if_no_data: true
+  effunc_empty:
+    value_from_combine: true
+    fix_if_no_data: true
+  exp_empty:
+    value_from_combine: true
+    fix_if_no_data: true
+  sigma_empty:
+    value_from_combine: true  
+    fix_if_no_data: true
+    
+constraints:
+  constraint_alpha:
+    parameters: alpha
+    uncertainty: 1
+    values: 0  
+  constraint_delta_p1:
+    parameters: delta_p1
+    uncertainty: 1
+    values: 0  
+  constraint_delta_p2:
+    parameters: delta_p2
+    uncertainty: 1
+    values: 0  
