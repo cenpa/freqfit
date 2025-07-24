@@ -45,8 +45,8 @@ class Workspace:
                 parameters=self.parameters,
                 costfunction=ds["costfunction"],
                 name=dsname,
-                try_to_combine=ds['try_to_combine'] if 'try_to_combine' in ds else False,
-                combined_dataset=ds['combined_dataset'] if 'combined_dataset' in ds else None,
+                try_to_combine=self.options["try_to_combine_datasets"],
+                combined_dataset=ds['combined_dataset'],
                 use_user_gradient=self.options["use_user_gradient"],
                 use_log=self.options["use_log"],
             )
@@ -62,7 +62,7 @@ class Workspace:
                 parameters=self.parameters,
                 costfunction=ds["costfunction"],
                 name=dsname,
-                try_to_combine=ds['try_to_combine'],
+                try_to_combine=self.options["try_to_combine_datasets"],
                 combined_dataset=ds['combined_dataset'],
                 use_user_gradient=self.options["use_user_gradient"],
                 use_log=self.options["use_log"],                
@@ -78,7 +78,7 @@ class Workspace:
             dsname_tocombine = []
             for dsname, ds in datasets.items():
                 if (
-                    ds.try_to_combine
+                    self.options["try_to_combine_datasets"]
                     and ds.combined_dataset == cdsname
                     and ds.model.can_combine(ds.data, *ds._parlist)
                 ):
@@ -163,7 +163,7 @@ class Workspace:
             dsname_tocombine = []
             for dsname, ds in rvs_datasets.items():
                 if (
-                    ds.try_to_combine
+                    self.options["try_to_combine_datasets"]
                     and ds.combined_dataset == cdsname
                     and ds.model.can_combine(ds.data, *ds._parlist)
                 ):
@@ -327,6 +327,58 @@ class Workspace:
             if item not in config:
                 config[item] = {}
 
+        # options
+
+        # defaults
+        options_defaults = {
+            "backend"                   : "minuit"  ,   # "minuit" or "scipy"
+            "iminuit_precision"         : 1e-10     ,
+            "iminuit_strategy"          : 0         , 
+            "iminuit_tolerance"         : 1e-5      ,
+            "initial_guess"             : None      ,
+            "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
+            "num_cores"                 : 1         ,
+            "num_toys"                  : 1000      ,
+            "scan"                      : False     ,
+            "scipy_minimizer"           : None      ,
+            "seed_start"                : 0         ,
+            "try_to_combine_datasets"   : False     ,
+            "test_statistic"            : "t_mu"    ,   # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
+            "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing
+            "use_log"                   : False     ,
+            "use_user_gradient"         : False     ,
+        }
+
+        for key, val in options_defaults.items():
+            if key not in config["options"]:
+                config["options"][key] = val
+
+        for option, optionval in config["options"].items():
+            if optionval in ["none", "None"]:
+                config["options"][option] = None
+        
+        if config["options"]["backend"] not in ["minuit", "scipy"]:
+            raise NotImplementedError(
+              "backend is not set to 'minuit' or 'scipy'"  
+            )
+        
+        if not isinstance(config["options"]["minimizer_options"], dict):
+            raise ValueError("options: minimizer_options must be a dict")
+
+        if config["options"]["initial_guess"] is not None:
+            config["options"]["initial_guess"] = Workspace.load_class(config["options"]["initial_guess"])
+
+            if not issubclass(config["options"]["initial_guess"], Guess):
+                raise TypeError(f"initial guess must inherit from 'Guess'")
+
+            # instantiate guess class and set guess function
+            config["options"]["initial_guess"] = config["options"]["initial_guess"]().guess
+
+        if config["options"]["try_to_combine_datasets"]:
+            if "combined_datasets" not in config:
+                msg = (f"option 'try_to_combine_datasets' is True but `combined_datasets` is missing")
+                raise KeyError(msg) 
+
         # get list of models and cost functions to import
         models = []
         costfunctions = set()
@@ -336,11 +388,7 @@ class Workspace:
                 if item not in ds:
                     msg = f"Dataset '{dsname} has no '{item}'"
                     raise KeyError(msg)
-
-            for item in ["try_to_combine"]:
-                if item not in ds:
-                    ds[item] = False
-
+            
             if ds["model"] not in models:
                 models.append(ds["model"])
             
@@ -357,21 +405,21 @@ class Workspace:
 
             costfunctions.add(ds["costfunction"])                 
             
-            if ds["try_to_combine"]:
-                if "combined_dataset" not in ds or not ds["combined_dataset"]:
-                        msg = (f"Dataset `{dsname}` has `try_combine` `{ds['try_to_combine']}` but "
-                            + f"`combined_dataset` missing or empty")
-                        raise KeyError(msg)     
-                elif (("combined_datasets" not in config)
-                    or (ds["combined_dataset"] not in config["combined_datasets"])):
+            if config["options"]["try_to_combine_datasets"]:
+                if (ds["combined_dataset"] not in config["combined_datasets"]):
                         msg = (f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but " 
-                            + f"`combined_datasets` missing or does not contain `{ds['combined_dataset']}`")
+                            + f"`combined_datasets` does not contain `{ds['combined_dataset']}`")
                         raise KeyError(msg)   
                 elif (config["combined_datasets"][ds["combined_dataset"]]["model"] != ds["model"]):
                         msg = (f" Dataset `{dsname}` Model `{ds['model']['fcn']}` not the same as CombinedDataset "
                             + f"`{ds['combined_dataset']}` Model "
                             + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['fcn']}`")
                         raise ValueError(msg)
+
+            # set default after checking previous
+            for dsname, ds in config["datasets"].items():
+                if "combined_dataset" not in ds:
+                    ds["combined_dataset"] = None
 
         # constraints
         for ctname, constraint in config["constraints"].items():
@@ -528,53 +576,6 @@ class Workspace:
             for item in ["limits", "physical_limits"]:
                 if type(pardict[item]) is str:
                     pardict[item] = eval(pardict[item])
-
-        # options
-
-        # defaults
-        options_defaults = {
-            "backend"                   : "minuit"  ,   # "minuit" or "scipy"
-            "iminuit_precision"         : 1e-10     ,
-            "iminuit_strategy"          : 0         , 
-            "iminuit_tolerance"         : 1e-5      ,
-            "initial_guess"             : None      ,
-            "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
-            "num_cores"                 : 1         ,
-            "num_toys"                  : 1000      ,
-            "scan"                      : False     ,
-            "scipy_minimizer"           : None      ,
-            "seed_start"                : 0         ,
-            "try_to_combine_datasets"   : False     ,
-            "test_statistic"            : "t_mu"    ,   # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
-            "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing
-            "use_log"                   : False     ,
-            "use_user_gradient"         : False     ,
-        }
-
-        for key, val in options_defaults.items():
-            if key not in config["options"]:
-                config["options"][key] = val
-
-        for option, optionval in config["options"].items():
-            if optionval in ["none", "None"]:
-                config["options"][option] = None
-        
-        if config["options"]["backend"] not in ["minuit", "scipy"]:
-            raise NotImplementedError(
-              "backend is not set to 'minuit' or 'scipy'"  
-            )
-        
-        if not isinstance(config["options"]["minimizer_options"], dict):
-            raise ValueError("options: minimizer_options must be a dict")
-
-        if config["options"]["initial_guess"] is not None:
-            config["options"]["initial_guess"] = Workspace.load_class(config["options"]["initial_guess"])
-
-            if not issubclass(config["options"]["initial_guess"], Guess):
-                raise TypeError(f"initial guess must inherit from 'Guess'")
-
-            # instantiate guess class and set guess function
-            config["options"]["initial_guess"] = config["options"]["initial_guess"]().guess
 
         return config
 

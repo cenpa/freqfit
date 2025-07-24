@@ -92,11 +92,14 @@ class Dataset:
         # fit parameter names : index in self._parlist (same as in self._parlist_indices)
         self.fitparameters = {}  
 
-        self.try_to_combine = try_to_combine  # whether to attempt to combine this Dataset into a combined_dataset
-
-        if self.try_to_combine:
+        # whether to attempt to combine this Dataset into a combined_dataset
+        # flag says whether to combine but must pass the combined_dataset
+        self.try_to_combine = False 
+        self.combined_dataset = None
+        if try_to_combine and combined_dataset is not None:
+            self.try_to_combine = try_to_combine  
             self.combined_dataset = combined_dataset
-
+        
         # check that all passed parameters are valid
         for parameter in model_parameters:
             if parameter not in self.model.parameters:
