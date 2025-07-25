@@ -335,7 +335,7 @@ class Workspace:
             "iminuit_precision"         : 1e-10     ,
             "iminuit_strategy"          : 0         , 
             "iminuit_tolerance"         : 1e-5      ,
-            "initial_guess"             : None      ,
+            "initial_guess"             : {"fcn": None, "module": None},  
             "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
             "num_cores"                 : 1         ,
             "num_toys"                  : 1000      ,
@@ -365,7 +365,7 @@ class Workspace:
         if not isinstance(config["options"]["minimizer_options"], dict):
             raise ValueError("options: minimizer_options must be a dict")
 
-        if config["options"]["initial_guess"] is not None:
+        if config["options"]["initial_guess"]["fcn"] is not None:
             config["options"]["initial_guess"] = Workspace.load_class(config["options"]["initial_guess"])
 
             if not issubclass(config["options"]["initial_guess"], Guess):
@@ -558,6 +558,8 @@ class Workspace:
                 if cds["costfunction"] == costfunctionname:
                     cds["costfunction"] = costfunction
 
+        # parameters
+        
         # convert any limits from string to fpython object
         # set defaults if options missing
         for par, pardict in config["parameters"].items():

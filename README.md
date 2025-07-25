@@ -8,6 +8,10 @@ Unbinned frequentist analysis
 
 ---
 
+### TODO
+- Guess class is finished?
+- seeding of toys for parallelization
+
 ### config format
 
 Config files are `.yaml` files that contain several different dictionaries, described below. There are 5 primary dictionaries at the top level: `datasets`, `combined_datasets`, `parameters`, `constraints`, and `options`.
