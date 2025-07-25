@@ -1,7 +1,5 @@
 import numpy as np
-# from iminuit import Minuit
 
-# from freqfit.experiment import Experiment
 from freqfit.guess import Guess
 
 from freqfit.models import constants

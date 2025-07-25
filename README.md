@@ -9,7 +9,6 @@ Unbinned frequentist analysis
 ---
 
 ### TODO
-- Guess class is finished?
 - seeding of toys for parallelization
 
 ### config format
@@ -175,3 +174,9 @@ logging.basicConfig(level=logging.INFO) # or some other level
 
 ### Job Submission on CENPA-rocks
 Job submission scripts for L200 are located in the `submission` subfolder in this repo. `submit_l200.sh` is a script that creates the S-grid to scan over by calling `l200_s_grid.py` and then submits jobs to the cluster to generate toys at those s-points by calling `run_l200.sh` which uses `l200_toys.py` to run the toys. Toys at 0-signal are generated and tested against this s-grid of alternative hypotheses using the `l200_brazil.sh` submission script which calls `l200_brazil.py` to actually run these 0-signal toys.
+
+---
+# negative of the exponent of scientific notation of a number
+def negexpscinot(number):
+    base10 = np.log10(abs(number))
+    return int(-1 * np.floor(base10))
