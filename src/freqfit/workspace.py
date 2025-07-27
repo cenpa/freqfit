@@ -24,7 +24,7 @@ class Workspace:
         config: dict,
     ) -> None:
 
-        # load the config - done (move error checking to when loading the config and out of the other classes)
+        # load the config
 
         # load in the global options - defaults and error checking in load_config
         self.options = config["options"]
@@ -189,7 +189,7 @@ class Workspace:
                     rvs_datasets.pop(dsname)
 
         # vary the toy constraints
-        self.toy_constraints.rvs(toy_parameters, seed)
+        self.toy_constraints.rvs(toy_parameters)
 
         # create the toy Experiment
         self.toy = Experiment(
@@ -238,14 +238,17 @@ class Workspace:
         paramvalues_to_return = []
         num_drawn = []
         for i in range(num):
-            thistoy = self.make_toy(parameters=toy_parameters, seed=seeds[i])
+            thistoy = self.make_toy(toy_parameters=toy_parameters, seed=seeds[i])
             for j in range(len(profile_parameters)):
                 ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
                     profile_parameters=profile_parameters[j]
                 )
-            data_to_return.append(thistoy.toy_data_to_save)
-            paramvalues_to_return.append(thistoy.parameters_to_save)
-            num_drawn.append(thistoy.toy_num_drawn_to_save)
+
+            # TODO: add this info back in make_toy()
+            
+            # data_to_return.append(thistoy.toy_data_to_save)
+            # paramvalues_to_return.append(thistoy.parameters_to_save)
+            # num_drawn.append(thistoy.toy_num_drawn_to_save)
 
         if info:
             # Need to flatten the data_to_return in order to save it in h5py

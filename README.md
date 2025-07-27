@@ -10,6 +10,7 @@ Unbinned frequentist analysis
 
 ### TODO
 - seeding of toys for parallelization
+- move Limit into Workspace
 
 ### config format
 
