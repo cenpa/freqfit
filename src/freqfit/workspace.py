@@ -117,8 +117,8 @@ class Workspace:
         else:
             msg = "constraints were provided"
             logging.info(msg)
-            self.constraints = Constraints(config["constraints"])
-            self.toy_constraints = ToyConstraints(config["constraints"])
+            self.constraints = Constraints(config["constraints"], self.parameters)
+            self.toy_constraints = ToyConstraints(config["constraints"], self.parameters)
 
         # create the Experiment
         self.experiment = Experiment(
@@ -226,7 +226,7 @@ class Workspace:
             seeds = np.random.randint(1e9, size=num)
         
         if len(seeds) != num:
-                raise ValueError("Seeds must have same length as the number of toys!")
+            raise ValueError("Seeds must have same length as the number of toys!")
         
         if isinstance(profile_parameters, dict):
             profile_parameters = [profile_parameters]
@@ -567,9 +567,12 @@ class Workspace:
         # set defaults if options missing
         for par, pardict in config["parameters"].items():
 
-            for item in ["limits", "physical_limits", "value"]:
+            for item in ["limits", "physical_limits"]:
                 if item not in pardict:
-                    pardict[item] = None
+                    pardict[item] = [None, None]
+            
+            if "value" not in pardict:
+                pardict["value"] = None
 
             for item in ["includeinfit", "fixed", "fix_if_no_data", "value_from_combine"]:
                 if item not in pardict:
@@ -581,6 +584,13 @@ class Workspace:
             for item in ["limits", "physical_limits"]:
                 if type(pardict[item]) is str:
                     pardict[item] = eval(pardict[item])
+            
+            # TODO: change this so that "domain" is passed by user and controls everything?
+            pardict["domain"] = pardict["limits"]
+            if pardict["domain"][0] == None:
+                pardict["domain"][0] = -1*np.inf
+            if pardict["domain"][1] == None:
+                pardict["domain"][1] == np.inf
 
         return config
 

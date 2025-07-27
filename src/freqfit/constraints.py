@@ -4,6 +4,8 @@ A class that holds constraints, which can represent auxialiary measurements.
 import logging
 from copy import deepcopy
 
+from .parameters import Parameters
+
 import numpy as np
 from iminuit import cost
 
@@ -15,8 +17,10 @@ class Constraints:
     def __init__(
         self,
         constraints: dict,
+        parameters: Parameters,
     ) -> None:
 
+        self.parameters = parameters # Parameters object
         self._constraint_groups = {}
 
         # make groups of constraints based on what parameters are in them - to reduce overall # of constraints
@@ -145,11 +149,18 @@ class ToyConstraints(Constraints):
     def __init__(
         self,
         constraints: dict,
+        parameters: Parameters,
     ) -> None:
 
-        super().__init__(constraints)
+        super().__init__(constraints, parameters)
 
         self._base_constraint_groups = deepcopy(self._constraint_groups)
+
+        # check if parameters are all independent, draw from simpler distribution if so
+        for grpname, grp in self._base_constraint_groups.items():
+            grp["all_independent"] = False
+            if np.all(grp["covariance"] == np.diag(np.diagonal(grp["covariance"]))):
+                grp["all_independent"] = True
 
         return None
 
@@ -163,7 +174,10 @@ class ToyConstraints(Constraints):
 
         Parameters
         ----------
-
+        parameters
+            dict of parameter names and their new central values from which a random variate will be drawn.
+            Additional parameters will be ignored. If a parameter is not provided, the default central value will
+            be used.
         """
 
         self._constraint_groups = deepcopy(self._base_constraint_groups)
@@ -178,14 +192,22 @@ class ToyConstraints(Constraints):
                     if par in parameters:
                         grp["values"][i] = parameters[par]
 
-                # check if parameters are all independent, draw from simpler distribution if so
-                if np.all(grp["covariance"] == np.diag(np.diagonal(grp["covariance"]))):
-                    grp["values"] = np.random.normal(grp["values"], np.sqrt(np.diagonal(grp["covariance"])))
-                else:
-                    grp["values"] = np.random.multivariate_normal(
-                        grp["values"], grp["covariance"]
-                    )  # sooooooooo SLOW    
-
-        # TODO: check if variables within physical limits (or limits?)!   
+                gooddraws = False
+                while not gooddraws:
+                    # check if parameters are all independent, draw from simpler distribution if so
+                    if grp["all_independent"]:
+                        grp["values"] = np.random.normal(grp["values"], np.sqrt(np.diagonal(grp["covariance"])))
+                    else:
+                        grp["values"] = np.random.multivariate_normal(
+                            grp["values"], grp["covariance"]
+                        )  # sooooooooo SLOW    
+                    
+                    gooddraws = True
+                    # check whether drawn values are within the supported domain
+                    for i, par in enumerate(grp["parameters"].keys()):
+                        lims = self.parameters(par)["domain"]
+                        if not ((grp["values"][i] >= lims[0]) and (grp["values"][i] <= lims[1])):
+                            gooddraws = False
+                            break
 
         return 

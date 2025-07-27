@@ -11,6 +11,8 @@ Unbinned frequentist analysis
 ### TODO
 - seeding of toys for parallelization
 - move Limit into Workspace
+- get rid of "physical_limits"
+- make "domain" for parameters
 
 ### config format
 
