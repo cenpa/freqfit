@@ -154,13 +154,13 @@ class ToyConstraints(Constraints):
 
         super().__init__(constraints, parameters)
 
-        self._base_constraint_groups = deepcopy(self._constraint_groups)
-
         # check if parameters are all independent, draw from simpler distribution if so
-        for grpname, grp in self._base_constraint_groups.items():
+        for grpname, grp in self._constraint_groups.items():
             grp["all_independent"] = False
             if np.all(grp["covariance"] == np.diag(np.diagonal(grp["covariance"]))):
                 grp["all_independent"] = True
+
+        self._base_constraint_groups = deepcopy(self._constraint_groups)
 
         return None
 
@@ -180,7 +180,8 @@ class ToyConstraints(Constraints):
             be used.
         """
 
-        self._constraint_groups = deepcopy(self._base_constraint_groups)
+        #TODO: extremely slow! (added lines at **1**)
+        # self._constraint_groups = deepcopy(self._base_constraint_groups)
 
         for grpname, grp in self._constraint_groups.items():
 
@@ -191,6 +192,9 @@ class ToyConstraints(Constraints):
                     # set central values to the provided ones, keep the rest as is
                     if par in parameters:
                         grp["values"][i] = parameters[par]
+                    # added lines **1**
+                    else:
+                        grp["values"][i] = self._base_constraint_groups[grpname]["values"][i]
 
                 gooddraws = False
                 while not gooddraws:
@@ -206,6 +210,7 @@ class ToyConstraints(Constraints):
                     # check whether drawn values are within the supported domain
                     for i, par in enumerate(grp["parameters"].keys()):
                         lims = self.parameters(par)["domain"]
+
                         if not ((grp["values"][i] >= lims[0]) and (grp["values"][i] <= lims[1])):
                             gooddraws = False
                             break

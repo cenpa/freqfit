@@ -244,12 +244,13 @@ class Workspace:
                     profile_parameters=profile_parameters[j]
                 )
 
-            # TODO: add this info back in make_toy()
+            # TODO: add this info back in make_toy() or do not???
             
             # data_to_return.append(thistoy.toy_data_to_save)
             # paramvalues_to_return.append(thistoy.parameters_to_save)
             # num_drawn.append(thistoy.toy_num_drawn_to_save)
 
+        # TODO: should this be removed ??? record only seeds and ts?
         if info:
             # Need to flatten the data_to_return in order to save it in h5py
             data_to_return_flat = (
@@ -590,8 +591,8 @@ class Workspace:
             if pardict["domain"][0] == None:
                 pardict["domain"][0] = -1*np.inf
             if pardict["domain"][1] == None:
-                pardict["domain"][1] == np.inf
-
+                pardict["domain"][1] = np.inf
+                
         return config
 
     @staticmethod
