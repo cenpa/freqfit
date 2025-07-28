@@ -13,6 +13,7 @@ Unbinned frequentist analysis
 - move Limit into Workspace
 - get rid of "physical_limits"
 - make "domain" for parameters
+- [x] set "parameter of interest" in config and workspace
 
 ### config format
 

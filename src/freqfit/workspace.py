@@ -575,7 +575,7 @@ class Workspace:
             if "value" not in pardict:
                 pardict["value"] = None
 
-            for item in ["includeinfit", "fixed", "fix_if_no_data", "value_from_combine"]:
+            for item in ["includeinfit", "fixed", "fix_if_no_data", "value_from_combine", "poi"]:
                 if item not in pardict:
                     pardict[item] = False
             

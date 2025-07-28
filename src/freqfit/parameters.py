@@ -17,6 +17,15 @@ class Parameters:
 
         self.parameters = parameters
 
+        # get the parameters of interest
+        self.poi = []
+        for parname, par in self.parameters.items():
+            if par["poi"]:
+                self.poi.append(parname)
+
+                msg = (f"added '{parname}' as parameter of interest")
+                logging.info(msg)
+
         return None
 
     def __call__(
