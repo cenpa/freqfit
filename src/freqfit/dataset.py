@@ -152,10 +152,6 @@ class Dataset:
 
             # parameter was passed and should be included in the fit
             elif parameters(model_parameters[par])["includeinfit"]:
-                # limits set elsewhere
-                self.costfunction._parameters |= {
-                    model_parameters[par]: None
-                }
                 
                 self._parlist.append(model_parameters[par])
                 self._parlist_values.append(parameters(model_parameters[par])["value"])
@@ -323,6 +319,10 @@ class ToyDataset(Dataset):
         """
 
         self.reset()
+
+        # check that the user hasn't accidentally passed the full output of `profile`
+        if "fixed" in toy_parameters.keys():
+            raise KeyError("toy_parameters should be a dictionary parameter name : parameter value. Perhaps you meant to access the 'results' of a profile?")
 
         # for par, parval in parameters.items():
         #     if par in self._toy_pars:

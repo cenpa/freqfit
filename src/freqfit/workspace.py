@@ -4,6 +4,10 @@ Workspace class for freqfit that controls aspects of the statistical analysis.
 import importlib
 import numpy as np
 import yaml
+from numba import njit
+import multiprocessing as mp
+import h5py
+import os
 
 from .dataset import Dataset, ToyDataset, CombinedDataset
 from .parameters import Parameters
@@ -17,12 +21,27 @@ import logging
 log = logging.getLogger(__name__)
 
 SEED = 42
+NUM_CORES = 20  # TODO: change this to an environment variable, or something that detects available cores
 
 class Workspace:
     def __init__(
         self,
         config: dict,
+        jobid: int = 0,
+        numtoy: int = 0,
+        out_path: str = ".",
+        name: str = "",
+        overwrite_files: bool = False,
+        numcores: int = NUM_CORES,
     ) -> None:
+
+        # set internal variables relating to toy generation
+        self.jobid = jobid
+        self.name = name
+        self.numtoy = numtoy
+        self.out_path = out_path
+        self.numcores = numcores
+        self.overwrite_files = overwrite_files
 
         # load the config
 
@@ -149,6 +168,7 @@ class Workspace:
 
         # seed here
         np.random.seed(seed)
+        set_numba_random_seed(seed) # numba holds RNG seeds in thread local storage, so set it up here
 
         # vary the datasets
         rvs_datasets = {}
@@ -283,6 +303,363 @@ class Workspace:
             )
 
         return (ts, {})
+    
+    def scan_ts(
+        self, var_to_profile: str, var_values: np.array, profile_dict: dict = {}  # noqa:B006
+    ) -> np.array:
+        """
+        Parameters
+        ----------
+        var_values
+            The values of the variable to scan over
+        profile_dict
+            Other values of variables the user wants fixed during a scan
+
+        Returns
+        -------
+        ts
+            Value of the specified test statistic at the scanned values
+        """
+        # Create the arguments to multiprocess over
+        args = [
+            [{f"{var_to_profile}": float(xx), **profile_dict}] for xx in var_values
+        ]
+
+        with mp.Pool(self.numcores) as pool:
+            ts = pool.starmap(self.experiment.ts, args)
+        return ts
+        
+    def toy_ts_mp(
+            self,
+            parameters: dict,  # parameters and values needed to generate the toys
+            profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
+            num: int = 0,
+            info: bool = False, 
+        ):
+            """
+            Makes a number of toys and returns their test statistics. Multiprocessed
+            """
+            self.numtoy = num if (num!=0) else self.numtoy
+            toys_per_core = np.full(self.numcores, self.numtoy // self.numcores)
+            toys_per_core = np.insert(
+                toys_per_core, len(toys_per_core), self.numtoy % self.numcores
+            )
+
+            # remove any cores with 0 toys
+            index = np.argwhere(toys_per_core == 0)
+            toys_per_core = np.delete(toys_per_core, index)
+
+            # In order to ensure toys aren't correlated between experiments, use the experiment name to set the seed
+
+            experiment_seed = 0
+
+            for c in self.name:
+                experiment_seed += ord(c)
+
+            if experiment_seed > 2**31:
+                raise ValueError(
+                    "Experiment seed cannot be too large, try naming the experiment a smaller string."
+                )
+
+            # Pick the random seeds that we will pass to toys
+            seeds = np.arange(
+                experiment_seed + self.jobid * self.numtoy,
+                experiment_seed + (self.jobid + 1) * self.numtoy,
+            )
+            # seeds *= 5000  # need to multiply this by a large number because if seed numbers differ by fewer than num of datasets, then adjacent toys will have the same energies pulled but in different datasets
+            # # See line 115 in toys.py, thisseed = self.seed + i
+            # # If you have more than 5000 datasets, I am sorry
+            # if len(self.experiment.datasets.items()) > 5000:
+            #     raise ValueError(
+            #         "You need to change the spacing between seeds for completely uncorrelated toys."
+            #     )
+
+            if (seeds > 2**32).any():
+                raise ValueError(
+                    "Experiment seed cannot be too large, try multiplying the seeds by a smaller number."
+                )
+            seeds_per_toy = []
+
+            j = 0
+            for i, num in enumerate(toys_per_core):
+                seeds_per_toy.append(seeds[j : j + num])
+                j = j + num
+
+            args = [
+                [parameters, profile_parameters, num_toy, seeds_per_toy[i]]
+                for i, num_toy in enumerate(toys_per_core)
+            ]  # give each core multiple MCs
+
+            with mp.Pool(self.numcores) as pool:
+                return_args = pool.starmap(self.toy_ts, args)
+
+
+            if info:  
+                raise NotImplementedError("not yet implemented")  
+                ts = [arr[0] for arr in return_args]
+                data_to_return = [arr[1] for arr in return_args]
+                nuisance_to_return = [arr[2] for arr in return_args]
+                num_drawn_to_return = [arr[3] for arr in return_args]
+                ts_denom = [arr[4] for arr in return_args]
+                ts_num = [arr[5] for arr in return_args]
+                # data_to_return is a jagged list, each element is a 2d-array filled it nans
+                # First, find the maximum length of array we will need to pad to
+                maxlen = np.amax([len(arr[0]) for arr in data_to_return])
+                data_flattened = [e for arr in data_to_return for e in arr]
+
+                # Need to flatten the data_to_return in order to save it in h5py
+                data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
+                for i, arr in enumerate(data_flattened):
+                    data_to_return_flat[i, : len(arr)] = arr
+
+                maxlen = np.amax([len(arr[0]) for arr in num_drawn_to_return])
+                num_drawn_flattened = [e for arr in num_drawn_to_return for e in arr]
+
+                # Need to flatten the data_to_return in order to save it in h5py
+                num_drawn_to_return_flat = np.ones((len(num_drawn_flattened), maxlen)) * np.nan
+                for i, arr in enumerate(num_drawn_flattened):
+                    num_drawn_to_return_flat[i, : len(arr)] = arr
+            else:
+                ts = np.array([item[0][0, 0] for item in return_args])
+                return (
+                    np.hstack(ts), {}
+                )
+
+    def run_and_save_toys(
+        self,
+        toy_generation_profile_dict: dict, 
+        toy_test_profile_dict: dict,
+        toy_generation_profile_dict_override: dict = {}, # noqa:B006
+        toy_pars_override: dict = {}, # noqa:B006
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Generate toys at a hypothesis and test against a (potentially different) hypothesis.
+
+        Parameters
+        ----------
+        toy_generation_profile_dict
+            A dictionary of values we want to fix during all of the profiles that generate the parameters to seed the toys
+        
+        toy_test_profile_dict
+            A dicitonary of values we want to fix during the profile when computing the test statistic for a toy
+        
+        toy_generation_profile_dict_override
+            If a dict is passed, generate toys at these values instead of the ones profiled out during toy_generation_profile_dict
+        
+        toy_pars_override
+            If provided, use these parameters for toy generation, skipping any profiling
+        
+        overwrite_files
+            whether to overwrite result files if found, uses global option of SetLimit as default
+        
+        info
+            If false, save only the test statistics. If true, save lots of information
+        """
+        # handle the output file
+        if overwrite_files is None:
+            overwrite_files = self.overwrite_files
+
+        filename = (
+            self.out_path
+            + f"/{list(toy_generation_profile_dict.values())}_{self.jobid}.h5"
+        )
+
+        if os.path.exists(filename) and not overwrite_files:
+            msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
+            raise RuntimeError(msg)
+        
+        # First we need to pass the parameter values to generate the toys at: either profile out the variable we are scanning, or user supplied
+        if toy_pars_override:
+            toypars = toy_pars_override
+        else:
+            toypars = self.experiment.profile(
+                toy_generation_profile_dict
+            )["values"]
+        
+        # override any of the toypars if we need to 
+        if toy_generation_profile_dict_override:
+            for key in toy_generation_profile_dict_override:
+                if key in toypars.keys:
+                    toypars[key] = toy_generation_profile_dict_override[key]
+
+        # run the toys now
+        (
+            toyts,
+            info_dict
+        ) = self.toy_ts_mp(
+            toypars,
+            toy_test_profile_dict,
+            num=self.numtoy,
+        )
+
+       # Now, save the toys to a file
+
+        if overwrite_files and os.path.exists(filename):
+            msg = f"overwriting existing file {filename}"
+            logging.warning(msg)
+            os.remove(filename)
+
+        f = h5py.File(filename, "a")
+
+        dset = f.create_dataset(
+            "test_parameters_names", data=list(toy_test_profile_dict.keys())
+        )
+        dset = f.create_dataset(
+            "test_parameters_values", data=list(toy_test_profile_dict.values())
+        )
+
+        dset = f.create_dataset("ts", data=toyts)
+        dset.attrs.update(toy_generation_profile_dict)
+
+        if info:
+            raise NotImplementedError("not implemented, check back soon.")
+            # dset = f.create_dataset("ts_denom", data=toyts_denom)
+            # dset = f.create_dataset("ts_num", data=toyts_num)
+            # dset = f.create_dataset("s", data=scan_point)
+            # dset = f.create_dataset("Es", data=data)
+            # # dset = f.create_dataset("nuisance", data=nuisance)
+            # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+            # dset = f.create_dataset("seed", data=seeds_to_save)
+
+        f.close()
+
+        return None
+    
+    def run_hypothesis_test(
+        self,
+        poi_name: str,
+        poi_value: float,        
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Perform a hypothesis test for one parameter of interest. Toys are generated using the poi_value and tested against the poi_value
+        Parameters
+        ----------
+        poi_name
+            Name of the parameter of interest
+        poi_value
+            Value at which to generate and test toys
+
+        """
+        self.run_and_save_toys({poi_name: poi_value}, {poi_name: poi_value}, overwrite_files=overwrite_files, info=info)
+        return None
+    
+    def run_exclusion(
+        self,
+        poi_name: str,
+        poi_values: np.array,
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Perform an exclusion test for one parameter of interest. Toys are generated at 0 for the poi and tested against the poi_value
+        Parameters
+        ----------
+        poi_name
+            Name of the parameter of interest
+        poi_value
+            Value at which to test toys
+
+        """
+        # Add 0 to the scan points if it is not there
+        if 0.0 not in poi_values:
+            poi_values = np.insert(poi_values, 0, 0.0)
+        self.run_and_save_toys({poi_name: 0.0}, [{poi_name: scan_point} for scan_point in poi_values], overwrite_files=overwrite_files, info=info)
+        return None
+    
+    def run_discovery(
+        self,
+        poi_name: str,
+        poi_value: np.array,
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Perform a discovery test for one parameter of interest. Toys are generated at poi_value for the poi and tested against 0.0
+        Parameters
+        ----------
+        poi_name
+            Name of the parameter of interest
+        poi_value
+            Value at which to generate toys
+
+        """
+        self.run_and_save_toys({poi_name: poi_value}, {poi_name: 0.0}, overwrite_files=overwrite_files, info=info)
+        return None
+    
+    def run_coverage(
+        self,
+        poi_name: str,
+        poi_value: float,
+        coverage_values: np.array,
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Check the coverage. Toys are generated at poi_value for the poi and tested against all the coverage_values
+        Parameters
+        ----------
+        poi_name
+            Name of the parameter of interest
+        poi_value
+            Value at which to generate toys
+        coverage_values
+            Values at which to test toys
+        """
+        # check if the profile grid has the scan point in it, otherwise fail gracefully
+        if poi_value not in coverage_values:
+            raise ValueError(
+                f"{poi_value} not in user specified grid {coverage_values}!"
+            )
+        self.run_and_save_toys({poi_name: poi_value}, [{poi_name: scan_point} for scan_point in coverage_values], overwrite_files=overwrite_files, info=info)
+        return None
+    
+    def run_mismodel(
+        self,
+        poi_name: str,
+        poi_value: float,
+        mismodel_pars: dict,
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Compute test statistics under mismodeling. Toys are generated at poi_value and with mismodel_pars, but mismodel_pars are allowed to float during testing at poi_value
+        Parameters
+        ----------
+        poi_name
+            Name of the parameter of interest
+        poi_value
+            Value at which to generate and test toys
+        mismodel_pars
+            Additional parameters to fix during profiling for toy generation, but floated during testing
+        """
+        self.run_and_save_toys({poi_name: poi_value, **mismodel_pars}, {poi_name: poi_value}, overwrite_files=overwrite_files, info=info)
+        return None
+
+    def run_joint_profile(
+        self,
+        poi_name: str,
+        poi_value: float,
+        joint_profile_pars: dict,
+        overwrite_files: bool = None,
+        info: bool = False 
+    ):
+        """
+        Compute test statistics for multiple poi.  Toys are generated at poi_value and with joint_profile_pars, and are also tested agains poi_value and joint_profile_pars
+        Parameters
+        ----------
+        poi_name
+            Name of the parameter of interest
+        poi_value
+            Value at which to generate and test toys
+        mismodel_pars
+            Additional parameters to fix during profiling for toy generation and testing
+        """
+        self.run_and_save_toys({poi_name: poi_value, **joint_profile_pars}, {poi_name: poi_value, **joint_profile_pars}, overwrite_files=overwrite_files, info=info)
+        return None
 
     @classmethod
     def from_file(
@@ -651,3 +1028,7 @@ class UniqueKeyLoader(yaml.SafeLoader):
                 )
             mapping.add(each_key)
         return super().construct_mapping(node, deep)
+    
+@njit
+def set_numba_random_seed(seed):
+    np.random.seed(seed)
