@@ -420,7 +420,7 @@ class Workspace:
                 for i, arr in enumerate(num_drawn_flattened):
                     num_drawn_to_return_flat[i, : len(arr)] = arr
             else:
-                ts = np.array([item[0][0, 0] for item in return_args])
+                ts = np.array([item[0][0, :] for item in return_args])
                 return (
                     np.hstack(ts), {}
                 )
