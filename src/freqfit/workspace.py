@@ -28,28 +28,27 @@ class Workspace:
         self,
         config: dict,
         jobid: int = 0,
-        numtoy: int = 0,
-        out_path: str = ".",
-        name: str = "",
-        overwrite_files: bool = False,
-        numcores: int = NUM_CORES,
     ) -> None:
 
         # set internal variables relating to toy generation
         self.jobid = jobid
-        self.name = name
-        self.numtoy = numtoy
-        self.out_path = out_path
-        self.numcores = numcores
-        self.overwrite_files = overwrite_files
 
         # load the config
 
         # load in the global options - defaults and error checking in load_config
         self.options = config["options"]
-
+        self.out_path = self.options["out_path"]
+        self.numcores = self.options["numcores"]
+        self.overwrite_files = self.options["overwrite_files"]
+        self.name = self.options["name"]
+        self.numtoy = self.options["numtoy"]
+        
         msg = f"setting backend to {config['options']['backend']}"
         logging.info(msg)
+
+        if self.overwrite_files:
+            msg = f"overwrite files set to {self.overwrite_files}"
+            logging.warn(msg)
 
         # create the Parameters
         self.parameters = Parameters(config['parameters'])
@@ -732,6 +731,11 @@ class Workspace:
             "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing
             "use_log"                   : False     ,
             "use_user_gradient"         : False     ,
+            "out_path"                  : "."       ,
+            "numcores"                  : NUM_CORES ,
+            "overwrite_files"           : False     ,
+            "name"                      : ""        ,
+            "numtoy"                    : 0         ,
         }
 
         for key, val in options_defaults.items():
