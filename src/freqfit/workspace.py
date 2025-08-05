@@ -21,7 +21,7 @@ import logging
 log = logging.getLogger(__name__)
 
 SEED = 42
-NUM_CORES = 20  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = int(os.cpu_count() / 2)
 
 class Workspace:
     def __init__(
