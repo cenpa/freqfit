@@ -320,10 +320,6 @@ class ToyDataset(Dataset):
 
         self.reset()
 
-        # check that the user hasn't accidentally passed the full output of `profile`
-        if "fixed" in toy_parameters.keys():
-            raise KeyError("toy_parameters should be a dictionary parameter name : parameter value. Perhaps you meant to access the 'results' of a profile?")
-
         # for par, parval in parameters.items():
         #     if par in self._toy_pars:
         #         self._toy_pars[par][1] = parval

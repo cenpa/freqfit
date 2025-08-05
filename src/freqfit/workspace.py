@@ -170,6 +170,10 @@ class Workspace:
         np.random.seed(seed)
         set_numba_random_seed(seed) # numba holds RNG seeds in thread local storage, so set it up here
 
+        # check that the user hasn't accidentally passed the full output of `profile`
+        if "fixed" in toy_parameters.keys():
+            raise KeyError("toy_parameters should be a dictionary parameter name : parameter value. Perhaps you meant to access the 'results' of a profile?")
+
         # vary the datasets
         rvs_datasets = {}
         for dsname, ds in self._toy_datasets.items():
@@ -250,7 +254,7 @@ class Workspace:
         
         if isinstance(profile_parameters, dict):
             profile_parameters = [profile_parameters]
-
+        
         ts = np.zeros((len(profile_parameters), num))
         numerators = np.zeros((len(profile_parameters), num))
         denominators = np.zeros((len(profile_parameters), num))
