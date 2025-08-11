@@ -21,6 +21,7 @@ class Experiment:
         parameters: type[Parameters],
         constraints: type[Constraints],
         options: dict,
+        seed: int = 4,
     ) -> None:
         
         self.datasets = datasets 
@@ -28,6 +29,7 @@ class Experiment:
         self.options = options
         self.costfunction = None
         self.best = None
+        self.seed = seed
 
         # set initial guess function
         self.guessfcn = options["initial_guess"]
@@ -170,18 +172,22 @@ class Experiment:
                     options=self.options["minimizer_options"],
                 )
         except RuntimeError:
-            msg = "Experiment has invalid best fit"
+            msg = f"Experiment throwing NaN has invalid bestfit, seed {self.seed}"
             logging.debug(msg)
 
         if not self.minuit.valid:
-            msg = "Experiment has invalid best fit"
+            msg = f"Experiment has invalid best fit, seed {self.seed}"
             logging.debug(msg)
 
         self.best = self.grab_results()
 
+        # if "global_S" in self.best["values"]:
+        #     if self.best["values"]["global_S"] < 1e-20:
+        #         self.best = self.profile({"global_S": 0.0})
+
         if self.guess == self.best["values"]:
-            msg = "Experiment has best fit values very close to initial guess"
-            logging.debug(msg)
+            msg = f"Experiment has best fit values very close to initial guess, seed {self.seed}"
+            logging.warning(msg)
 
         return self.best
 
@@ -213,18 +219,18 @@ class Experiment:
                 )
 
         except RuntimeError:
-            msg = f"Experiment throwing NaN has invalid profile at {parameters}"
+            msg = f"Experiment throwing NaN has invalid profile at {parameters}, seed {self.seed}"
             logging.debug(msg)
 
         if not self.minuit.valid:
-            msg = "Experiment has invalid profile"
+            msg = f"Experiment has invalid profile, seed {self.seed}"
             logging.debug(msg)
 
         results = self.grab_results()
 
         if self.guess == results["values"]:
-            msg = "Experiment has profile fit values very close to initial guess"
-            logging.debug(msg)
+            msg = f"Experiment has profile fit values very close to initial guess, seed {self.seed}"
+            logging.warning(msg)
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():

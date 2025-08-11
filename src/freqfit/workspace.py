@@ -217,6 +217,7 @@ class Workspace:
             parameters=self.parameters, 
             constraints=self.toy_constraints, 
             options=self.options,
+            seed=seed,
             )  
 
         return self.toy    
@@ -265,10 +266,18 @@ class Workspace:
                 )
 
             # TODO: add this info back in make_toy() or do not???
-            
-            # data_to_return.append(thistoy.toy_data_to_save)
-            # paramvalues_to_return.append(thistoy.parameters_to_save)
-            # num_drawn.append(thistoy.toy_num_drawn_to_save)
+            if info:
+                data = []
+                nd = [0,0]
+                paramvalues_to_return = []
+                for ds in thistoy.datasets:
+                    data.extend(thistoy.datasets[ds].data[:])
+                    if hasattr(thistoy.datasets[ds], "num_drawn"):
+                        nd[0] += thistoy.datasets[ds].num_drawn[0]
+                        nd[1] += thistoy.datasets[ds].num_drawn[1]
+                data_to_return.append(data)
+                paramvalues_to_return.append(0)
+                num_drawn.append(nd)
 
         # TODO: should this be removed ??? record only seeds and ts?
         if info:
@@ -386,7 +395,7 @@ class Workspace:
                 j = j + num
 
             args = [
-                [parameters, profile_parameters, num_toy, seeds_per_toy[i]]
+                [parameters, profile_parameters, num_toy, seeds_per_toy[i], info]
                 for i, num_toy in enumerate(toys_per_core)
             ]  # give each core multiple MCs
 
@@ -395,30 +404,44 @@ class Workspace:
 
 
             if info:  
-                raise NotImplementedError("not yet implemented")  
-                ts = [arr[0] for arr in return_args]
-                data_to_return = [arr[1] for arr in return_args]
-                nuisance_to_return = [arr[2] for arr in return_args]
-                num_drawn_to_return = [arr[3] for arr in return_args]
-                ts_denom = [arr[4] for arr in return_args]
-                ts_num = [arr[5] for arr in return_args]
+                ts = np.array([item[0][0, :] for item in return_args])
+                data_to_return = [item for _, val in return_args for item in val["data"]]
                 # data_to_return is a jagged list, each element is a 2d-array filled it nans
                 # First, find the maximum length of array we will need to pad to
-                maxlen = np.amax([len(arr[0]) for arr in data_to_return])
+                maxlen = np.amax([len(arr) for arr in data_to_return])
                 data_flattened = [e for arr in data_to_return for e in arr]
 
-                # Need to flatten the data_to_return in order to save it in h5py
-                data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
-                for i, arr in enumerate(data_flattened):
-                    data_to_return_flat[i, : len(arr)] = arr
+                # # Need to flatten the data_to_return in order to save it in h5py
+                # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
+                # for i, arr in enumerate(data_flattened):
+                #     data_to_return_flat[i, : len(arr)] = arr
+                data_to_return_flat = data_flattened
+                return (
+                    np.hstack(ts), {"data": data_to_return_flat}
+                )
+                # ts = [arr[0] for arr in return_args]
+                # data_to_return = [arr[1] for arr in return_args]
+                # nuisance_to_return = [arr[2] for arr in return_args]
+                # num_drawn_to_return = [arr[3] for arr in return_args]
+                # ts_denom = [arr[4] for arr in return_args]
+                # ts_num = [arr[5] for arr in return_args]
+                # # data_to_return is a jagged list, each element is a 2d-array filled it nans
+                # # First, find the maximum length of array we will need to pad to
+                # maxlen = np.amax([len(arr[0]) for arr in data_to_return])
+                # data_flattened = [e for arr in data_to_return for e in arr]
 
-                maxlen = np.amax([len(arr[0]) for arr in num_drawn_to_return])
-                num_drawn_flattened = [e for arr in num_drawn_to_return for e in arr]
+                # # Need to flatten the data_to_return in order to save it in h5py
+                # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
+                # for i, arr in enumerate(data_flattened):
+                #     data_to_return_flat[i, : len(arr)] = arr
 
-                # Need to flatten the data_to_return in order to save it in h5py
-                num_drawn_to_return_flat = np.ones((len(num_drawn_flattened), maxlen)) * np.nan
-                for i, arr in enumerate(num_drawn_flattened):
-                    num_drawn_to_return_flat[i, : len(arr)] = arr
+                # maxlen = np.amax([len(arr[0]) for arr in num_drawn_to_return])
+                # num_drawn_flattened = [e for arr in num_drawn_to_return for e in arr]
+
+                # # Need to flatten the data_to_return in order to save it in h5py
+                # num_drawn_to_return_flat = np.ones((len(num_drawn_flattened), maxlen)) * np.nan
+                # for i, arr in enumerate(num_drawn_flattened):
+                #     num_drawn_to_return_flat[i, : len(arr)] = arr
             else:
                 ts = np.array([item[0][0, :] for item in return_args])
                 return (
@@ -492,6 +515,7 @@ class Workspace:
             toypars,
             toy_test_profile_dict,
             num=self.numtoy,
+            info=info
         )
 
        # Now, save the toys to a file
@@ -514,11 +538,11 @@ class Workspace:
         dset.attrs.update(toy_generation_profile_dict)
 
         if info:
-            raise NotImplementedError("not implemented, check back soon.")
+            # raise NotImplementedError("not implemented, check back soon.")
             # dset = f.create_dataset("ts_denom", data=toyts_denom)
             # dset = f.create_dataset("ts_num", data=toyts_num)
             # dset = f.create_dataset("s", data=scan_point)
-            # dset = f.create_dataset("Es", data=data)
+            dset = f.create_dataset("Es", data=info_dict["data"])
             # # dset = f.create_dataset("nuisance", data=nuisance)
             # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
             # dset = f.create_dataset("seed", data=seeds_to_save)
@@ -774,6 +798,7 @@ class Workspace:
                 models.append(ds["model"])
             
             if "toy_model" not in ds:
+                log.debug("`toy_model` not provided, using dataset model instead")
                 ds["toy_model"] = ds["model"]
 
             if ds["toy_model"] not in models:
