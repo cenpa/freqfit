@@ -21,35 +21,34 @@ import logging
 log = logging.getLogger(__name__)
 
 SEED = 42
-NUM_CORES = 20  # TODO: change this to an environment variable, or something that detects available cores
+NUM_CORES = int(os.cpu_count() / 2)
 
 class Workspace:
     def __init__(
         self,
         config: dict,
         jobid: int = 0,
-        numtoy: int = 0,
-        out_path: str = ".",
-        name: str = "",
-        overwrite_files: bool = False,
-        numcores: int = NUM_CORES,
     ) -> None:
 
         # set internal variables relating to toy generation
         self.jobid = jobid
-        self.name = name
-        self.numtoy = numtoy
-        self.out_path = out_path
-        self.numcores = numcores
-        self.overwrite_files = overwrite_files
 
         # load the config
 
         # load in the global options - defaults and error checking in load_config
         self.options = config["options"]
-
+        self.out_path = self.options["out_path"]
+        self.numcores = self.options["numcores"]
+        self.overwrite_files = self.options["overwrite_files"]
+        self.name = self.options["name"]
+        self.numtoy = self.options["numtoy"]
+        
         msg = f"setting backend to {config['options']['backend']}"
         logging.info(msg)
+
+        if self.overwrite_files:
+            msg = f"overwrite files set to {self.overwrite_files}"
+            logging.warn(msg)
 
         # create the Parameters
         self.parameters = Parameters(config['parameters'])
@@ -170,6 +169,10 @@ class Workspace:
         np.random.seed(seed)
         set_numba_random_seed(seed) # numba holds RNG seeds in thread local storage, so set it up here
 
+        # check that the user hasn't accidentally passed the full output of `profile`
+        if "fixed" in toy_parameters.keys():
+            raise KeyError("toy_parameters should be a dictionary parameter name : parameter value. Perhaps you meant to access the 'results' of a profile?")
+
         # vary the datasets
         rvs_datasets = {}
         for dsname, ds in self._toy_datasets.items():
@@ -251,7 +254,7 @@ class Workspace:
         
         if isinstance(profile_parameters, dict):
             profile_parameters = [profile_parameters]
-
+        
         ts = np.zeros((len(profile_parameters), num))
         numerators = np.zeros((len(profile_parameters), num))
         denominators = np.zeros((len(profile_parameters), num))
@@ -752,6 +755,11 @@ class Workspace:
             "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing
             "use_log"                   : False     ,
             "use_user_gradient"         : False     ,
+            "out_path"                  : "."       ,
+            "numcores"                  : NUM_CORES ,
+            "overwrite_files"           : False     ,
+            "name"                      : ""        ,
+            "numtoy"                    : 0         ,
         }
 
         for key, val in options_defaults.items():
