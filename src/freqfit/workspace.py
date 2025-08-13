@@ -818,17 +818,17 @@ class Workspace:
                 raise NotImplementedError(msg)   
 
             costfunctions.add(ds["costfunction"])                 
-            
-            if config["options"]["try_to_combine_datasets"]:
+                    
+            if config["options"]["try_to_combine_datasets"] and ds["combined_dataset"] is not None:
                 if (ds["combined_dataset"] not in config["combined_datasets"]):
-                        msg = (f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but " 
-                            + f"`combined_datasets` does not contain `{ds['combined_dataset']}`")
-                        raise KeyError(msg)   
+                    msg = (f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but " 
+                        + f"`combined_datasets` does not contain `{ds['combined_dataset']}`")
+                    raise KeyError(msg)   
                 elif (config["combined_datasets"][ds["combined_dataset"]]["model"] != ds["model"]):
-                        msg = (f" Dataset `{dsname}` Model `{ds['model']['fcn']}` not the same as CombinedDataset "
-                            + f"`{ds['combined_dataset']}` Model "
-                            + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['fcn']}`")
-                        raise ValueError(msg)
+                    msg = (f" Dataset `{dsname}` Model `{ds['model']['fcn']}` not the same as CombinedDataset "
+                        + f"`{ds['combined_dataset']}` Model "
+                        + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['fcn']}`")
+                    raise ValueError(msg)
 
             # set default after checking previous
             for dsname, ds in config["datasets"].items():

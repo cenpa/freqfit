@@ -714,7 +714,7 @@ class mjd_0vbb_gen(Model):
         delta = np.sum(deltas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
         tau = np.sum(taus * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
         frac = np.sum(fracs * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
-        gamma = np.sum(gamma * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+        gamma = np.sum(gammas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
 
         # these are fully correlated in this model so the direct sum is appropriate
         # (maybe still appropriate even if not fully correlated?)
@@ -741,7 +741,7 @@ class mjd_0vbb_gen(Model):
         This sets an arbitrary rule if this dataset can be combined with other datasets.
         In this case, if the dataset contains no data, then it can be combined, but more complex rules can be imposed.
         """
-        if len(a_Es) == 0:
+        if len(Es) == 0:
             return True
         else:
             return False
