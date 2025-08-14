@@ -102,14 +102,14 @@ class Experiment:
             if parname in self.minuit.parameters:
                 self.minuit.fixed[parname] = pardict["fixed"]
                 self.minuit.limits[parname] = pardict["limits"]
-                if use_physical_limits:
+                if use_physical_limits and (pardict["physical_limits"] is not None):
                     self.minuit.limits[parname] = pardict["physical_limits"]
                 
                 # fix those nuisance parameters which can be fixed because they are not part of a
                 # Dataset that has data
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
-                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
+                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]    
 
         return
     
@@ -173,7 +173,7 @@ class Experiment:
                 )
         except RuntimeError:
             msg = f"Experiment throwing NaN has invalid bestfit, seed {self.seed}"
-            logging.debug(msg)
+            logging.warning(msg)
 
         if not self.minuit.valid:
             msg = f"Experiment has invalid best fit, seed {self.seed}"

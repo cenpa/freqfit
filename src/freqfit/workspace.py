@@ -8,6 +8,7 @@ from numba import njit
 import multiprocessing as mp
 import h5py
 import os
+from copy import deepcopy
 
 from .dataset import Dataset, ToyDataset, CombinedDataset
 from .parameters import Parameters
@@ -68,6 +69,7 @@ class Workspace:
                 use_user_gradient=self.options["use_user_gradient"],
                 use_log=self.options["use_log"],
             )
+        self._datasets = deepcopy(datasets)
 
         # create the ToyDatasets
         self._toy_datasets = {}
@@ -978,9 +980,12 @@ class Workspace:
         # set defaults if options missing
         for par, pardict in config["parameters"].items():
 
-            for item in ["limits", "physical_limits"]:
+            for item in ["limits"]:
                 if item not in pardict:
                     pardict[item] = [None, None]
+            for item in ["physical_limits"]:
+                if item not in pardict:
+                    pardict[item] = None
             
             if "value" not in pardict:
                 pardict["value"] = None
