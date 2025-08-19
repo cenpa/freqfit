@@ -993,12 +993,11 @@ class Workspace:
         # set defaults if options missing
         for par, pardict in config["parameters"].items():
 
-            for item in ["limits"]:
-                if item not in pardict:
-                    pardict[item] = [None, None]
-            for item in ["physical_limits"]:
-                if item not in pardict:
-                    pardict[item] = None
+            if "limits" not in pardict:
+                pardict[item] = [None, None]
+
+            if "physical_limits" not in pardict:
+                pardict[item] = None
             
             if "value" not in pardict:
                 pardict["value"] = None
