@@ -994,10 +994,10 @@ class Workspace:
         for par, pardict in config["parameters"].items():
 
             if "limits" not in pardict:
-                pardict[item] = [None, None]
+                pardict["limits"] = [None, None]
 
             if "physical_limits" not in pardict:
-                pardict[item] = None
+                pardict["physical_limits"] = None
             
             if "value" not in pardict:
                 pardict["value"] = None
