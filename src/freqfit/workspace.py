@@ -9,6 +9,7 @@ import multiprocessing as mp
 import h5py
 import os
 from copy import deepcopy
+from collections import defaultdict
 
 from .dataset import Dataset, ToyDataset, CombinedDataset
 from .parameters import Parameters
@@ -231,7 +232,7 @@ class Workspace:
     def toy_ts(
         self,
         toy_parameters: dict, # parameters and values needed to generate the toys
-        profile_parameters: dict, # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict|list, # which parameters to fix and their value (rest are profiled)
         num: int = 1,
         seeds: np.array = None,   
         info: bool = False,     
@@ -315,7 +316,6 @@ class Workspace:
                 ts,
                 info_to_return,
             )
-
         return (ts, {})
     
     def scan_ts(
@@ -408,8 +408,9 @@ class Workspace:
                 return_args = pool.starmap(self.toy_ts, args)
 
 
+            # TODO: fix this up to get correct printout, esp. in 2D grid case
             if info:  
-                ts = np.array([item[0][0, :] for item in return_args])
+                ts = np.array([item[0][:] for item in return_args])
                 data_to_return = [item for _, val in return_args for item in val["data"]]
                 # data_to_return is a jagged list, each element is a 2d-array filled it nans
                 # First, find the maximum length of array we will need to pad to
@@ -448,7 +449,7 @@ class Workspace:
                 # for i, arr in enumerate(num_drawn_flattened):
                 #     num_drawn_to_return_flat[i, : len(arr)] = arr
             else:
-                ts = np.array([item[0][0, :] for item in return_args])
+                ts = np.array([item[0][:] for item in return_args])
                 return (
                     np.hstack(ts), {}
                 )
@@ -456,7 +457,7 @@ class Workspace:
     def run_and_save_toys(
         self,
         toy_generation_profile_dict: dict, 
-        toy_test_profile_dict: dict,
+        toy_test_profile_dict: dict|list,
         toy_generation_profile_dict_override: dict = {}, # noqa:B006
         toy_pars_override: dict = {}, # noqa:B006
         overwrite_files: bool = None,
@@ -531,6 +532,13 @@ class Workspace:
             os.remove(filename)
 
         f = h5py.File(filename, "a")
+
+        if isinstance(toy_test_profile_dict, list):
+            new_dict = defaultdict(list)
+            for d in toy_test_profile_dict:
+                for k, v in d.items():
+                    new_dict[k].append(v)
+            toy_test_profile_dict  = new_dict
 
         dset = f.create_dataset(
             "test_parameters_names", data=list(toy_test_profile_dict.keys())
@@ -651,6 +659,7 @@ class Workspace:
         poi_name: str,
         poi_value: float,
         mismodel_pars: dict,
+        coverage_values: np.array,
         overwrite_files: bool = None,
         info: bool = False 
     ):
@@ -665,7 +674,11 @@ class Workspace:
         mismodel_pars
             Additional parameters to fix during profiling for toy generation, but floated during testing
         """
-        self.run_and_save_toys({poi_name: poi_value, **mismodel_pars}, {poi_name: poi_value}, overwrite_files=overwrite_files, info=info)
+        if poi_value not in coverage_values:
+            raise ValueError(
+                f"{poi_value} not in user specified grid {coverage_values}!"
+            )
+        self.run_and_save_toys({poi_name: poi_value, **mismodel_pars}, [{poi_name: scan_point} for scan_point in coverage_values], overwrite_files=overwrite_files, info=info)
         return None
 
     def run_joint_profile(
