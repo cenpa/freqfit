@@ -834,7 +834,7 @@ class Workspace:
 
             costfunctions.add(ds["costfunction"])                 
                     
-            if config["options"]["try_to_combine_datasets"] and ds["combined_dataset"] is not None:
+            if config["options"]["try_to_combine_datasets"] and "combined_dataset" in ds and ds["combined_dataset"] is not None:
                 if (ds["combined_dataset"] not in config["combined_datasets"]):
                     msg = (f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but " 
                         + f"`combined_datasets` does not contain `{ds['combined_dataset']}`")
