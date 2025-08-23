@@ -136,9 +136,9 @@ class initial_guess_0vbb(Guess):
             BI_guesses.append(BI_guess)
 
         # Compute the total for the experiment, so that we can better guess an initial S value
-        sigma_expweighted = sigma_expweighted 
-        eff_expweighted = eff_expweighted
-        effunc_expweighted = effunc_expweighted 
+        sigma_expweighted = sigma_expweighted/totexp
+        eff_expweighted = eff_expweighted/totexp
+        effunc_expweighted = effunc_expweighted /totexp
 
         _, S_guess = self.guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted)
 
