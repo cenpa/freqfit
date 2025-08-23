@@ -10,6 +10,7 @@ import numpy as np
 from iminuit import Minuit
 
 from .constraints import Constraints
+from .dataset import CombinedDataset
 from .parameters import Parameters
 
 log = logging.getLogger(__name__)
@@ -82,6 +83,11 @@ class Experiment:
         # this function will also fix those fit parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
+
+        # check if there are no data so we can quickly return the test statistic
+        self.no_data= False
+        if len(self.datasets) == 1 and isinstance(self.datasets[list(self.datasets.keys())[0]], CombinedDataset):
+            self.no_data = True
 
     def minuit_reset(
         self,
@@ -259,6 +265,9 @@ class Experiment:
             Whether to use the stored best fit (default: `False`) or to recompute it (`True`). 
             See `experiment.bestfit()` for description.
         """
+        # If there are no data, then don't even bother minimizing
+        if self.no_data:
+            return 0, 0, 0
 
         use_physical_limits = False  # for t_mu and q_mu
         if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde":
