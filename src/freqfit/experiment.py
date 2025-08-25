@@ -265,9 +265,6 @@ class Experiment:
             Whether to use the stored best fit (default: `False`) or to recompute it (`True`). 
             See `experiment.bestfit()` for description.
         """
-        # If there are no data, then don't even bother minimizing
-        if self.no_data:
-            return 0, 0, 0
 
         use_physical_limits = False  # for t_mu and q_mu
         if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde":
