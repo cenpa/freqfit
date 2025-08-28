@@ -267,7 +267,7 @@ class Experiment:
         """
 
         use_physical_limits = False  # for t_mu and q_mu
-        if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde":
+        if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde" or self.options["test_statistic"] == "t_and_q_tilde":
             use_physical_limits = True
 
         denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
@@ -289,6 +289,15 @@ class Experiment:
         if ts < 0:
             msg = f"Experiment gave test statistic below zero: {ts}"
             logging.debug(msg)
+        
+        if self.options["test_statistic"] == "t_and_q_tilde":
+            for parname, parvalue in profile_parameters.items():
+                if self.best["values"][parname] > parvalue:
+                    q_mu = 0.0
+                else:
+                    q_mu = ts
+
+            ts = [ts, q_mu]
 
         # because these are already -2*ln(L) from iminuit
         return ts, denom, num

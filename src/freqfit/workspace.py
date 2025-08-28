@@ -259,6 +259,8 @@ class Workspace:
             profile_parameters = [profile_parameters]
         
         ts = np.zeros((len(profile_parameters), num))
+        if self.options["test_statistic"] == "t_and_q_tilde":
+            ts = np.zeros((len(profile_parameters), num, 2))
         numerators = np.zeros((len(profile_parameters), num))
         denominators = np.zeros((len(profile_parameters), num))
         data_to_return = []
