@@ -264,7 +264,6 @@ class Workspace:
         numerators = np.zeros((len(profile_parameters), num))
         denominators = np.zeros((len(profile_parameters), num))
         data_to_return = []
-        paramvalues_to_return = []
         num_drawn = []
         for i in range(num):
             thistoy = self.make_toy(toy_parameters=toy_parameters, seed=seeds[i])
@@ -277,14 +276,14 @@ class Workspace:
             if info:
                 data = []
                 nd = [0,0]
-                paramvalues_to_return = []
+                profiled_values_to_return = []
                 for ds in thistoy.datasets:
                     data.extend(thistoy.datasets[ds].data[:])
                     if hasattr(thistoy.datasets[ds], "num_drawn"):
                         nd[0] += thistoy.datasets[ds].num_drawn[0]
                         nd[1] += thistoy.datasets[ds].num_drawn[1]
                 data_to_return.append(data)
-                paramvalues_to_return.append(0)
+                profiled_values_to_return.append([thistoy.profiled_values[key] for key in self.options["profiled_params_to_save"]]) # NOTE: this does not check the keys 
                 num_drawn.append(nd)
 
         # TODO: should this be removed ??? record only seeds and ts?
@@ -308,7 +307,7 @@ class Workspace:
 
             info_to_return = {
                 "data": data_to_return_flat,
-                "paramvalues": paramvalues_to_return,
+                "profiled_values_to_return": profiled_values_to_return,
                 "num_drawn": num_drawn_to_return_flat,
                 "denominators": denominators,
                 "numerators": numerators,
@@ -423,10 +422,13 @@ class Workspace:
                 # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
                 # for i, arr in enumerate(data_flattened):
                 #     data_to_return_flat[i, : len(arr)] = arr
+                profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
                 data_to_return_flat = data_flattened
                 return (
-                    np.hstack(ts), {"data": data_to_return_flat}
+                    np.hstack(ts), {"data": data_to_return_flat, "profiled_values_to_return": profiled_values_to_return}
                 )
+            
+
                 # ts = [arr[0] for arr in return_args]
                 # data_to_return = [arr[1] for arr in return_args]
                 # nuisance_to_return = [arr[2] for arr in return_args]
@@ -558,6 +560,7 @@ class Workspace:
             # dset = f.create_dataset("ts_num", data=toyts_num)
             # dset = f.create_dataset("s", data=scan_point)
             dset = f.create_dataset("Es", data=info_dict["data"])
+            dset = f.create_dataset("profiled_values_to_return", data=info_dict["profiled_values_to_return"])
             # # dset = f.create_dataset("nuisance", data=nuisance)
             # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
             # dset = f.create_dataset("seed", data=seeds_to_save)
@@ -777,6 +780,7 @@ class Workspace:
             "overwrite_files"           : False     ,
             "name"                      : ""        ,
             "numtoy"                    : 0         ,
+            "profiled_params_to_save"   : []        , # list of parameter names to save their profiled values
         }
 
         for key, val in options_defaults.items():

@@ -242,6 +242,8 @@ class Experiment:
         for parname, parvalue in parameters.items():
             results["values"][parname] = parvalue
 
+        self.profiled_values = results["values"]
+
         return results
 
     def ts(
