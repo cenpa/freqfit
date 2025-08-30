@@ -422,7 +422,6 @@ class Workspace:
                 # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
                 # for i, arr in enumerate(data_flattened):
                 #     data_to_return_flat[i, : len(arr)] = arr
-                print(return_args)
                 profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
                 data_to_return_flat = data_flattened
                 return (
