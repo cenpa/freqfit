@@ -265,6 +265,7 @@ class Workspace:
         denominators = np.zeros((len(profile_parameters), num))
         data_to_return = []
         num_drawn = []
+        profiled_values_to_return = []
         for i in range(num):
             thistoy = self.make_toy(toy_parameters=toy_parameters, seed=seeds[i])
             for j in range(len(profile_parameters)):
@@ -276,10 +277,9 @@ class Workspace:
             if info:
                 data = []
                 nd = [0,0]
-                profiled_values_to_return = []
                 for ds in thistoy.datasets:
                     data.extend(thistoy.datasets[ds].data[:])
-                    if hasattr(thistoy.datasets[ds], "num_drawn"):
+                    if hasattr(thistoy.datasets[ds], "num_drawn"): # this is SO slow, see if we can save this info earlier on
                         nd[0] += thistoy.datasets[ds].num_drawn[0]
                         nd[1] += thistoy.datasets[ds].num_drawn[1]
                 data_to_return.append(data)
@@ -422,6 +422,7 @@ class Workspace:
                 # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
                 # for i, arr in enumerate(data_flattened):
                 #     data_to_return_flat[i, : len(arr)] = arr
+                print(return_args)
                 profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
                 data_to_return_flat = data_flattened
                 return (
