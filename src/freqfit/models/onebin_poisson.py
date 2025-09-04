@@ -1,7 +1,7 @@
 import numba as nb
 import numpy as np
 
-from freqfit.utils import inspectparameters
+from freqfit.model import Model
 
 nb_kwd = {
     "nopython": True,
@@ -11,8 +11,6 @@ nb_kwd = {
     "fastmath": True,
     "inline": "always",
 }
-
-SEED = 42  # set the default random seed
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
@@ -52,10 +50,8 @@ def nb_density(
 def nb_extendedrvs(
     S: float,
     B: float,
-    seed: int = SEED,
 ) -> np.array:
 
-    np.random.seed(seed)
 
     n_sig = np.random.poisson(S + B)
     
@@ -63,9 +59,9 @@ def nb_extendedrvs(
 
     return Es, (n_sig, 0)
 
-class onebin_poisson_gen:
+class onebin_poisson_gen(Model):
     def __init__(self):
-        self.parameters = inspectparameters(self.density)
+        self.parameters = self.inspectparameters(self.density)
         pass
 
     def pdf(
@@ -76,6 +72,14 @@ class onebin_poisson_gen:
     ) -> np.array:
         return nb_pdf(Es, S, B)
 
+    def logpdf(
+        self,
+        Es: np.array,
+        S: float,
+        B: float,
+    ) -> np.array:
+        return np.log(nb_pdf(Es, S, B))
+
     # for iminuit ExtendedUnbinnedNLL
     def density(
         self,
@@ -85,12 +89,53 @@ class onebin_poisson_gen:
     ) -> np.array:
         return nb_density(Es, S, B)
 
+    def logdensity(
+        self,
+        Es: np.array,
+        S: float,
+        B: float,
+    ) -> np.array:
+        return np.log(nb_density(Es, S, B))
+
+    def graddensity(
+        self,
+        Es: np.array,
+        S: float,
+        B: float,
+    ) -> np.array:
+        raise NotImplementedError
+        return
+
+    def rvs(
+        self,
+        S: float,
+        B: float,
+    ) -> np.array:
+        raise NotImplementedError
+        return 
+
     def extendedrvs(
         self,
         S: float,
         B: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, B, seed=seed)
+        return nb_extendedrvs(S, B)
+
+    # not supported
+    def combine(
+        self,
+        datasets: list,#List[Tuple[np.array,...],...],
+    ) -> list:
+        raise NotImplementedError
+        return
+
+    # not supported
+    def can_combine(
+        self,
+        Es: np.array,
+        S: float,
+        B: float,
+    ) -> bool:
+        return False
 
 onebin_poisson = onebin_poisson_gen()

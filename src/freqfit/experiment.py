@@ -1,6 +1,7 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
+from collections.abc import Callable
 import itertools
 import logging
 from copy import deepcopy
@@ -8,271 +9,85 @@ from copy import deepcopy
 import numpy as np
 from iminuit import Minuit
 
-from . import initial_guesses
-from .superset import Superset
-from .toy import Toy
-from .utils import grab_results, load_config
-
-SEED = 42
+from .constraints import Constraints
+from .dataset import CombinedDataset
+from .parameters import Parameters
 
 log = logging.getLogger(__name__)
 
-
-class Experiment(Superset):
+class Experiment:
     def __init__(
         self,
-        config: dict,
-        name: str = "",
+        datasets: dict,
+        parameters: type[Parameters],
+        constraints: type[Constraints],
+        options: dict,
+        seed: int = 4,
     ) -> None:
-        self.toy = None  # the last Toy from this experiment
-        self.best = None  # to store the best fit result
-        self.guess = None  # store the initial guess
-        self.minuit = None  # Minuit object
+        
+        self.datasets = datasets 
+        self.parameters = parameters
+        self.options = options
+        self.costfunction = None
+        self.best = None
+        self.seed = seed
 
-        self.try_to_combine_datasets = False
-        self.test_statistic = "t_mu"
-
-        # minimization options
-        self.backend = "minuit"  # "minuit" or "scipy"
-        self.scipy_minimizer = None
-        self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
-        self.iminuit_tolerance = 1e-5  # tolerance for iminuit or other minimizer
-        self.iminuit_precision = 1e-10  # precision for the Iminuit minimizer, especially important for scipy minimizers
-        self.iminuit_strategy = 0
-        self.minimizer_options = {}  # dict of options to pass to the iminuit minimizer
-        self.use_grid_rounding = False  # whether to stick parameters on a grid when evaluating the test statistic after minimizing
-        self.grid_rounding_num_decimals = (
-            {}
-        )  # dict telling us how many decimals to round the parameters to when grid rounding
-
-        self.scan = False
-        self.scan_grid = None  # this is a dictionary, each key is a fit parameter and its values are the parameter values to scan along in one dimension
-        self.user_gradient = (
-            False  # option to use a user-specified density gradient for a model
-        )
-        self.data = (
-            []
-        )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
-        self.initial_guess_function = None
-
-        self.fixed_bc_no_data = (
-            {}
-        )  # check which nuisance parameters can be fixed in the fit due to no data
-
-        combined_datasets = None
-        if "options" in config:
-            if "try_to_combine_datasets" in config["options"]:
-                self.try_to_combine_datasets = config["options"][
-                    "try_to_combine_datasets"
-                ]
-                if "combined_datasets" in config:
-                    combined_datasets = config["combined_datasets"]
-                    msg = "found 'combined_datasets' in config"
-                    logging.info(msg)
-
-            if "name" in config["options"] and (name == ""):
-                name = config["options"]["name"]
-
-            if "backend" in config["options"]:
-                self.backend = config["options"]["backend"]
-
-            if "iminuit_tolerance" in config["options"]:
-                self.iminuit_tolerance = config["options"]["iminuit_tolerance"]
-
-            if "iminuit_precision" in config["options"]:
-                self.iminuit_precision = config["options"]["iminuit_precision"]
-
-            if "minimizer_options" in config["options"]:
-                self.minimizer_options = config["options"]["minimizer_options"]
-
-                if not isinstance(self.minimizer_options, dict):
-                    raise ValueError("minimizer_options must be a dictionary")
-
-            if self.backend == "scipy":
-                if "scipy_minimizer" in config["options"]:
-                    self.scipy_minimizer = config["options"]["scipy_minimizer"]
-                    if self.scipy_minimizer not in [
-                        "Nelder-Mead",
-                        "Powell",
-                        "CG",
-                        "BFGS",
-                        "Newton-CG",
-                        "L-BFGS-B",
-                        "TNC",
-                        "COBYLA",
-                        "COBYQA",
-                        "SLSQP",
-                        "trust-constr",
-                        "dogleg",
-                        "trust-ncg",
-                        "trust-exact",
-                        "trust-krylov",
-                        None,
-                    ]:
-                        raise NotImplementedError(
-                            f"{self.scipy_minimizer} is not a valid minimizer"
-                        )
-
-            if "user_gradient" in config["options"]:
-                self.user_gradient = config["options"]["user_gradient"]
-
-            if "use_log" in config["options"]:
-                self.use_log = config["options"]["use_log"]
-
-            if "scan" in config["options"]:
-                self.scan = config["options"]["scan"]
-
-                if "scan_grid" in config["options"]:
-                    self.scan_grid = config["options"]["scan_grid"]
-
-            if "initial_guess_function" in config["options"]:
-                self.initial_guess_function = config["options"][
-                    "initial_guess_function"
-                ]
-
-            if "use_grid_rounding" in config["options"]:
-                self.use_grid_rounding = config["options"]["use_grid_rounding"]
-                logging.info("using grid rounding")
-
-            if "test_statistic" in config["options"]:
-                if config["options"]["test_statistic"] in [
-                    "t_mu",
-                    "t_mu_tilde",
-                    "q_mu",
-                    "q_mu_tilde",
-                ]:
-                    self.test_statistic = config["options"]["test_statistic"]
-                    msg = f"setting test statistic: {self.test_statistic}"
-                    logging.info(msg)
-            else:
-                msg = "setting test statistic to default: t_mu"
-                logging.info(msg)
-
-        constraints = None
-        if "constraints" in config:
-            constraints = config["constraints"]
-            msg = "found 'constraints' in config"
-            logging.info(msg)
-        else:
-            msg = "did not find 'constraints' in config"
-            logging.info(msg)
-
-        super().__init__(
-            datasets=config["datasets"],
-            parameters=config["parameters"],
-            constraints=constraints,
-            combined_datasets=combined_datasets,
-            name=name,
-            try_to_combine_datasets=self.try_to_combine_datasets,
-            user_gradient=self.user_gradient,
-            use_log=self.use_log,
-        )
-
-        # get the fit parameters and set the parameter initial values
-        self.guess = self.initialguess()
-        self.minuit = Minuit(self.costfunction, **self.guess)
-        self.minuit.tol = self.iminuit_tolerance  # set the tolerance
-        self.minuit.precision = self.iminuit_precision
-        self.minuit.strategy = self.iminuit_strategy
-
-        # raise a RunTime error if function evaluates to NaN
-        self.minuit.throw_nan = True
+        # set initial guess function
+        self.guessfcn = options["initial_guess"]
+        if self.guessfcn is None:
+            self.guessfcn = initial_guess
 
         # check which nuisance parameters can be fixed in the fit due to no data
+        self.fixed_bc_no_data = {}  
 
-        # find which parameters are part of Datasets that have data
-        parstofitthathavedata = set()
-        for datasetname in self.datasets:
-            # check if there is some data
-            if self.datasets[datasetname].data.size > 0:
-                # Add the data to self.data
-                self.data.extend(self.datasets[datasetname].data)
-                # add the fit parameters of this Dataset if there is some data
-                for fitpar in self.datasets[datasetname].fitparameters:
-                    parstofitthathavedata.add(fitpar)
+        # get the parameters of the fit
+        self.fitparameters = parameters.get_fitparameters(self.datasets)
+
+        # add the costfunctions together
+        first = True
+        for dsname, ds in self.datasets.items():
+            if first:
+                self.costfunction = ds.costfunction
+                first = False
+            else:
+                self.costfunction += ds.costfunction
+        
+        if constraints:
+            fit_constraints = constraints.get_cost(self.fitparameters)
+
+            # possible that all no constraints apply to these fit parameters
+            if fit_constraints:
+                self.costfunction += fit_constraints
+
+        # evaluate the initial guess and store it for later
+        self.guess = self.guessfcn(self)
+
+        # create the Minuit object
+        self.minuit = Minuit(self.costfunction, **self.guess)
+
+        # set Minuit options
+        self.minuit.tol = options["iminuit_tolerance"]  # set the tolerance
+        self.minuit.precision = options["iminuit_precision"]
+        self.minuit.strategy = options["iminuit_strategy"]
+        self.minuit.throw_nan = True # raise a RunTime error if function evaluates to NaN
+
+        # get fit parameters that are only part of Datasets with no data
+        parsnodata = self.parameters.get_fitparameters(self.datasets, nodata=True)
 
         # now check which fit parameters can be fixed if no data and are not part of a Dataset that has data
-        for parname in self.fitparameters:
-            if (
-                "fix_if_no_data" in self.parameters[parname]
-                and self.parameters[parname]["fix_if_no_data"]
-            ):
-                # check if this parameter is part of a Dataset that has data
-                if parname not in parstofitthathavedata:
-                    self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]
-
-        # set the grid rounding
-        if self.use_grid_rounding:
-            for parname in list(config["parameters"].keys()):
-                if "grid_rounding_num_decimals" in self.parameters[parname]:
-                    self.grid_rounding_num_decimals[parname] = self.parameters[parname][
-                        "grid_rounding_num_decimals"
-                    ]
-                else:
-                    self.grid_rounding_num_decimals[parname] = 128  # something big
+        for parname in parsnodata:
+            if parameters(parname)["fix_if_no_data"]:
+                self.fixed_bc_no_data[parname] = self.parameters(parname)["value"]
 
         # to set limits and fixed variables
         # this function will also fix those fit parameters which can be fixed because they are not part of a
         # Dataset that has data
         self.minuit_reset()
 
-        # If scan is not none, initialize the hypercube grid
-        if (self.scan) and (self.scan_grid is not None):
-            self.hypercube_grid = self.create_hypercube(self.scan_grid)
-
-    @classmethod
-    def file(
-        cls,
-        file: str,
-        name: str = "",
-    ):
-        logging.warning('Experiment.file() will be deprecated, use Experiment.from_file() instead')
-        config = load_config(file=file)
-        return cls(config=config, name=name)
-
-    @classmethod
-    def from_file(
-        cls,
-        file: str,
-        name: str = "",
-    ):
-        config = load_config(file=file)
-        return cls(config=config, name=name)
-
-    @classmethod
-    def from_dict(
-        cls,
-        input: str,
-        name: str = "",
-    ):
-        config = load_config(file=input)
-        return cls(config=config, name=name)
-        
-    def initialguess(
-        self,
-    ) -> dict:
-        if self.initial_guess_function is None:
-            guess = {
-                fitpar: self.parameters[fitpar]["value"]
-                if "value" in self.parameters[fitpar]
-                else None
-                for fitpar in self.fitparameters
-            }
-
-        else:
-            func = getattr(initial_guesses, self.initial_guess_function)
-            guess = func(self)
-
-        # for fitpar, value in guess.items():
-        #     if value is None:
-        #         guess[fitpar] = 1e-9
-
-        # could put other stuff here to get a better initial guess though probably that should be done
-        # somewhere specific to the analysis. Or maybe this function could call something for the analysis.
-        # eh, probably better to make the initial guess elsewhere and stick it in the config file.
-        # for that reason, I'm commenting out the few lines above.
-
-        return guess
+        # check if there are no data so we can quickly return the test statistic
+        self.no_data= False
+        if len(self.datasets) == 1 and isinstance(self.datasets[list(self.datasets.keys())[0]], CombinedDataset):
+            self.no_data = True
 
     def minuit_reset(
         self,
@@ -284,31 +99,54 @@ class Experiment(Superset):
         self.minuit.reset()
 
         # Restore the first initial guess
-        self.minuit.values[:] = list(self.guess.values())
+        for key in self.guess.keys():
+            self.minuit.values[key] = self.guess[key]
 
         # overwrite the limits
-        # note that this information can also be contained in a Dataset when instantiated
-        # and is overwritten here
-
         # also set which parameters are fixed
-        for parname, pardict in self.parameters.items():
+        for parname, pardict in self.fitparameters.items():
             if parname in self.minuit.parameters:
-                self.minuit.fixed[parname] = False
-                self.minuit.limits[parname] = (-1.0 * np.inf, np.inf)
-
-                if "limits" in pardict:
-                    self.minuit.limits[parname] = pardict["limits"]
-                if use_physical_limits and "physical_limits" in pardict:
+                self.minuit.fixed[parname] = pardict["fixed"]
+                self.minuit.limits[parname] = pardict["limits"]
+                if use_physical_limits and (pardict["physical_limits"] is not None):
                     self.minuit.limits[parname] = pardict["physical_limits"]
-                if "fixed" in pardict:
-                    self.minuit.fixed[parname] = pardict["fixed"]
+                
                 # fix those nuisance parameters which can be fixed because they are not part of a
                 # Dataset that has data
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
-                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
+                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]    
 
         return
+    
+    def grab_results(
+        self,
+    ) -> dict:
+        # I checked whether we need to shallow/deep copy these and it seems like we do not
+
+        toreturn = {}
+        toreturn["errors"] = self.minuit.errors.to_dict()  # returns dict
+        toreturn["fixed"] = self.minuit.fixed.to_dict()  # returns dict
+        toreturn["fval"] = self.minuit.fval  # returns float
+        toreturn["nfit"] = self.minuit.nfit  # returns int
+        toreturn["npar"] = self.minuit.npar  # returns int
+        toreturn["parameters"] = self.minuit.parameters  # returns tuple of str
+        toreturn["tol"] = self.minuit.tol  # returns float
+        toreturn["valid"] = self.minuit.valid  # returns bool
+        toreturn["values"] = self.minuit.values.to_dict()  # returns dict
+
+        if self.options["use_grid_rounding"]:
+            toreturn["values"] = {
+                key: np.round(value, self.parameters(key)["grid_rounding_num_decimals"])
+                for key, value in self.minuit.values.to_dict().items()
+            }  # returns dict
+
+            # overwrite the fval at the truncated params point in parameter space
+            toreturn["fval"] = self.minuit._fcn(
+                toreturn["values"].values()
+            )  
+
+        return toreturn
 
     def bestfit(
         self,
@@ -331,56 +169,31 @@ class Experiment(Superset):
         # remove any previous minimizations
         self.minuit_reset(use_physical_limits=use_physical_limits)
 
-        if self.scan:
-            y = np.empty(len(self.hypercube_grid))
-            for i in range(len(self.hypercube_grid)):
-                y[i] = self.minuit._fcn(self.hypercube_grid[i])
+        try:
+            if self.options["backend"] == "minuit":
+                self.minuit.migrad(**self.options["minimizer_options"])
+            else: # scipy
+                self.minuit.scipy(
+                    method=self.scipy_minimizer, 
+                    options=self.options["minimizer_options"],
+                )
+        except RuntimeError:
+            msg = f"Experiment throwing NaN has invalid bestfit, seed {self.seed}"
+            logging.warning(msg)
 
-            best = np.min(y)
-            ibest = np.argmin(y)
+        if not self.minuit.valid:
+            msg = f"Experiment has invalid best fit, seed {self.seed}"
+            logging.debug(msg)
 
-            self.best = {
-                "fval": best,
-                "values": {},
-                "valid": True,
-            }  # TODO: add the rest of return values of interest, like parameter names at minimum
-            for par in self.minuit.parameters:
-                ipar, vpar = self.minuit._normalize_key(par)
-                self.best["values"][par] = self.hypercube_grid[ibest][ipar]
+        self.best = self.grab_results()
 
-        else:
-            try:
-                if self.backend == "minuit":
-                    self.minuit.migrad(**self.minimizer_options)
-                elif self.backend == "scipy":
-                    self.minuit.scipy(
-                        method=self.scipy_minimizer, options=self.minimizer_options
-                    )
-                else:
-                    raise NotImplementedError(
-                        "Iminuit backend is not set to `minuit` or `scipy`"
-                    )
-            except RuntimeError:
-                msg = "`Experiment` has invalid best fit"
-                logging.debug(msg)
-
-            if not self.minuit.valid:
-                msg = "`Experiment` has invalid best fit"
-                logging.debug(msg)
-
-            self.best = grab_results(
-                self.minuit,
-                use_grid_rounding=self.use_grid_rounding,
-                grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-            )
-
-        if "global_S" in self.best["values"]:
-            if self.best["values"]["global_S"] < 1e-20:
-                self.best = self.profile({"global_S": 0.0})
+        # if "global_S" in self.best["values"]:
+        #     if self.best["values"]["global_S"] < 1e-20:
+        #         self.best = self.profile({"global_S": 0.0})
 
         if self.guess == self.best["values"]:
-            msg = "`Experiment` has best fit values very close to initial guess"
-            logging.debug(msg)
+            msg = f"Experiment has best fit values very close to initial guess, seed {self.seed}"
+            logging.warning(msg)
 
         return self.best
 
@@ -402,87 +215,69 @@ class Experiment(Superset):
             self.minuit.fixed[parname] = True
             self.minuit.values[parname] = parvalue
 
-        if self.scan:
-            # need to remake the hypercube because there are now fewer parameters
-            # pop the fixed parameters from the supplied scan_grid
-            new_grid_dict = deepcopy(self.scan_grid)
-            for parname in parameters.keys():
-                if parname in new_grid_dict.keys():
-                    new_grid_dict.pop(parname)
-            hypercube_grid = self.create_hypercube(new_grid_dict)
+        try:
+            if self.options["backend"] == "minuit":
+                self.minuit.migrad(**self.options["minimizer_options"])
+            else: # scipy
+                self.minuit.scipy(
+                    method=self.scipy_minimizer, 
+                    options=self.options["minimizer_options"],
+                )
 
-            y = np.empty(len(hypercube_grid))
-            for i in range(len(hypercube_grid)):
-                y[i] = self.minuit._fcn(hypercube_grid[i])
+        except RuntimeError:
+            msg = f"Experiment throwing NaN has invalid profile at {parameters}, seed {self.seed}"
+            logging.debug(msg)
 
-            best = np.min(y)
-            ibest = np.argmin(y)
-            results = {
-                "fval": best,
-                "values": {},
-                "valid": True,
-            }  # TODO: add the rest of return values of interest
-            for par in self.minuit.parameters:
-                ipar, vpar = self.minuit._normalize_key(par)
-                results["values"][par] = hypercube_grid[ibest][ipar]
+        if not self.minuit.valid:
+            msg = f"Experiment has invalid profile, seed {self.seed}"
+            logging.debug(msg)
 
-        else:
-            try:
-                if self.backend == "minuit":
-                    self.minuit.migrad(**self.minimizer_options)
-                elif self.backend == "scipy":
-                    self.minuit.scipy(
-                        method=self.scipy_minimizer, options=self.minimizer_options
-                    )
-                else:
-                    raise NotImplementedError(
-                        "Iminuit backend is not set to `minuit` or `scipy`"
-                    )
-            except RuntimeError:
-                msg = f"`Experiment` throwing NaN has invalid profile at {parameters}"
-                logging.debug(msg)
-
-            if not self.minuit.valid:
-                msg = "`Experiment` has invalid profile"
-                logging.debug(msg)
-
-            results = grab_results(
-                self.minuit,
-                use_grid_rounding=self.use_grid_rounding,
-                grid_rounding_num_decimals=self.grid_rounding_num_decimals,
-            )
+        results = self.grab_results()
 
         if self.guess == results["values"]:
-            msg = "`Experiment` has profile fit values very close to initial guess"
-            logging.debug(msg)
+            msg = f"Experiment has profile fit values very close to initial guess, seed {self.seed}"
+            logging.warning(msg)
 
         # also include the fixed parameters
         for parname, parvalue in parameters.items():
             results["values"][parname] = parvalue
 
+        self.profiled_values = results["values"]
+
         return results
 
-    # this corresponds to t_mu or t_mu^tilde depending on whether there is a physical limit on the parameters
     def ts(
         self,
-        profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
+        profile_parameters: dict,
         force: bool = False,
     ) -> float:
         """
-        force
-            See `experiment.bestfit()` for description. Default is `False`.
+        Compute the profiled test statistic at some point in the parameter space of interest, profiling out the other 
+        parameters.
+
+        To use the t_mu_tilde test statistic, you must specify a physical limit on the parameters or interest. 
+        Otherwise, the test statistic computed is t_mu (which is correct under no physical limit on the parameter). 
+        It is up to the user to specify this, and it is not checked.
+
+        Parameters
+        ----------
+        profile_parameters : dict
+            which parameters to fix and at what value (rest are profiled out)
+        force : bool, optional
+            Whether to use the stored best fit (default: `False`) or to recompute it (`True`). 
+            See `experiment.bestfit()` for description.
         """
 
         use_physical_limits = False  # for t_mu and q_mu
-        if self.test_statistic == "t_mu_tilde" or self.test_statistic == "q_mu_tilde":
+        if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde" or self.options["test_statistic"] == "t_and_q_tilde":
             use_physical_limits = True
 
         denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
             "fval"
         ]
 
-        # see Cowan (2011) Eq. 14 and Eq. 16
-        if self.test_statistic == "q_mu" or self.test_statistic == "q_mu_tilde":
+        # see G. Cowan, K. Cranmer, E. Gross, and O. Vitells,  Eur. Phys. J. C 71, 1554 (2011) - eqns 14 and 16
+        if self.options["test_statistic"] == "q_mu" or self.options["test_statistic"] == "q_mu_tilde":
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
                     return 0.0, 0.0, 0.0
@@ -494,98 +289,20 @@ class Experiment(Superset):
         ts = num - denom
 
         if ts < 0:
-            msg = f"`Experiment` gave test statistic below zero: {ts}"
+            msg = f"Experiment gave test statistic below zero: {ts}"
             logging.debug(msg)
+        
+        if self.options["test_statistic"] == "t_and_q_tilde":
+            for parname, parvalue in profile_parameters.items():
+                if self.best["values"][parname] > parvalue:
+                    q_mu = 0.0
+                else:
+                    q_mu = ts
+
+            ts = [ts, q_mu]
 
         # because these are already -2*ln(L) from iminuit
         return ts, denom, num
-
-    def maketoy(
-        self,
-        parameters: dict,
-        seed: int = SEED,
-    ) -> Toy:
-        self.toy = Toy(experiment=self, parameters=parameters, seed=seed)
-
-        return self.toy
-
-    def toy_ts(
-        self,
-        parameters: dict,  # parameters and values needed to generate the toys
-        profile_parameters: dict
-        | list,  # which parameters to fix and their value (rest are profiled)
-        num: int = 1,
-        seed: np.array = None,
-    ):
-        """
-        Makes a number of toys and returns their test statistics.
-        Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
-        """
-        np.random.seed(SEED)
-        if seed is None:
-            seed = np.random.randint(1000000, size=num)
-        else:
-            if len(seed) != num:
-                raise ValueError("Seeds must have same length as the number of toys!")
-        if isinstance(profile_parameters, dict):
-            ts = np.zeros(num)
-            numerators = np.zeros(num)
-            denominators = np.zeros(num)
-            data_to_return = []
-            paramvalues_to_return = []
-            num_drawn = []
-            for i in range(num):
-                thistoy = self.maketoy(parameters=parameters, seed=seed[i])
-                ts[i], denominators[i], numerators[i] = thistoy.ts(
-                    profile_parameters=profile_parameters
-                )
-                data_to_return.append(thistoy.toy_data_to_save)
-                paramvalues_to_return.append(thistoy.parameters_to_save)
-                num_drawn.append(thistoy.toy_num_drawn_to_save)
-
-        # otherwise profile parameters is a list of dicts
-        else:
-            ts = np.zeros((len(profile_parameters), num))
-            numerators = np.zeros((len(profile_parameters), num))
-            denominators = np.zeros((len(profile_parameters), num))
-            data_to_return = []
-            paramvalues_to_return = []
-            num_drawn = []
-            for i in range(num):
-                thistoy = self.maketoy(parameters=parameters, seed=seed[i])
-                for j in range(len(profile_parameters)):
-                    ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
-                        profile_parameters=profile_parameters[j]
-                    )
-                data_to_return.append(thistoy.toy_data_to_save)
-                paramvalues_to_return.append(thistoy.parameters_to_save)
-                num_drawn.append(thistoy.toy_num_drawn_to_save)
-
-        # Need to flatten the data_to_return in order to save it in h5py
-        data_to_return_flat = (
-            np.ones(
-                (len(data_to_return), np.nanmax([len(arr) for arr in data_to_return]))
-            )
-            * np.nan
-        )
-        for i, arr in enumerate(data_to_return):
-            data_to_return_flat[i, : len(arr)] = arr
-
-        num_drawn_to_return_flat = (
-            np.ones((len(num_drawn), np.nanmax([len(arr) for arr in num_drawn])))
-            * np.nan
-        )
-        for i, arr in enumerate(num_drawn):
-            num_drawn_to_return_flat[i, : len(arr)] = arr
-
-        return (
-            ts,
-            data_to_return_flat,
-            paramvalues_to_return,
-            num_drawn_to_return_flat,
-            denominators,
-            numerators,
-        )
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently
@@ -649,6 +366,9 @@ class Experiment(Superset):
             kwargs = component_kwargs.get(k, {})
             plt.sca(ax[i])
             comp.visualize(cargs, **kwargs)
+            # relies on ordering, but this should be the same
+            if k < len(self.datasets):
+                ax[i].set_title(self.datasets[list(self.datasets.keys())[k]].name)
             i += 1
         
         return fig
@@ -723,35 +443,467 @@ class Experiment(Superset):
             i += 1
         
         return fig
-        
 
-    def create_hypercube(self, scan_grid) -> list:
-        """
-        Parameters
-        ----------
-        m
-            Minuit object that holds that parameters and parameter names
-        scan_grid
-            The dictionary object that holds the points in each dimension to scan
-        """
-        scan_pars = list(scan_grid.keys())
-        scan_list_of_lists = [list(scan_grid[scan_par]) for scan_par in scan_pars]
-        hypercube_missing_other_values = itertools.product(
-            *scan_list_of_lists
-        )  # This list is missing all of the other function values that the minuit object needs, let's add them back in!
+# default initial guess function - user should probably provide their own
+def initial_guess(
+    experiment: type[Experiment],
+    ) -> dict:
 
-        # get the indices within the minuit object of all of parameters on the grid
-        ipar_list = []
-        for scan_par in scan_pars:
-            ipar_list.append(self.minuit._normalize_key(scan_par)[0])
-        ipar_list = np.array(ipar_list)
-        values = deepcopy(
-            np.array(self.minuit.values)
-        )  # Get all the values, don't mutate them
+    # get fit parameters of these datasets
+    pars = experiment.parameters.get_fitparameters(experiment.datasets)
 
-        hypercube = []
-        for par in hypercube_missing_other_values:
-            values[ipar_list] = par
-            hypercube.append(deepcopy(values))
+    return {p:pars[p]["value"] for p in list(pars)}
 
-        return hypercube
+
+
+# class OLDExperiment(Superset):
+#     def __init__(
+#         self,
+#         config: dict,
+#         name: str = "",
+#     ) -> None:
+#         self.toy = None  # the last Toy from this experiment
+#         self.best = None  # to store the best fit result
+#         self.guess = None  # store the initial guess
+#         self.minuit = None  # Minuit object
+
+#         self.test_statistic = "t_mu"
+
+#         # minimization options
+#         self.backend = "minuit"  # "minuit" or "scipy"
+#         self.scipy_minimizer = None
+#         self.use_log = False  # Option in the config to use the logdensity instead of the density in the cost function
+#         self.iminuit_tolerance = 1e-5  # tolerance for iminuit or other minimizer
+#         self.iminuit_precision = 1e-10  # precision for the Iminuit minimizer, especially important for scipy minimizers
+#         self.iminuit_strategy = 0
+#         self.minimizer_options = {}  # dict of options to pass to the iminuit minimizer
+#         self.use_grid_rounding = False  # whether to stick parameters on a grid when evaluating the test statistic after minimizing
+#         self.grid_rounding_num_decimals = (
+#             {}
+#         )  # dict telling us how many decimals to round the parameters to when grid rounding
+
+#         self.scan = False
+#         self.scan_grid = None  # this is a dictionary, each key is a fit parameter and its values are the parameter values to scan along in one dimension
+#         self.user_gradient = (
+#             False  # option to use a user-specified density gradient for a model
+#         )
+#         self.data = (
+#             []
+#         )  # A flat array of all the data. The data may be split between datasets, this is just an aggregate
+#         self.initial_guess_function = None
+
+#         self.fixed_bc_no_data = (
+#             {}
+#         )  # check which nuisance parameters can be fixed in the fit due to no data
+
+#         combined_datasets = None
+#         if "options" in config:
+#             if self.backend == "scipy":
+#                 if "scipy_minimizer" in config["options"]:
+#                     self.scipy_minimizer = config["options"]["scipy_minimizer"]
+#                     if self.scipy_minimizer not in [
+#                         "Nelder-Mead",
+#                         "Powell",
+#                         "CG",
+#                         "BFGS",
+#                         "Newton-CG",
+#                         "L-BFGS-B",
+#                         "TNC",
+#                         "COBYLA",
+#                         "COBYQA",
+#                         "SLSQP",
+#                         "trust-constr",
+#                         "dogleg",
+#                         "trust-ncg",
+#                         "trust-exact",
+#                         "trust-krylov",
+#                         None,
+#                     ]:
+#                         raise NotImplementedError(
+#                             f"{self.scipy_minimizer} is not a valid minimizer"
+#                         )
+
+
+#             if "scan" in config["options"]:
+#                 self.scan = config["options"]["scan"]
+
+#                 if "scan_grid" in config["options"]:
+#                     self.scan_grid = config["options"]["scan_grid"]
+
+
+#             if "test_statistic" in config["options"]:
+#                 if config["options"]["test_statistic"] in [
+#                     "t_mu",
+#                     "t_mu_tilde",
+#                     "q_mu",
+#                     "q_mu_tilde",
+#                 ]:
+#                     self.test_statistic = config["options"]["test_statistic"]
+#                     msg = f"setting test statistic: {self.test_statistic}"
+#                     logging.info(msg)
+#             else:
+#                 msg = "setting test statistic to default: t_mu"
+#                 logging.info(msg)
+
+
+#         super().__init__(
+#             datasets=config["datasets"],
+#             parameters=config["parameters"],
+#             constraints=constraints,
+#             combined_datasets=combined_datasets,
+#             name=name,
+#             try_to_combine_datasets=self.try_to_combine_datasets,
+#             user_gradient=self.user_gradient,
+#             use_log=self.use_log,
+#         )
+
+#         # get the fit parameters and set the parameter initial values
+#         self.guess = self.initialguess()
+#         self.minuit = Minuit(self.costfunction, **self.guess)
+#         self.minuit.tol = self.iminuit_tolerance  # set the tolerance
+#         self.minuit.precision = self.iminuit_precision
+#         self.minuit.strategy = self.iminuit_strategy
+
+#         # raise a RunTime error if function evaluates to NaN
+#         self.minuit.throw_nan = True
+
+#         # check which nuisance parameters can be fixed in the fit due to no data
+
+#         # find which parameters are part of Datasets that have data
+#         parstofitthathavedata = set()
+#         for datasetname in self.datasets:
+#             # check if there is some data
+#             if self.datasets[datasetname].data.size > 0:
+#                 # Add the data to self.data
+#                 self.data.extend(self.datasets[datasetname].data)
+#                 # add the fit parameters of this Dataset if there is some data
+#                 for fitpar in self.datasets[datasetname].fitparameters:
+#                     parstofitthathavedata.add(fitpar)
+
+#         # now check which fit parameters can be fixed if no data and are not part of a Dataset that has data
+#         for parname in self.fitparameters:
+#             if (
+#                 "fix_if_no_data" in self.parameters[parname]
+#                 and self.parameters[parname]["fix_if_no_data"]
+#             ):
+#                 # check if this parameter is part of a Dataset that has data
+#                 if parname not in parstofitthathavedata:
+#                     self.fixed_bc_no_data[parname] = self.parameters[parname]["value"]
+
+#         # set the grid rounding
+#         if self.use_grid_rounding:
+#             for parname in list(config["parameters"].keys()):
+#                 if "grid_rounding_num_decimals" in self.parameters[parname]:
+#                     self.grid_rounding_num_decimals[parname] = self.parameters[parname][
+#                         "grid_rounding_num_decimals"
+#                     ]
+#                 else:
+#                     self.grid_rounding_num_decimals[parname] = 128  # something big
+
+#         # to set limits and fixed variables
+#         # this function will also fix those fit parameters which can be fixed because they are not part of a
+#         # Dataset that has data
+#         self.minuit_reset()
+
+#         # If scan is not none, initialize the hypercube grid
+#         if (self.scan) and (self.scan_grid is not None):
+#             self.hypercube_grid = self.create_hypercube(self.scan_grid)
+
+#     def initialguess(
+#         self,
+#     ) -> dict:
+#         if self.initial_guess_function is None:
+#             guess = {
+#                 fitpar: self.parameters[fitpar]["value"]
+#                 if "value" in self.parameters[fitpar]
+#                 else None
+#                 for fitpar in self.fitparameters
+#             }
+
+#         else:
+#             func = getattr(initial_guesses, self.initial_guess_function)
+#             guess = func(self)
+
+#         # for fitpar, value in guess.items():
+#         #     if value is None:
+#         #         guess[fitpar] = 1e-9
+
+#         # could put other stuff here to get a better initial guess though probably that should be done
+#         # somewhere specific to the analysis. Or maybe this function could call something for the analysis.
+#         # eh, probably better to make the initial guess elsewhere and stick it in the config file.
+#         # for that reason, I'm commenting out the few lines above.
+
+#         return guess
+
+#     def bestfit(
+#         self,
+#         force: bool = False,
+#         use_physical_limits: bool = True,
+#     ) -> dict:
+#         """
+#         force
+#             By default (`False`), if `self.best` has a result, the minimization will be skipped and that
+#             result will be returned instead. If `True`, the minimization will be run and the result returned and
+#             stored as `self.best`
+
+#         Performs a global minimization and returns a `dict` with the results. These results are also stored in
+#         `self.best`.
+#         """
+#         # don't run this more than once if we don't have to
+#         if self.best is not None and not force:
+#             return self.best
+
+#         # remove any previous minimizations
+#         self.minuit_reset(use_physical_limits=use_physical_limits)
+
+#         if self.scan:
+#             y = np.empty(len(self.hypercube_grid))
+#             for i in range(len(self.hypercube_grid)):
+#                 y[i] = self.minuit._fcn(self.hypercube_grid[i])
+
+#             best = np.min(y)
+#             ibest = np.argmin(y)
+
+#             self.best = {
+#                 "fval": best,
+#                 "values": {},
+#                 "valid": True,
+#             }  # TODO: add the rest of return values of interest, like parameter names at minimum
+#             for par in self.minuit.parameters:
+#                 ipar, vpar = self.minuit._normalize_key(par)
+#                 self.best["values"][par] = self.hypercube_grid[ibest][ipar]
+
+#         else:
+#             try:
+#                 if self.backend == "minuit":
+#                     self.minuit.migrad(**self.minimizer_options)
+#                 elif self.backend == "scipy":
+#                     self.minuit.scipy(
+#                         method=self.scipy_minimizer, options=self.minimizer_options
+#                     )
+#                 else:
+#                     raise NotImplementedError(
+#                         "Iminuit backend is not set to `minuit` or `scipy`"
+#                     )
+#             except RuntimeError:
+#                 msg = "`Experiment` has invalid best fit"
+#                 logging.debug(msg)
+
+#             if not self.minuit.valid:
+#                 msg = "`Experiment` has invalid best fit"
+#                 logging.debug(msg)
+
+#             self.best = grab_results(
+#                 self.minuit,
+#                 use_grid_rounding=self.use_grid_rounding,
+#                 grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+#             )
+
+#         if "global_S" in self.best["values"]:
+#             if self.best["values"]["global_S"] < 1e-20:
+#                 self.best = self.profile({"global_S": 0.0})
+
+#         if self.guess == self.best["values"]:
+#             msg = "`Experiment` has best fit values very close to initial guess"
+#             logging.debug(msg)
+
+#         return self.best
+
+#     def profile(
+#         self,
+#         parameters: dict,
+#         use_physical_limits: bool = True,
+#     ) -> dict:
+#         """
+#         parameters
+#             `dict` where keys are names of parameters to fix and values are the value that the parameter should be
+#             fixed to
+#         """
+
+#         self.minuit_reset(use_physical_limits=use_physical_limits)
+
+#         # set fixed parameters
+#         for parname, parvalue in parameters.items():
+#             self.minuit.fixed[parname] = True
+#             self.minuit.values[parname] = parvalue
+
+#         if self.scan:
+#             # need to remake the hypercube because there are now fewer parameters
+#             # pop the fixed parameters from the supplied scan_grid
+#             new_grid_dict = deepcopy(self.scan_grid)
+#             for parname in parameters.keys():
+#                 if parname in new_grid_dict.keys():
+#                     new_grid_dict.pop(parname)
+#             hypercube_grid = self.create_hypercube(new_grid_dict)
+
+#             y = np.empty(len(hypercube_grid))
+#             for i in range(len(hypercube_grid)):
+#                 y[i] = self.minuit._fcn(hypercube_grid[i])
+
+#             best = np.min(y)
+#             ibest = np.argmin(y)
+#             results = {
+#                 "fval": best,
+#                 "values": {},
+#                 "valid": True,
+#             }  # TODO: add the rest of return values of interest
+#             for par in self.minuit.parameters:
+#                 ipar, vpar = self.minuit._normalize_key(par)
+#                 results["values"][par] = hypercube_grid[ibest][ipar]
+
+#         else:
+#             try:
+#                 if self.backend == "minuit":
+#                     self.minuit.migrad(**self.minimizer_options)
+#                 elif self.backend == "scipy":
+#                     self.minuit.scipy(
+#                         method=self.scipy_minimizer, options=self.minimizer_options
+#                     )
+#                 else:
+#                     raise NotImplementedError(
+#                         "Iminuit backend is not set to `minuit` or `scipy`"
+#                     )
+#             except RuntimeError:
+#                 msg = f"`Experiment` throwing NaN has invalid profile at {parameters}"
+#                 logging.debug(msg)
+
+#             if not self.minuit.valid:
+#                 msg = "`Experiment` has invalid profile"
+#                 logging.debug(msg)
+
+#             results = grab_results(
+#                 self.minuit,
+#                 use_grid_rounding=self.use_grid_rounding,
+#                 grid_rounding_num_decimals=self.grid_rounding_num_decimals,
+#             )
+
+#         if self.guess == results["values"]:
+#             msg = "`Experiment` has profile fit values very close to initial guess"
+#             logging.debug(msg)
+
+#         # also include the fixed parameters
+#         for parname, parvalue in parameters.items():
+#             results["values"][parname] = parvalue
+
+#         return results
+
+
+#     def maketoy(
+#         self,
+#         parameters: dict,
+#         seed: int = SEED,
+#     ) -> Toy:
+#         self.toy = Toy(experiment=self, parameters=parameters, seed=seed)
+
+#         return self.toy
+
+#     def toy_ts(
+#         self,
+#         parameters: dict,  # parameters and values needed to generate the toys
+#         profile_parameters: dict
+#         | list,  # which parameters to fix and their value (rest are profiled)
+#         num: int = 1,
+#         seed: np.array = None,
+#     ):
+#         """
+#         Makes a number of toys and returns their test statistics.
+#         Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
+#         """
+#         np.random.seed(SEED)
+#         if seed is None:
+#             seed = np.random.randint(1000000, size=num)
+#         else:
+#             if len(seed) != num:
+#                 raise ValueError("Seeds must have same length as the number of toys!")
+#         if isinstance(profile_parameters, dict):
+#             ts = np.zeros(num)
+#             numerators = np.zeros(num)
+#             denominators = np.zeros(num)
+#             data_to_return = []
+#             paramvalues_to_return = []
+#             num_drawn = []
+#             for i in range(num):
+#                 thistoy = self.maketoy(parameters=parameters, seed=seed[i])
+#                 ts[i], denominators[i], numerators[i] = thistoy.ts(
+#                     profile_parameters=profile_parameters
+#                 )
+#                 data_to_return.append(thistoy.toy_data_to_save)
+#                 paramvalues_to_return.append(thistoy.parameters_to_save)
+#                 num_drawn.append(thistoy.toy_num_drawn_to_save)
+
+#         # otherwise profile parameters is a list of dicts
+#         else:
+#             ts = np.zeros((len(profile_parameters), num))
+#             numerators = np.zeros((len(profile_parameters), num))
+#             denominators = np.zeros((len(profile_parameters), num))
+#             data_to_return = []
+#             paramvalues_to_return = []
+#             num_drawn = []
+#             for i in range(num):
+#                 thistoy = self.maketoy(parameters=parameters, seed=seed[i])
+#                 for j in range(len(profile_parameters)):
+#                     ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
+#                         profile_parameters=profile_parameters[j]
+#                     )
+#                 data_to_return.append(thistoy.toy_data_to_save)
+#                 paramvalues_to_return.append(thistoy.parameters_to_save)
+#                 num_drawn.append(thistoy.toy_num_drawn_to_save)
+
+#         # Need to flatten the data_to_return in order to save it in h5py
+#         data_to_return_flat = (
+#             np.ones(
+#                 (len(data_to_return), np.nanmax([len(arr) for arr in data_to_return]))
+#             )
+#             * np.nan
+#         )
+#         for i, arr in enumerate(data_to_return):
+#             data_to_return_flat[i, : len(arr)] = arr
+
+#         num_drawn_to_return_flat = (
+#             np.ones((len(num_drawn), np.nanmax([len(arr) for arr in num_drawn])))
+#             * np.nan
+#         )
+#         for i, arr in enumerate(num_drawn):
+#             num_drawn_to_return_flat[i, : len(arr)] = arr
+
+#         return (
+#             ts,
+#             data_to_return_flat,
+#             paramvalues_to_return,
+#             num_drawn_to_return_flat,
+#             denominators,
+#             numerators,
+#         )
+
+
+
+#     def create_hypercube(self, scan_grid) -> list:
+#         """
+#         Parameters
+#         ----------
+#         m
+#             Minuit object that holds that parameters and parameter names
+#         scan_grid
+#             The dictionary object that holds the points in each dimension to scan
+#         """
+#         scan_pars = list(scan_grid.keys())
+#         scan_list_of_lists = [list(scan_grid[scan_par]) for scan_par in scan_pars]
+#         hypercube_missing_other_values = itertools.product(
+#             *scan_list_of_lists
+#         )  # This list is missing all of the other function values that the minuit object needs, let's add them back in!
+
+#         # get the indices within the minuit object of all of parameters on the grid
+#         ipar_list = []
+#         for scan_par in scan_pars:
+#             ipar_list.append(self.minuit._normalize_key(scan_par)[0])
+#         ipar_list = np.array(ipar_list)
+#         values = deepcopy(
+#             np.array(self.minuit.values)
+#         )  # Get all the values, don't mutate them
+
+#         hypercube = []
+#         for par in hypercube_missing_other_values:
+#             values[ipar_list] = par
+#             hypercube.append(deepcopy(values))
+
+#         return hypercube

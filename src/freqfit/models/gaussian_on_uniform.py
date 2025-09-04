@@ -3,7 +3,7 @@ import numba as nb
 import numpy as np
 
 import freqfit.models.constants as constants
-from freqfit.utils import inspectparameters
+from freqfit.model import Model
 
 nb_kwd = {
     "nopython": True,
@@ -24,9 +24,6 @@ WINDOW = np.array(constants.WINDOW)
 WINDOWSIZE = 0.0
 for i in range(len(WINDOW)):
     WINDOWSIZE += WINDOW[i][1] - WINDOW[i][0]
-
-SEED = 42  # set the default random seed
-
 
 @nb.jit(**nb_kwd)
 def nb_pdf(
@@ -220,7 +217,6 @@ def nb_rvs(
     n_bkg: int,
     delta: float,
     sigma: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -233,8 +229,6 @@ def nb_rvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    seed
-        specify a seed, otherwise uses default seed
     window
         uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
         where edges of window are monotonically increasing (this is not checked), in keV.
@@ -245,8 +239,6 @@ def nb_rvs(
     This function pulls from a Gaussian for signal events and from a uniform distribution for background events
     in the provided windows, which may be discontinuous.
     """
-
-    np.random.seed(seed)
 
     # Get energy of signal events from a Gaussian distribution
     # preallocate for background draws
@@ -282,7 +274,6 @@ def nb_extendedrvs(
     sigma: float,
     eff: float,
     exp: float,
-    seed: int = SEED,
 ) -> np.array:
     """
     Parameters
@@ -295,8 +286,6 @@ def nb_extendedrvs(
         Systematic energy offset from QBB, in keV
     sigma
         The energy resolution at QBB, in keV
-    seed
-        specify a seed, otherwise uses default seed
     window
         uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
         where edges of window are monotonically increasing (this is not checked), in keV.
@@ -314,8 +303,6 @@ def nb_extendedrvs(
     (n_sig, n_bkg)
         Number of signal counts drawn and number of background counts
     """
-
-    np.random.seed(seed)
 
     n_sig = np.random.poisson(S * eff * exp)
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
@@ -436,9 +423,9 @@ def nb_density_gradient(
     return grad_CDF, grad_PDF
 
 
-class gaussian_on_uniform_gen:
+class gaussian_on_uniform_gen(Model):
     def __init__(self):
-        self.parameters = inspectparameters(self.density)
+        self.parameters = self.inspectparameters(self.density)
         pass
 
     def pdf(
@@ -478,7 +465,7 @@ class gaussian_on_uniform_gen:
     ) -> np.array:
         return nb_density(Es, S, BI, delta, sigma, eff, exp)
 
-    def density_gradient(
+    def graddensity(
         self,
         Es: np.array,
         S: float,
@@ -491,7 +478,7 @@ class gaussian_on_uniform_gen:
         return nb_density_gradient(Es, S, BI, delta, sigma, eff, exp)
 
     # for iminuit ExtendedUnbinnedNLL
-    def log_density(
+    def logdensity(
         self,
         Es: np.array,
         S: float,
@@ -522,9 +509,8 @@ class gaussian_on_uniform_gen:
         n_bkg: int,
         delta: float,
         sigma: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_rvs(n_sig, n_bkg, delta, sigma, seed=seed)
+        return nb_rvs(n_sig, n_bkg, delta, sigma)
 
     def extendedrvs(
         self,
@@ -534,9 +520,30 @@ class gaussian_on_uniform_gen:
         sigma: float,
         eff: float,
         exp: float,
-        seed: int = SEED,
     ) -> np.array:
-        return nb_extendedrvs(S, BI, delta, sigma, eff, exp, seed=seed)
+        return nb_extendedrvs(S, BI, delta, sigma, eff, exp)
+
+    # combining is not supported
+    def can_combine(
+        self,
+        Es: np.array,
+        S: float,
+        BI: float,
+        delta: float,
+        sigma: float,
+        eff: float,
+        exp: float,     
+    ) -> bool:
+
+        return False
+
+    # combining not supported
+    def combine(
+        self,
+        datasets: list,#List[Tuple[np.array,...],...],
+    ) -> list:
+        raise NotImplementedError
+        return []
 
     def plot(
         self,
