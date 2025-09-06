@@ -34,7 +34,7 @@ class Experiment:
 
         # set initial guess function
         self.guessfcn = options["initial_guess"]
-        if self.guessfcn is None:
+        if (self.guessfcn is None) or (isinstance(self.guessfcn, dict) &  (None in self.guessfcn.values())):
             self.guessfcn = initial_guess
 
         # check which nuisance parameters can be fixed in the fit due to no data
@@ -174,7 +174,7 @@ class Experiment:
                 self.minuit.migrad(**self.options["minimizer_options"])
             else: # scipy
                 self.minuit.scipy(
-                    method=self.scipy_minimizer, 
+                    method=self.options["scipy_minimizer"], 
                     options=self.options["minimizer_options"],
                 )
         except RuntimeError:
@@ -220,7 +220,7 @@ class Experiment:
                 self.minuit.migrad(**self.options["minimizer_options"])
             else: # scipy
                 self.minuit.scipy(
-                    method=self.scipy_minimizer, 
+                    method=self.options["scipy_minimizer"], 
                     options=self.options["minimizer_options"],
                 )
 

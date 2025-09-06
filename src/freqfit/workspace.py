@@ -134,6 +134,7 @@ class Workspace:
         self.constraints = None
         if not config["constraints"]:
             msg = "no constraints were provided"
+            self.toy_constraints = None
             logging.info(msg)
         else:
             msg = "constraints were provided"
@@ -214,8 +215,9 @@ class Workspace:
                 for dsname in dsname_tocombine:
                     rvs_datasets.pop(dsname)
 
-        # vary the toy constraints
-        self.toy_constraints.rvs(toy_parameters)
+        # vary the toy constraints, if provided
+        if self.toy_constraints:
+            self.toy_constraints.rvs(toy_parameters)
 
         # create the toy Experiment
         self.toy = Experiment(
