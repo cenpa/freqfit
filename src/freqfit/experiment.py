@@ -34,7 +34,7 @@ class Experiment:
 
         # set initial guess function
         self.guessfcn = options["initial_guess"]
-        if (self.guessfcn is None) or (isinstance(self.guessfcn, dict) &  (None in self.guessfcn.values())):
+        if (self.guessfcn is None) or (isinstance(self.guessfcn, dict) and (None in self.guessfcn.values())):
             self.guessfcn = initial_guess
 
         # check which nuisance parameters can be fixed in the fit due to no data
