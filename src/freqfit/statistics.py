@@ -4,19 +4,9 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate, optimize
-from scipy.stats import binom, chi2
-
-from .models.constants import M76, NA
-
-# plotting colors
-NICE_BLUE = "#668DA5"
-NICE_RED = "#B4584D"
-NICE_GREEN = "#ABB1A2"
-NICE_PINK = "#CCACAD"
-
+from scipy.stats import binom
 
 log = logging.getLogger(__name__)
-
 
 def emp_cdf(
     data: np.array,  # the data to make a cdf out of
@@ -152,6 +142,8 @@ def ts_critical(
     )
 
     if plot:
+        from scipy.stats import chi2
+
         if isinstance(bins, int):
             bins = np.linspace(np.floor(np.nanmin(ts)), np.nanmax(ts), bins)
         elif not isinstance(bins, np.ndarray):
@@ -388,6 +380,14 @@ def sensitivity(
     This function loops over the S-grid tested. At each value of S, the median of the PDF of toy_ts_zero_signal (generated with 0 signal and tested against S)
     is projected onto the PDF toy_ts (generated at S and tested against S) and the p-value of the median is calculated.
     """
+
+    from .models.constants import M76, NA
+
+    # plotting colors
+    NICE_BLUE = "#668DA5"
+    NICE_RED = "#B4584D"
+    NICE_GREEN = "#ABB1A2"
+    NICE_PINK = "#CCACAD"
 
     if len(toy_ts) != len(toy_ts_zero_signal):
         raise ValueError("input arrays must match in length!")

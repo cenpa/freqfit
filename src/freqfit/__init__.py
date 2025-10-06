@@ -6,6 +6,8 @@ from freqfit.dataset import Dataset, ToyDataset, CombinedDataset
 from freqfit.experiment import Experiment
 from freqfit.limit import SetLimit
 from freqfit.workspace import Workspace
+import freqfit.statistics
+import freqfit.fc
 
 __all__ = [
     "Dataset",
