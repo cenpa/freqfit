@@ -240,14 +240,45 @@ class Workspace:
         info: bool = False,     
     ) -> tuple[np.array, dict]:
         """
-        Makes a number of toys and returns their test statistics.
-        Having the seed be an array allows for different jobs producing toys on the same s-value to have different seed numbers
+        Parameters
+        ----------
+        toy_parameters
+            Parameters to fix during profile for toy generation
 
-        parameters
-            `dict` where keys are names of parameters to fix and values are the value that the parameter should be
-            fixed to during profiling   
+        profile_parameters
+            Parameters to fix during profile during hypothesis testing/ in the toy. Either a dictionary of parameters, or
+            a list of dicitonaries of parameters. The list enables many different hypotheses to be tested using the same toy       
+
+        num
+            Number of toys to draw
+        seeds
+            Optional, array of integers to use for seeding the random variables during toy data draws
         info
-            whether to return additional information about the toys (default: False)     
+            If true, return additional information about the toys such as their seed numbers,
+            toy data, and any requested nuisance parameters (default: False)    
+
+        Returns
+        -------
+        tuple[np.array, dict]
+            First element in the tuple is an array of equal sized arrays corresponding to the test statistics. Each array is one-to-one
+            with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
+            The second element ```info_to_return``` is a dictionary with the following keys
+                - "data": an array of equal sized arrays. Each array consists of the data from one toy, posisbly padded with np.nan so that all arrays are the same length
+                -"profiled_values_to_return": an array of equal sized arrays filled with user requested values of profiled toy parameters. Each array is one-to-one
+                    with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
+                - "num_drawn": list of tuples, where the first element of each tuple is the number of signal counts drawn in the toy, and the second is number of background counts.
+                    The length is equal to the number of toys drawn.
+                - "denominators": array of equal sized arrays corresponding to the best-fit value of a toy. Each array is one-to-one
+                    with the elements of ```profile_parameters```, and the length of that array is equal to ```num```
+                - "numerators": array of equal sized arrays corresponding to the profile-best-fit value of a toy. Each array is one-to-one
+                    with the elements of ```profile_parameters```, and the length of that array is equal to ```num```
+                - "seeds": list of the seeds used to generate toys, equal to the number of toys in length
+
+
+        Notes
+        -----
+        Makes a number of toys and returns their test statistics.
+        
         """
 
         # if seeds aren't provided, we need to generate them ourselves so all toys aren't the same
@@ -259,23 +290,32 @@ class Workspace:
         
         if isinstance(profile_parameters, dict):
             profile_parameters = [profile_parameters]
-        
+
+
+        # instantiate arrays to fill with output test statistics
         ts = np.zeros((len(profile_parameters), num))
         if self.options["test_statistic"] == "t_and_q_tilde":
             ts = np.zeros((len(profile_parameters), num, 2))
         numerators = np.zeros((len(profile_parameters), num))
         denominators = np.zeros((len(profile_parameters), num))
+
+        # optional data to save
+        rows, cols = len(profile_parameters), num
+        profiled_values_to_return = [[[] for _ in range(cols)] for _ in range(rows)]
         data_to_return = []
         num_drawn = []
-        profiled_values_to_return = []
+
+        # Run the loop generating the toys and saving test statistics and other optional data
         for i in range(num):
+            # Generate toys
             thistoy = self.make_toy(toy_parameters=toy_parameters, seed=seeds[i])
             for j in range(len(profile_parameters)):
                 ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
                     profile_parameters=profile_parameters[j]
                 )
+                profiled_values_to_return[j][i].extend([thistoy.profiled_values[key] for key in self.options["profiled_params_to_save"]]) # NOTE: this does not check the keys 
 
-            # TODO: add this info back in make_toy() or do not???
+            # Stuff optional outputs into arrays
             if info:
                 data = []
                 nd = [0,0]
@@ -285,10 +325,10 @@ class Workspace:
                         nd[0] += thistoy.datasets[ds].num_drawn[0]
                         nd[1] += thistoy.datasets[ds].num_drawn[1]
                 data_to_return.append(data)
-                profiled_values_to_return.append([thistoy.profiled_values[key] for key in self.options["profiled_params_to_save"]]) # NOTE: this does not check the keys 
                 num_drawn.append(nd)
 
-        # TODO: should this be removed ??? record only seeds and ts?
+
+        # manipulate output data to make arrays of equal sized arrays to save in hdf5
         if info:
             # Need to flatten the data_to_return in order to save it in h5py
             data_to_return_flat = (
@@ -313,6 +353,7 @@ class Workspace:
                 "num_drawn": num_drawn_to_return_flat,
                 "denominators": denominators,
                 "numerators": numerators,
+                "seeds": seeds,
                 }
 
             return (
@@ -323,10 +364,12 @@ class Workspace:
     
     def scan_ts(
         self, var_to_profile: str, var_values: np.array, profile_dict: dict = {}  # noqa:B006
-    ) -> np.array:
+    ) -> tuple[np.array]:
         """
         Parameters
         ----------
+        var_to_profile
+            The name of the variable to fix during profile
         var_values
             The values of the variable to scan over
         profile_dict
@@ -335,7 +378,11 @@ class Workspace:
         Returns
         -------
         ts
-            Value of the specified test statistic at the scanned values
+            Value of the specified test statistic at the scanned values, tuple of test statistics, denominators, and numerators
+        
+        Notes
+        -----
+        Quickly generates a likelihood curve for a parameter of interest, multiprocessed
         """
         # Create the arguments to multiprocess over
         args = [
@@ -348,14 +395,44 @@ class Workspace:
         
     def toy_ts_mp(
             self,
-            parameters: dict,  # parameters and values needed to generate the toys
-            profile_parameters: dict,  # which parameters to fix and their value (rest are profiled)
+            parameters: dict, 
+            profile_parameters: dict|list,  # which parameters to fix and their value (rest are profiled)
             num: int = 0,
             info: bool = False, 
         ):
             """
-            Makes a number of toys and returns their test statistics. Multiprocessed
-            """
+            Parameters
+            ----------
+            parameters
+                Parameters to fix during profile for toy generation
+
+            profile_parameters
+                Parameters to fix during profile during hypothesis testing/ in the toy. Either a dictionary of parameters, or
+                a list of dicitonaries of parameters. The list enables many different hypotheses to be tested using the same toy       
+            num
+                Number of toys to draw
+            info
+                If true, return additional information about the toys such as their seed numbers,
+                toy data, and any requested nuisance parameters (default: False)
+
+            Returns
+            -------
+            tuple[np.array, dict]
+                First element in the tuple is an array of equal sized arrays corresponding to the test statistics. Each array is one-to-one
+                with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
+                The second element ```info_to_return``` is a dictionary with the following keys
+                    - "data": an array of equal sized arrays. Each array consists of the data from one toy, posisbly padded with np.nan so that all arrays are the same length
+                    - "profiled_values_to_return": an array of equal sized arrays filled with user requested values of profiled toy parameters. Each array is one-to-one
+                        with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
+                    - "seeds": list of the seeds used to generate toys, equal to the number of toys in length
+
+
+            Notes
+            -----
+                Makes a number of toys and returns their test statistics, multiprocessed. 
+            """    
+
+
             self.numtoy = num if (num!=0) else self.numtoy
             toys_per_core = np.full(self.numcores, self.numtoy // self.numcores)
             toys_per_core = np.insert(
@@ -383,13 +460,6 @@ class Workspace:
                 experiment_seed + self.jobid * self.numtoy,
                 experiment_seed + (self.jobid + 1) * self.numtoy,
             )
-            # seeds *= 5000  # need to multiply this by a large number because if seed numbers differ by fewer than num of datasets, then adjacent toys will have the same energies pulled but in different datasets
-            # # See line 115 in toys.py, thisseed = self.seed + i
-            # # If you have more than 5000 datasets, I am sorry
-            # if len(self.experiment.datasets.items()) > 5000:
-            #     raise ValueError(
-            #         "You need to change the spacing between seeds for completely uncorrelated toys."
-            #     )
 
             if (seeds > 2**32).any():
                 raise ValueError(
@@ -411,49 +481,34 @@ class Workspace:
                 return_args = pool.starmap(self.toy_ts, args)
 
 
-            # TODO: fix this up to get correct printout, esp. in 2D grid case
             if info:  
                 ts = np.array([item[0][:] for item in return_args])
                 data_to_return = [item for _, val in return_args for item in val["data"]]
-                # data_to_return is a jagged list, each element is a 2d-array filled it nans
-                # First, find the maximum length of array we will need to pad to
-                maxlen = np.amax([len(arr) for arr in data_to_return])
-                data_flattened = [e for arr in data_to_return for e in arr]
 
-                # # Need to flatten the data_to_return in order to save it in h5py
-                # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
-                # for i, arr in enumerate(data_flattened):
-                #     data_to_return_flat[i, : len(arr)] = arr
-                profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
-                data_to_return_flat = data_flattened
+                data_to_return_flat = (
+                    np.ones(
+                        (len(data_to_return), np.nanmax([len(arr) for arr in data_to_return]))
+                    )
+                    * np.nan
+                )
+                for i, arr in enumerate(data_to_return):
+                    data_to_return_flat[i, : len(arr)] = arr
+
+
+
+                # profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
+
+                profiled_values_to_return = np.array([item[1]["profiled_values_to_return"] for item in return_args])
+                profiled_values_to_return = np.hstack(profiled_values_to_return)
+
+                seeds = np.array([item[1]["seeds"] for item in return_args])
+                seeds = np.hstack(seeds)
+
+
                 return (
-                    np.hstack(ts), {"data": data_to_return_flat, "profiled_values_to_return": profiled_values_to_return}
+                    np.hstack(ts), {"data": data_to_return_flat, "profiled_values_to_return": profiled_values_to_return, "seeds": seeds}
                 )
             
-
-                # ts = [arr[0] for arr in return_args]
-                # data_to_return = [arr[1] for arr in return_args]
-                # nuisance_to_return = [arr[2] for arr in return_args]
-                # num_drawn_to_return = [arr[3] for arr in return_args]
-                # ts_denom = [arr[4] for arr in return_args]
-                # ts_num = [arr[5] for arr in return_args]
-                # # data_to_return is a jagged list, each element is a 2d-array filled it nans
-                # # First, find the maximum length of array we will need to pad to
-                # maxlen = np.amax([len(arr[0]) for arr in data_to_return])
-                # data_flattened = [e for arr in data_to_return for e in arr]
-
-                # # Need to flatten the data_to_return in order to save it in h5py
-                # data_to_return_flat = np.ones((len(data_flattened), maxlen)) * np.nan
-                # for i, arr in enumerate(data_flattened):
-                #     data_to_return_flat[i, : len(arr)] = arr
-
-                # maxlen = np.amax([len(arr[0]) for arr in num_drawn_to_return])
-                # num_drawn_flattened = [e for arr in num_drawn_to_return for e in arr]
-
-                # # Need to flatten the data_to_return in order to save it in h5py
-                # num_drawn_to_return_flat = np.ones((len(num_drawn_flattened), maxlen)) * np.nan
-                # for i, arr in enumerate(num_drawn_flattened):
-                #     num_drawn_to_return_flat[i, : len(arr)] = arr
             else:
                 ts = np.array([item[0][:] for item in return_args])
                 return (
@@ -491,6 +546,11 @@ class Workspace:
         
         info
             If false, save only the test statistics. If true, save lots of information
+
+        Returns
+        -------
+        None
+        But it does write a file at ```self.out_path``` with the name ```list(toy_generation_profile_dict.values())}_{self.jobid}.h5```
         """
         # handle the output file
         if overwrite_files is None:
@@ -560,12 +620,10 @@ class Workspace:
             # raise NotImplementedError("not implemented, check back soon.")
             # dset = f.create_dataset("ts_denom", data=toyts_denom)
             # dset = f.create_dataset("ts_num", data=toyts_num)
-            # dset = f.create_dataset("s", data=scan_point)
-            dset = f.create_dataset("Es", data=info_dict["data"])
+            dset = f.create_dataset("data", data=info_dict["data"])
             dset = f.create_dataset("profiled_values_to_return", data=info_dict["profiled_values_to_return"])
-            # # dset = f.create_dataset("nuisance", data=nuisance)
+            dset  = f.create_dataset("seeds", data= info_dict["seeds"])
             # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
-            # dset = f.create_dataset("seed", data=seeds_to_save)
 
         f.close()
 
