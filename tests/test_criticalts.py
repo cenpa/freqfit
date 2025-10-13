@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import chi2
 
-from freqfit import Experiment
+from freqfit import Workspace
 from freqfit.statistics import dkw_band, emp_cdf, ts_critical
 
 
@@ -112,19 +112,20 @@ def test_dkw():
 
 def test_criticalts():
     true_S = 10.0
-    p = Experiment.file("tests/config_test_highsignal.yaml", "experiment")
+    ws = Workspace.from_file("config_test_highsignal.yaml")
 
     # profile over the test statistic
     x = np.arange(0, 30, 0.1)
     y = np.zeros_like(x)
     for i, xx in enumerate(x):
-        y[i], *_ = p.ts({"global_S": xx})
+        y[i], *_ = ws.experiment.ts({"global_S": xx})
 
-    toypars = p.profile({"global_S": true_S})["values"]
+    toypars = ws.experiment.profile({"global_S": true_S})["values"]
     toypars["global_S"] = true_S
 
     numtoys = 2000
-    toyts = p.toy_ts(toypars, {"global_S": true_S}, num=numtoys)[0]
+    toyts = ws.toy_ts(toypars, {"global_S": true_S}, num=numtoys)[0]
+    toyts = toyts[0] # this is a tuple, the next two elements are the numerator and denominator
     nbins = 500
 
     (crit95, lo95, hi95), _ = ts_critical(

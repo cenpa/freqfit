@@ -5,6 +5,7 @@ import logging
 
 import numpy as np
 from iminuit import cost
+from freqfit.parameters import Parameters
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class Dataset:
         data: np.array,
         model,
         model_parameters: dict[str, str],
-        parameters,
+        parameters: Parameters,
         costfunction: cost.Cost,
         name: str = "",
         try_to_combine: bool = False,
@@ -114,6 +115,11 @@ class Dataset:
                 msg = f"`Dataset` `{self.name}`: required model parameter `{parameter}` not found in model_parameters"
                 raise KeyError(msg)
 
+        # check that the passed parameters are of the parameter class 
+        if not isinstance(parameters, Parameters):
+            raise ValueError(f"Parameters must be of class freqfit.Parameters, not type f{type(parameters)}")
+
+
         # find the parameters for the fit
         for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):
             if parameters(model_parameters[par])["includeinfit"]:
@@ -124,13 +130,13 @@ class Dataset:
             self.costfunction = self._costfunctioncall(
                 self.data, 
                 self.density, 
-                grad=self.density_gradient,
+                grad=self.graddensity,
                 name=list(self.fitparameters.keys()),
             )
         elif self.use_log:
             self.costfunction = self._costfunctioncall(
                 self.data,
-                self.log_density,
+                self.logdensity,
                 log=True,
                 name=list(self.fitparameters.keys()),
             )
@@ -183,7 +189,7 @@ class Dataset:
 
         return self.model.density(data, *self._parlist_values)
 
-    def log_density(
+    def logdensity(
         self,
         data,
         *par,  # DO NOT DELETE THE * - NEEDED FOR IMINUIT
@@ -193,9 +199,9 @@ class Dataset:
         for i in range(len(par)):
             self._parlist_values[self._parlist_indices[i]] = par[i]
 
-        return self.model.log_density(data, *self._parlist_values)
+        return self.model.logdensity(data, *self._parlist_values)
 
-    def density_gradient(
+    def graddensity(
         self,
         data,
         *par,  # DO NOT DELETE THE * - NEEDED FOR IMINUIT
@@ -206,14 +212,14 @@ class Dataset:
         data
             Unbinned data
         par
-            Potentially a subset of the actual model density_gradient parameters, depending on the config
+            Potentially a subset of the actual model graddensity parameters, depending on the config
         """
         # par should be 1D array like
         # assign the positional parameters to the correct places in the model parameter list
         for i in range(len(par)):
             self._parlist_values[self._parlist_indices[i]] = par[i]
 
-        grad_cdf, grad_pdf = self.model.density_gradient(data, *self._parlist_values)
+        grad_cdf, grad_pdf = self.model.graddensity(data, *self._parlist_values)
 
         # Mask the return values according to what the actual cost function expects
         return grad_cdf[self._parlist_indices], *grad_pdf[[self._parlist_indices], :]
@@ -336,13 +342,13 @@ class ToyDataset(Dataset):
             self.costfunction = self._costfunctioncall(
                 self.data, 
                 self.density, 
-                grad=self.density_gradient,
+                grad=self.graddensity,
                 name=list(self.fitparameters.keys()),
             )
         elif self.use_log:
             self.costfunction = self._costfunctioncall(
                 self.data,
-                self.log_density,
+                self.logdensity,
                 log=True,
                 name=list(self.fitparameters.keys()),
             )

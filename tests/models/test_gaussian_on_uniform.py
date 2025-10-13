@@ -95,16 +95,16 @@ def test_iminuit_integration():
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.allclose(m.values["delta"], 0.01, rtol=1e0)
+    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
 
     c = cost.UnbinnedNLL(random_sample, gaussian_on_uniform.logpdf, log=True)
-    m = Minuit(c, S=0.5, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m = Minuit(c, S=0.5, BI=0.1, delta=-0.01, sigma=0.6, eff=0.9, exp=0.9)
     m.fixed["eff", "exp"] = True
     m.limits["sigma", "S", "BI"] = (0, None)
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.allclose(m.values["delta"], 0.01, rtol=1e0)
+    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
 
 
 def test_density_gradient():
@@ -118,15 +118,15 @@ def test_density_gradient():
     c = cost.ExtendedUnbinnedNLL(
         random_sample,
         gaussian_on_uniform.density,
-        grad=gaussian_on_uniform.density_gradient,
+        grad=gaussian_on_uniform.graddensity,
     )
-    m = Minuit(c, S=1.0, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m = Minuit(c, S=1.0, BI=0.1, delta=-0.01, sigma=0.6, eff=0.9, exp=0.9)
     m.fixed["eff", "exp"] = True
     m.limits["sigma", "S", "BI"] = (0, None)
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.allclose(m.values["delta"], 0.01, rtol=1e0)
+    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
 
 
 def test_logdensity():
@@ -138,12 +138,12 @@ def test_logdensity():
     random_sample = gaussian_on_uniform.rvs(n_sig, n_bkg, delta, sigma)
 
     c = cost.ExtendedUnbinnedNLL(
-        random_sample, gaussian_on_uniform.log_density, log=True
+        random_sample, gaussian_on_uniform.logdensity, log=True
     )
-    m = Minuit(c, S=1, BI=0.1, delta=-0.1, sigma=0.6, eff=0.9, exp=0.9)
+    m = Minuit(c, S=1, BI=0.1, delta=-0.01, sigma=0.6, eff=0.9, exp=0.9)
     m.limits["sigma", "S", "BI"] = (0, None)
     m.fixed["eff", "exp"] = True
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.allclose(m.values["delta"], 0.01, rtol=1e0)
+    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
