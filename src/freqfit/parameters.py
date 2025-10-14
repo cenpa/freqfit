@@ -5,6 +5,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 class Parameters:
 
     def __init__(
@@ -37,7 +38,7 @@ class Parameters:
     
     def get_parameters(
         self,
-        datasets: dict,
+        datasets: dict["Dataset"],
         nodata: bool = False,
     ) -> dict:
         """
@@ -60,7 +61,7 @@ class Parameters:
 
     def get_fitparameters(
         self,
-        datasets: dict,
+        datasets: dict["Dataset"],
         nodata: bool = False,
     ) -> dict:
         """

@@ -232,7 +232,7 @@ class ToyDataset(Dataset):
         toy_model_parameters: dict[str, str],
         model,
         model_parameters: dict[str, str],
-        parameters,
+        parameters: Parameters,
         costfunction: cost.Cost,
         name: str = "",
         try_to_combine: bool = False,
@@ -240,7 +240,7 @@ class ToyDataset(Dataset):
         use_user_gradient: bool = False,
         use_log: bool = False,
     ) -> None:
-
+        
         self.toy_model = toy_model
         self.num_drawn = 0
 
@@ -260,6 +260,10 @@ class ToyDataset(Dataset):
             ):
                 msg = f"ToyDataset '{self.name}': required toy_model parameter '{parameter}' not found in toy_model_parameters"
                 raise KeyError(msg)
+            
+        # check that the passed parameters are of the parameter class 
+        if not isinstance(parameters, Parameters):
+            raise ValueError(f"Parameters must be of class freqfit.Parameters, not type f{type(parameters)}")
 
         # now we make the parameters of the cost function
         # need to go in order of the model
@@ -367,7 +371,7 @@ class CombinedDataset(Dataset):
         datasets: list[Dataset, ...],
         model,
         model_parameters: dict[str, str],
-        parameters: dict,
+        parameters: Parameters,
         costfunction: cost.Cost,
         name: str = "",
         use_user_gradient: bool = False,
@@ -410,7 +414,3 @@ class CombinedDataset(Dataset):
         )
 
         return 
-
-# temporary while refactoring
-def combine_datasets():
-    return

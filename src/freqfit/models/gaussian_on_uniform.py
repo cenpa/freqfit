@@ -523,7 +523,38 @@ class gaussian_on_uniform_gen(Model):
     ) -> np.array:
         return nb_extendedrvs(S, BI, delta, sigma, eff, exp)
 
-    # combining is not supported
+    def combine(
+        self,
+        datasets: list,#List[Tuple[np.array,...],...],
+    ) -> list:
+
+        Es = np.array([])  # both of these datasets are empty
+        S = 0.0  # this should be overwritten in the fit later
+        BI = 0.0  # this should be overwritten in the fit later
+
+        num = len(datasets)
+
+        deltas = np.zeros(num)
+        sigmas = np.zeros(num)
+        effs = np.zeros(num)
+        exps = np.zeros(num)
+        for i, dataset in enumerate(datasets):
+            # first element not needed (we know data is empty)
+            deltas[i]       = dataset[3]
+            sigmas[i]       = dataset[4]
+            effs[i]         = dataset[5]
+            exps[i]         = dataset[6]        
+
+        totexp = np.sum(exps)  # total exposure
+        eff = np.sum(exps * effs) / totexp # exposure weighted efficiency
+        sigma = np.sum(sigmas * exps * effs) / (totexp * eff) # sensitive exposure weighted resolution
+        delta = np.sum(deltas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+
+        # these are fully correlated in this model so the direct sum is appropriate
+        # (maybe still appropriate even if not fully correlated?)
+
+        return [Es, S, BI, delta, sigma, eff, totexp]
+
     def can_combine(
         self,
         Es: np.array,
@@ -532,18 +563,16 @@ class gaussian_on_uniform_gen(Model):
         delta: float,
         sigma: float,
         eff: float,
-        exp: float,     
+        exp: float,
     ) -> bool:
-
-        return False
-
-    # combining not supported
-    def combine(
-        self,
-        datasets: list,#List[Tuple[np.array,...],...],
-    ) -> list:
-        raise NotImplementedError
-        return []
+        """
+        This sets an arbitrary rule if this dataset can be combined with other datasets.
+        In this case, if the dataset contains no data, then it can be combined, but more complex rules can be imposed.
+        """
+        if len(Es) == 0:
+            return True
+        else:
+            return False
 
     def plot(
         self,

@@ -166,11 +166,11 @@ class ToyConstraints(Constraints):
 
     def rvs(
         self,
-        parameters:dict,
+        parameters:dict={},
     ) -> None:
         """
-        Returns a cost with varied parameters if applicable. Using the provided central values of the parameters,
-        varies the provided parameters which are expected to be varied.
+        Using the provided central values of the parameters,
+        varies the provided parameters which are expected to be varied. Then `get_cost` can be called to get an updated cost function
 
         Parameters
         ----------

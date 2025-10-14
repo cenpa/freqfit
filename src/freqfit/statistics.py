@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 def emp_cdf(
     data: np.array,  # the data to make a cdf out of
-    bins=100,  # either number of bins or list of bin edges
+    bins:int|list=100,  # either number of bins or list of bin edges
 ) -> Tuple[np.array, np.array]:
     """
     Parameters
@@ -36,21 +36,21 @@ def emp_cdf(
     return np.cumsum(h) / np.sum(h), b
 
 
-def percentile(
+def quantile(
     data: np.array,  # the data to make a cdf out of
-    percentiles: np.array,  # which percentiles to find; should be in [0, 1]
+    quantiles: np.array,  # which quantiles to find; should be in [0, 1]
 ):
     """
-    Returns the test statistic that defines the percentiles in `percentiles`
-    for the given data
+    Returns the test statistic that defines the quantiles in `quantiles`
+    for the given data. Like `numpy.quantile` with `averaged_inverted_cdf` as method
     """
     nevts = len(data)
     data = sorted(data)
-    if isinstance(percentiles, float):
-        percentiles = np.array([percentiles])
-    results = np.zeros_like(percentiles)
-    for i, p in enumerate(percentiles):
-        p_idx = int(p * nevts)
+    if isinstance(quantiles, float):
+        quantiles = np.array([quantiles])
+    results = np.zeros_like(quantiles)
+    for i, p in enumerate(quantiles): 
+        p_idx = min([int(p * nevts),nevts-1]) # make sure we never go out of the length of the array, if p=1 then the last value of the array is the closest observation
         p_rem = p * nevts - p_idx
         results[i] = data[p_idx]
     return results
@@ -109,9 +109,9 @@ def test_statistic_asymptotic_limit(
     non_centrality = (mu - mu_0) ** 2 / sigma**2
 
     if non_centrality == 0:
-        return 1 / np.sqrt(t_mus * 2 * np.pi)
+        return 1 / np.sqrt(t_mus * 2 * np.pi) * np.exp(-t_mus/2)
     else:
-        return (1 / np.sqrt(t_mus * 2 * np.pi)) * (
+        return (1 / np.sqrt(t_mus * 8 * np.pi)) * (
             np.exp(-0.5 * (np.sqrt(t_mus) + np.sqrt(non_centrality)) ** 2)
             + (np.exp(-0.5 * (np.sqrt(t_mus) - np.sqrt(non_centrality)) ** 2))
         )
@@ -134,11 +134,11 @@ def ts_critical(
     """
     nevts = len(ts)
     binom_interval = binom.interval(confidence, nevts, threshold)
-    lo_binom_percentile = binom_interval[0] / nevts
-    hi_binom_percentile = binom_interval[1] / nevts
+    lo_binom_quantile = binom_interval[0] / nevts
+    hi_binom_quantile = binom_interval[1] / nevts
 
-    ts_crit, ts_lo, ts_hi = percentile(
-        data=ts, percentiles=[threshold, lo_binom_percentile, hi_binom_percentile]
+    ts_crit, ts_lo, ts_hi = quantile(
+        data=ts, quantiles=[threshold, lo_binom_quantile, hi_binom_quantile]
     )
 
     if plot:
@@ -195,10 +195,10 @@ def ts_critical(
             threshold,
             color="orange",
             alpha=0.75,
-            label=rf"actual CL: ${100*threshold:0.1f} \pm {100*(hi_binom_percentile-lo_binom_percentile)/2.0:0.1f}$%",
+            label=rf"actual CL: ${100*threshold:0.1f} \pm {100*(hi_binom_quantile-lo_binom_quantile)/2.0:0.1f}$%",
         )
         axs[0].axhspan(
-            lo_binom_percentile, hi_binom_percentile, color="orange", alpha=0.25
+            lo_binom_quantile, hi_binom_quantile, color="orange", alpha=0.25
         )
         axs[0].set_xlabel(r"$t$")
         axs[0].set_ylabel(r"CDF$(t)$")
@@ -254,21 +254,25 @@ def ts_critical(
 
         return (
             (ts_crit, ts_lo, ts_hi),
-            (threshold, lo_binom_percentile, hi_binom_percentile),
+            (threshold, lo_binom_quantile, hi_binom_quantile),
             fig,
         )
 
     return (ts_crit, ts_lo, ts_hi), (
         threshold,
-        lo_binom_percentile,
-        hi_binom_percentile,
+        lo_binom_quantile,
+        hi_binom_quantile,
     )
 
 
 def p_value(ts: np.array, ts_exp: float):
     """
     Returns p-value and uncertainty of an experimental test statistic and distribution of toy test statistics.
+    Notes
+    -----
+    This is not inclusive, i.e. the lower bound of the integral is NOT included in the computation of the p-value
     """
+    ts = np.array(ts) # force a cast
     tot = 1.0 * len(ts)
     hi = np.sum(ts > ts_exp)
 
@@ -291,6 +295,7 @@ def toy_ts_critical_p_value(
 ):
     """
     Returns the p-value associated with the observed test statistic from an experiment by comparing with the PDF generated from toys
+    NOTE: this is very similar to `p_value`, should we deprecate one?
     """
 
     ts_sorted = np.sort(ts)
@@ -345,139 +350,6 @@ def get_p_values(toy_ts: np.array, ts_observed: np.array):
         p_values.append(toy_ts_critical_p_value(toy_ts[i], ts_exp, plot=False))
 
     return p_values
-
-
-def sensitivity(
-    toy_ts_zero_signal: list,
-    toy_ts: list,
-    s_list: list,
-    CL: float = 0.9,
-    bins=1000,  # int or array, number of bins or list of bin edges for CDF
-    step: float = 0.01,  # specify the (approximate) step size for the bins if list of bins is not passed
-    plot: bool = False,  # if True, save plots of CDF and PDF with critical bands
-    plot_dir: str = "",  # directory where to save plots
-    plot_title: str = "",
-    save: bool = False,
-):
-    """
-    Parameters
-    ----------
-    toy_ts
-        List of lists. Each list is a a list of test statistics for toys generated with non-zero signal tested against that non-zero s-value
-    toy_ts_zero_signal
-        List of lists. Each list test statistics generated with zero signal and tested against a non-zero signal hypothesis
-    s_list
-        the list of the s_values being tested against
-
-    Returns
-    -------
-    p_values
-        A list of the p-values associated with the observed data
-
-
-    Notes
-    -----
-    This function loops over the S-grid tested. At each value of S, the median of the PDF of toy_ts_zero_signal (generated with 0 signal and tested against S)
-    is projected onto the PDF toy_ts (generated at S and tested against S) and the p-value of the median is calculated.
-    """
-
-    from .models.constants import M76, NA
-
-    # plotting colors
-    NICE_BLUE = "#668DA5"
-    NICE_RED = "#B4584D"
-    NICE_GREEN = "#ABB1A2"
-    NICE_PINK = "#CCACAD"
-
-    if len(toy_ts) != len(toy_ts_zero_signal):
-        raise ValueError("input arrays must match in length!")
-
-    p_values_median = []
-    p_values_hi = []
-    p_values_lo = []
-
-    gammas = (
-        M76 * s_list / (np.log(2) * NA)
-    )  # convert from reduced s-value to half-rate
-
-    for i, ts in enumerate(toy_ts_zero_signal):
-        ts = np.array(ts)
-
-        median_ts = np.median(ts)
-        upper_ts = np.quantile(ts, 0.5 + CL / 2, method="linear")
-        lower_ts = np.quantile(ts, 0.5 - CL / 2, method="linear")
-
-        sorted_toy_ts = np.sort(toy_ts[i])
-
-        p_values_median.append(
-            len(sorted_toy_ts[sorted_toy_ts >= median_ts]) / len(sorted_toy_ts)
-        )
-        p_values_hi.append(
-            len(sorted_toy_ts[sorted_toy_ts >= upper_ts]) / len(sorted_toy_ts)
-        )
-        p_values_lo.append(
-            len(sorted_toy_ts[sorted_toy_ts >= lower_ts]) / len(sorted_toy_ts)
-        )
-
-        if plot:
-            fig = plt.figure(figsize=(18, 10))
-
-            pdf_zero_sig, binedges_zero_sig = np.histogram(
-                ts, bins=bins, range=(-2, 25)
-            )
-            plt.stairs(
-                pdf_zero_sig,
-                binedges_zero_sig,
-                color=NICE_RED,
-                label=rf"PDF for $\Gamma$'={s_list[i]:.2e}|$\Gamma$=0",
-            )
-
-            pdf, binedges = np.histogram(toy_ts[i], bins=bins, range=(-2, 25))
-
-            plt.stairs(
-                pdf,
-                binedges,
-                color=NICE_BLUE,
-                label=rf"PDF for $\Gamma$'={s_list[i]:.2e}|$\Gamma$={s_list[i]:.2e}",
-            )
-            plt.axvline(
-                median_ts,
-                color=NICE_GREEN,
-                alpha=0.95,
-                label="Median 0-Signal Test-Statistic",
-            )
-            plt.axvline(
-                upper_ts,
-                color=NICE_GREEN,
-                ls="--",
-                alpha=0.95,
-                label=f"Upper {CL*100:.2f}%",
-            )
-            plt.axvline(
-                lower_ts,
-                color=NICE_PINK,
-                ls="--",
-                alpha=0.95,
-                label=f"Lower {CL*100:.2f}%",
-            )
-
-            plt.yscale("log")
-            plt.xlabel(r"$t$")
-            plt.ylabel(r"PDF$(t)$")
-            plt.legend()
-            plt.ylim([0.9, 1e5])
-            plt.xlim([-1, 25])
-            plt.grid()
-
-            plt.suptitle(plot_title)
-            if save:
-                fig.savefig(
-                    plot_dir + f"ts_critical_p_value_{s_list[i]:.4f}.jpg", dpi=300
-                )
-            else:
-                plt.show()
-
-    return p_values_median, p_values_hi, p_values_lo
 
 
 def find_crossing(

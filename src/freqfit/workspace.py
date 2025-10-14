@@ -936,14 +936,15 @@ class Workspace:
                 raise KeyError(msg)
                 
             # these need to be lists for other stuff
+            # NOTE: should these checks be performed here or inside the constraints class initialization?
             if not isinstance(constraint["parameters"], list):
-                constraint["parameters"] = [constraint["parameters"]]
+                constraint["parameters"] = [constraint["parameters"]] # NOTE: why is this the case? 
             if not isinstance(constraint["values"], list):
-                constraint["values"] = [constraint["values"]]
+                constraint["values"] = [constraint["values"]] # NOTE: why is this the case? 
             if "uncertainty" in constraint and not isinstance(
                 constraint["uncertainty"], list
             ):
-                constraint["uncertainty"] = [constraint["uncertainty"]]
+                constraint["uncertainty"] = [constraint["uncertainty"]]  # NOTE: why is this the case? 
             if "covariance" in constraint and not isinstance(
                 constraint["covariance"], np.ndarray
             ):
@@ -976,6 +977,7 @@ class Workspace:
                     raise ValueError(msg)
 
                 # convert to covariance matrix so that we're always working with the same type of object
+                # NOTE: should we do this inside constraint?? or should the user never EVER interact with constraint objects directly?
                 constraint["covariance"] = np.diag(constraint["uncertainty"]) ** 2
                 del constraint["uncertainty"]
 
