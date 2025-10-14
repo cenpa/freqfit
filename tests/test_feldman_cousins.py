@@ -33,7 +33,7 @@ def test_compare_to_FC():  # noqa: N802
         S = test_pairs[0]
         B = test_pairs[1]
 
-        config = Workspace.load_config("FC_config.yaml")
+        config = Workspace.load_config("tests/FC_config.yaml")
         config["parameters"]["S"]["value"] = S
         config["parameters"]["B"]["value"] = B
         ws = Workspace(config)

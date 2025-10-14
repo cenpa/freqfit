@@ -112,7 +112,7 @@ def test_dkw():
 
 def test_criticalts():
     true_S = 10.0
-    ws = Workspace.from_file("config_test_highsignal.yaml")
+    ws = Workspace.from_file("tests/config_test_highsignal.yaml")
 
     # profile over the test statistic
     x = np.arange(0, 30, 0.1)
