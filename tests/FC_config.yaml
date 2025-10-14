@@ -1,0 +1,28 @@
+datasets:
+  ds:
+    costfunction: ExtendedUnbinnedNLL
+    data:
+    - 1.0
+    model:
+      fcn: onebin_poisson
+      module: freqfit.models
+    model_parameters:
+      B: B
+      S: S
+
+parameters:
+  B:
+    value: 6.0
+    fixed: true
+    grid_rounding_num_decimals: 10
+  S:
+    includeinfit: true
+    physical_limits: '[0.0, None]'
+    value: 0.0
+    grid_rounding_num_decimals: 10
+
+options:
+  name: onebin
+  test_statistic: t_mu_tilde
+  backend: minuit
+

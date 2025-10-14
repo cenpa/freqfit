@@ -60,6 +60,7 @@ def binomial_unc_band(
     cdf: np.array,  # binned CDF
     nevts: int,  # number of events the CDF is based off of
     CL: float = 0.68,  # confidence level for band
+    continuity_correction: bool= False # if true, add a continuity correction to the uncertainty bands
 ):
     """
     Returns the confidence band for a given CDF by taking the confidence interval of a
@@ -68,6 +69,11 @@ def binomial_unc_band(
     interval = binom.interval(CL, nevts, cdf)
     lo_binom_band = interval[0] / nevts
     hi_binom_band = interval[1] / nevts
+
+    if continuity_correction:
+        lo_binom_band -= 0.5/nevts
+        hi_binom_band += 0.5/nevts
+
 
     return lo_binom_band, hi_binom_band
 
