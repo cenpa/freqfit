@@ -178,7 +178,7 @@ parameters:
     includeinfit: false
     value: 1.0
     vary_by_constraint: false
-    
+
   delta_empty:
     value_from_combine: true
     fix_if_no_data: true
@@ -193,19 +193,19 @@ parameters:
     value_from_combine: true
     fix_if_no_data: true
   sigma_empty:
-    value_from_combine: true  
+    value_from_combine: true
     fix_if_no_data: true
-    
+
 constraints:
   constraint_alpha:
     parameters: alpha
     uncertainty: 1
-    values: 0  
+    values: 0
   constraint_delta_p1:
     parameters: delta_p1
     uncertainty: 1
-    values: 0  
+    values: 0
   constraint_delta_p2:
     parameters: delta_p2
     uncertainty: 1
-    values: 0  
+    values: 0

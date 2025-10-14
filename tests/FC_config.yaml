@@ -25,4 +25,3 @@ options:
   name: onebin
   test_statistic: t_mu_tilde
   backend: minuit
-

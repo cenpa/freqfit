@@ -125,7 +125,9 @@ def test_criticalts():
 
     numtoys = 2000
     toyts = ws.toy_ts(toypars, {"global_S": true_S}, num=numtoys)[0]
-    toyts = toyts[0] # this is a tuple, the next two elements are the numerator and denominator
+    toyts = toyts[
+        0
+    ]  # this is a tuple, the next two elements are the numerator and denominator
     nbins = 500
 
     (crit95, lo95, hi95), _ = ts_critical(

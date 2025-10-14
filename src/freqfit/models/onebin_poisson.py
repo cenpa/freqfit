@@ -12,13 +12,13 @@ nb_kwd = {
     "inline": "always",
 }
 
+
 @nb.jit(**nb_kwd)
 def nb_pdf(
     Es: np.array,
     S: float,
     B: float,
 ) -> np.array:
-
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
@@ -26,8 +26,9 @@ def nb_pdf(
             y[i] = 1.0
         else:
             y[0] = 0.0
-                
+
     return y
+
 
 @nb.jit(**nb_kwd)
 def nb_density(
@@ -35,7 +36,6 @@ def nb_density(
     S: float,
     B: float,
 ) -> np.array:
-
     # Initialize and execute the for loop
     y = np.empty_like(Es, dtype=np.float64)
     for i in nb.prange(Es.shape[0]):
@@ -43,21 +43,21 @@ def nb_density(
             y[i] = S + B
         else:
             y[0] = 0.0
-                
+
     return S + B, y
+
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
     S: float,
     B: float,
 ) -> np.array:
-
-
     n_sig = np.random.poisson(S + B)
-    
+
     Es = np.ones(n_sig)
 
     return Es, (n_sig, 0)
+
 
 class onebin_poisson_gen(Model):
     def __init__(self):
@@ -112,7 +112,7 @@ class onebin_poisson_gen(Model):
         B: float,
     ) -> np.array:
         raise NotImplementedError
-        return 
+        return
 
     def extendedrvs(
         self,
@@ -124,7 +124,7 @@ class onebin_poisson_gen(Model):
     # not supported
     def combine(
         self,
-        datasets: list,#List[Tuple[np.array,...],...],
+        datasets: list,  # List[Tuple[np.array,...],...],
     ) -> list:
         raise NotImplementedError
         return
@@ -137,5 +137,6 @@ class onebin_poisson_gen(Model):
         B: float,
     ) -> bool:
         return False
+
 
 onebin_poisson = onebin_poisson_gen()

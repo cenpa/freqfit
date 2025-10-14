@@ -34,11 +34,11 @@ FC Table 4: 4.42
 
 
 import numpy as np
-from scipy.stats import poisson
 from scipy.special import erfinv
+from scipy.stats import poisson
 
 
-def get_lnR(n: int, mu: float, bg: float) -> float:
+def get_lnR(n: int, mu: float, bg: float) -> float:  # noqa: N802
     """Computes the log of the FC ratio.
 
     Args:
@@ -49,20 +49,22 @@ def get_lnR(n: int, mu: float, bg: float) -> float:
     Returns:
         lnR: log of L(n|mu+bg) / L(n|mu_best + bg)
     """
-    if n == 0 and bg == 0: return -mu
+    if n == 0 and bg == 0:
+        return -mu
     if mu + bg == 0:
-        if n == 0: return 0
+        if n == 0:
+            return 0
         return -np.inf
-    mu_best = np.maximum(n-bg, 0)
-    return n*(np.log(mu+bg) - np.log(mu_best+bg)) + mu_best - mu
+    mu_best = np.maximum(n - bg, 0)
+    return n * (np.log(mu + bg) - np.log(mu_best + bg)) + mu_best - mu
 
 
-def get_R(n, mu, bg):
+def get_R(n, mu, bg):  # noqa: N802
     """Exponentiation of get_lnR"""
     return np.exp(get_lnR(n, mu, bg))
 
 
-def get_equalR_mu(nLo: int, nHi: int, bg: float) -> float:
+def get_equalR_mu(nLo: int, nHi: int, bg: float) -> float:  # noqa: N802
     """Finds the mu that solves R(nLo, mu, bg) = R(nHi, mu, bg).
 
     This seemingly unnecessary operation offers a huge speed up for computing FC
@@ -79,10 +81,12 @@ def get_equalR_mu(nLo: int, nHi: int, bg: float) -> float:
         mu, the expected signal counts that solves
         R(nLo, mu, bg) = R(nHi, mu, bg)
     """
-    if nLo >= nHi or nHi < bg: return 0
-    if nLo == 0: return nHi / np.exp(1 - bg/nHi) - bg
-    mu1 = np.maximum(nLo-bg, 0) + bg
-    mu = np.exp((nHi*np.log(nHi)-nHi - nLo*np.log(mu1)+mu1)/(nHi-nLo)) - bg
+    if nLo >= nHi or nHi < bg:
+        return 0
+    if nLo == 0:
+        return nHi / np.exp(1 - bg / nHi) - bg
+    mu1 = np.maximum(nLo - bg, 0) + bg
+    mu = np.exp((nHi * np.log(nHi) - nHi - nLo * np.log(mu1) + mu1) / (nHi - nLo)) - bg
     return mu
 
 
@@ -92,31 +96,31 @@ def get_edges(mu: float, bg: float, cl: float = 0.90) -> (int, int, float):
     Args:
         mu: expected signal counts
         bg: expected background counts
-        cl: confidence level for the coverage patch, 90% by defaul
+        cl: confidence level for the coverage patch, 90% by default
 
     Returns:
         The tuple (nLo, nHi, cov) containing the coverage and the lower and
         upper observed counts for the coverage patch of mu: solves Σ_nLo^nHi
         P(n|mu+bg) >= cl
     """
-    if mu == 0: 
+    if mu == 0:
         nHi = poisson.ppf(cl, bg)
         return 0, nHi, poisson.cdf(nHi, bg)
-    nLo = nHi = int(mu+bg)
-    pLo = pHi = coverage = poisson.pmf(nLo, mu+bg)
+    nLo = nHi = int(mu + bg)
+    pLo = pHi = coverage = poisson.pmf(nLo, mu + bg)
     while coverage < cl:
-        if nLo > 0 and get_lnR(nLo-1, mu, bg) > get_lnR(nHi+1, mu, bg):
-            pLo *= nLo/(mu+bg)
+        if nLo > 0 and get_lnR(nLo - 1, mu, bg) > get_lnR(nHi + 1, mu, bg):
+            pLo *= nLo / (mu + bg)
             nLo -= 1
             coverage += pLo
         else:
             nHi += 1
-            pHi *= (mu+bg)/nHi
+            pHi *= (mu + bg) / nHi
             coverage += pHi
     return nLo, nHi, coverage
 
 
-def get_lnRc(mu: float, bg: float, cl: float = 0.90) -> float:
+def get_lnRc(mu: float, bg: float, cl: float = 0.90) -> float:  # noqa: N802
     """Computes ln(Rc) for this mu.
 
     The critical ratio Rc is the minimum value of the likelihood ratio for n
@@ -135,15 +139,14 @@ def get_lnRc(mu: float, bg: float, cl: float = 0.90) -> float:
     return np.minimum(get_lnR(nLo, mu, bg), get_lnR(nHi, mu, bg))
 
 
-def get_Rc(mu: float, bg: float, cl: float = 0.90) -> float:
+def get_Rc(mu: float, bg: float, cl: float = 0.90) -> float:  # noqa: N802
     """Exponentiation of get_lnRc"""
     return np.exp(get_lnRc(mu, bg, cl))
 
 
-def get_upper_limit_brute_force(n: int,
-                                bg: float,
-                                cl: float = 0.90,
-                                mu_step: float = 0.001) -> float:
+def get_upper_limit_brute_force(
+    n: int, bg: float, cl: float = 0.90, mu_step: float = 0.001
+) -> float:
     """Gets FC upper limits, brute force method.
 
     Saved for posterity. This is a slow but straightforward computation of the
@@ -160,23 +163,23 @@ def get_upper_limit_brute_force(n: int,
         mu, the upper limit on the signal strength, accurate to ±mu_step and
         rounded to the nearest interval of mu_step.
     """
-    cl_sigma = erfinv(cl)*np.sqrt(2)
-    mu = n + cl_sigma*np.sqrt(n)
+    cl_sigma = erfinv(cl) * np.sqrt(2)
+    mu = n + cl_sigma * np.sqrt(n)
     nLo, _, _ = get_edges(mu, bg, cl)
     while nLo > n and mu > 0:
         mu -= mu_step
-        if mu < 0: mu = 0
+        if mu < 0:
+            mu = 0
         nLo, _, _ = get_edges(mu, bg, cl)
     while nLo <= n:
         mu += mu_step
         nLo, _, _ = get_edges(mu, bg, cl)
-    return np.round(mu/mu_step)*mu_step
+    return np.round(mu / mu_step) * mu_step
 
 
-def get_upper_limit(n: int,
-                    bg: float,
-                    cl: float = 0.90,
-                    mu_step: float = 0.001) -> float:
+def get_upper_limit(
+    n: int, bg: float, cl: float = 0.90, mu_step: float = 0.001
+) -> float:
     """Gets FC upper limits, fast method.
 
     This is a fast but tricky computation of the Feldman-Cousins upper limit at
@@ -222,7 +225,7 @@ def get_upper_limit(n: int,
     # Having found a candidate for mu_UL, one can peek forward in mu to see if
     # higher mu have lower R_c. If so, a binary search can be performed between
     # there and the next higher mu' to find mu_UL.
-    nprime = np.maximum(n+1, np.ceil(bg)) - 1
+    nprime = np.maximum(n + 1, np.ceil(bg)) - 1
     lnR = lnRc = 0
     while lnR >= lnRc:
         nprime += 1
@@ -233,22 +236,24 @@ def get_upper_limit(n: int,
     muLo = get_equalR_mu(n, nprime, bg) + mu_step
     lnR = get_lnR(n, muLo, bg)
     lnRc = get_lnRc(muLo, bg, cl)
-    if lnR < lnRc: return muLo - mu_step
+    if lnR < lnRc:
+        return muLo - mu_step
     # if we get here, do a binary search between mu(n') and mu(n'+1)
-    muHi = get_equalR_mu(n, nprime+1, bg)
-    while muHi-muLo > mu_step:
-        mu = (muLo + muHi)/2
+    muHi = get_equalR_mu(n, nprime + 1, bg)
+    while muHi - muLo > mu_step:
+        mu = (muLo + muHi) / 2
         lnR = get_lnR(n, mu, bg)
         lnRc = get_lnRc(mu, bg, cl)
-        if lnR < lnRc: muHi = mu
-        else: muLo = mu
-    return np.round(muLo/mu_step)*mu_step
+        if lnR < lnRc:
+            muHi = mu
+        else:
+            muLo = mu
+    return np.round(muLo / mu_step) * mu_step
 
 
-def get_lower_limit(n: int,
-                    bg: float,
-                    cl: float = 0.90,
-                    mu_step: float = 0.001) -> float:
+def get_lower_limit(
+    n: int, bg: float, cl: float = 0.90, mu_step: float = 0.001
+) -> float:
     """Gets FC lower limits, fast method.
 
     This is a fast but tricky computation of the Feldman-Cousins lower limit at
@@ -266,12 +271,14 @@ def get_lower_limit(n: int,
         rounded to the nearest interval of mu_step.
     """
     # First check n = 0 or mu = 0, to see if we can quickly exit.
-    if n == 0: return 0
+    if n == 0:
+        return 0
 
     mu = 0
     lnR = get_lnR(n, mu, bg)
     lnRc = get_lnRc(mu, bg, cl)
-    if lnR >= lnRc: return 0
+    if lnR >= lnRc:
+        return 0
 
     # Now start from n and walk backwards. We should not get to zero!
     nprime = n
@@ -281,26 +288,32 @@ def get_lower_limit(n: int,
         mu = get_equalR_mu(nprime, n, bg)
         lnR = get_lnR(n, mu, bg)
         lnRc = get_lnRc(mu, bg, cl)
-    if nprime > 0 or lnR < lnRc: nprime += 1
+    if nprime > 0 or lnR < lnRc:
+        nprime += 1
     muHi = get_equalR_mu(nprime, n, bg) - mu_step
     lnR = get_lnR(n, muHi, bg)
     lnRc = get_lnRc(muHi, bg, cl)
-    if lnR < lnRc: return muHi + mu_step
+    if lnR < lnRc:
+        return muHi + mu_step
     # if we get here, do a binary search between mu(n'-1) and mu(n')
-    if nprime > 0: muLo = get_equalR_mu(nprime-1, n, bg)
-    else: muLo = 0
-    while muHi-muLo > mu_step:
-        mu = (muLo + muHi)/2
+    if nprime > 0:
+        muLo = get_equalR_mu(nprime - 1, n, bg)
+    else:
+        muLo = 0
+    while muHi - muLo > mu_step:
+        mu = (muLo + muHi) / 2
         lnR = get_lnR(n, mu, bg)
         lnRc = get_lnRc(mu, bg, cl)
-        if lnR < lnRc: muLo = mu
-        else: muHi = mu
-    return np.round(muLo/mu_step)*mu_step
+        if lnR < lnRc:
+            muLo = mu
+        else:
+            muHi = mu
+    return np.round(muLo / mu_step) * mu_step
 
 
-def median_limit_sensitivity(bg: float,
-                             cl: float = 0.90,
-                             mu_step: float = 0.001) -> float:
+def median_limit_sensitivity(
+    bg: float, cl: float = 0.90, mu_step: float = 0.001
+) -> float:
     """Computes the FC median limit sensitivity.
 
     The median limit sensitivity is the upper limit an experiment with
@@ -320,9 +333,9 @@ def median_limit_sensitivity(bg: float,
     return get_upper_limit(poisson.median(bg), bg, cl, mu_step)
 
 
-def mean_limit_sensitivity(bg: float,
-                           cl: float = 0.90,
-                           mu_step: float = 0.001) -> float:
+def mean_limit_sensitivity(
+    bg: float, cl: float = 0.90, mu_step: float = 0.001
+) -> float:
     """Computes the FC mean limit sensitivity.
 
     The mean limit sensitivity is the average of the upper limits an ensemeble
@@ -340,14 +353,16 @@ def mean_limit_sensitivity(bg: float,
         nearest interval of mu_step.
     """
     get_upper_limit_vec = np.vectorize(get_upper_limit)
+
     def f(n):
         return get_upper_limit_vec(n, bg, cl, mu_step)
+
     return poisson.expect(f, [bg])
 
 
-def median_discovery_sensitivity(bg: float,
-                                 cl: float = 0.9973,
-                                 mu_step: float = 0.001) -> float:
+def median_discovery_sensitivity(
+    bg: float, cl: float = 0.9973, mu_step: float = 0.001
+) -> float:
     """Computes the discovery sensitivity.
 
     The discovery sensitivity is the smallest signal strength mu such that an
@@ -379,6 +394,7 @@ def median_discovery_sensitivity(bg: float,
             mu += dmu
         else:
             mu -= dmu
-        if mu < 0: mu = 0
+        if mu < 0:
+            mu = 0
         dmu /= 2
-    return np.round((mu - bg)/mu_step)*mu_step
+    return np.round((mu - bg) / mu_step) * mu_step

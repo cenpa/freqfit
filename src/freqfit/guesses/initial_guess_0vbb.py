@@ -1,22 +1,19 @@
 import numpy as np
 
 from freqfit.guess import Guess
-
 from freqfit.models import constants
-from freqfit.models.correlated_efficiency_0vbb import (
-    correlated_efficiency_0vbb_gen
-    )
+from freqfit.models.correlated_efficiency_0vbb import correlated_efficiency_0vbb_gen
 from freqfit.models.correlated_efficiency_0vbb_correlate_delta import (
-    correlated_efficiency_0vbb_correlate_delta_gen
-    )
-from freqfit.models.correlated_efficiency_0vbb_linear_background import (
-    correlated_efficiency_0vbb_linear_background_gen
-    )
+    correlated_efficiency_0vbb_correlate_delta_gen,
+)
 from freqfit.models.correlated_efficiency_0vbb_exponential_background import (
-    correlated_efficiency_0vbb_exponential_background_gen
-    )
+    correlated_efficiency_0vbb_exponential_background_gen,
+)
+from freqfit.models.correlated_efficiency_0vbb_linear_background import (
+    correlated_efficiency_0vbb_linear_background_gen,
+)
 from freqfit.models.mjd_0vbb import mjd_0vbb_gen
-    
+
 # default analysis window and width
 # window
 #     uniform background regions to pull from, must be a 2D array of form e.g. `np.array([[0,1],[2,3]])`
@@ -30,12 +27,9 @@ for i in range(len(WINDOW)):
 
 QBB = constants.QBB
 
-class initial_guess_0vbb(Guess):
-    def guess(
-        self,
-        experiment
-        ):
 
+class initial_guess_0vbb(Guess):
+    def guess(self, experiment):
         # Loop through the datasets and grab the exposures, efficiencies, and sigma from all datasets
         totexp = 0.0
         sigma_expweighted = 0.0
@@ -51,7 +45,7 @@ class initial_guess_0vbb(Guess):
         for BI in BI_list:
             ds_per_BI = []
             for ds in experiment.datasets.values():
-                if (BI in ds.fitparameters):
+                if BI in ds.fitparameters:
                     ds_per_BI.append(ds)
 
             ds_list.append(ds_per_BI)
@@ -67,7 +61,6 @@ class initial_guess_0vbb(Guess):
         # Then perform the loop over datasets that share a background index
         BI_guesses = []
         for ds_BI in ds_list:
-
             # Get estimates for these parameters based only on the datasets contributing to one BI
             BI_totexp = 0.0
             BI_sigma_expweighted = 0.0
@@ -77,7 +70,9 @@ class initial_guess_0vbb(Guess):
             for ds in ds_BI:
                 if (
                     isinstance(ds.model, correlated_efficiency_0vbb_gen)
-                    or isinstance(ds.model, correlated_efficiency_0vbb_correlate_delta_gen)
+                    or isinstance(
+                        ds.model, correlated_efficiency_0vbb_correlate_delta_gen
+                    )
                     or isinstance(
                         ds.model, correlated_efficiency_0vbb_linear_background_gen
                     )
@@ -87,27 +82,33 @@ class initial_guess_0vbb(Guess):
                 ):
                     BI_totexp = BI_totexp + ds._parlist_values[7]
                     BI_sigma_expweighted = (
-                        BI_sigma_expweighted + ds._parlist_values[3] * ds._parlist_values[7]
+                        BI_sigma_expweighted
+                        + ds._parlist_values[3] * ds._parlist_values[7]
                     )
                     BI_eff_expweighted = (
-                        BI_eff_expweighted + ds._parlist_values[4] * ds._parlist_values[7]
+                        BI_eff_expweighted
+                        + ds._parlist_values[4] * ds._parlist_values[7]
                     )
                     BI_effunc_expweighted = (
-                        BI_effunc_expweighted + ds._parlist_values[5] * ds._parlist_values[7]
+                        BI_effunc_expweighted
+                        + ds._parlist_values[5] * ds._parlist_values[7]
                     )
-                    
+
                     Es_per_BI.extend(ds.data)
-                    
+
                 elif isinstance(ds.model, mjd_0vbb_gen):
                     BI_totexp = BI_totexp + ds._parlist_values[10]
                     BI_sigma_expweighted = (
-                        BI_sigma_expweighted + ds._parlist_values[4] * ds._parlist_values[10]
+                        BI_sigma_expweighted
+                        + ds._parlist_values[4] * ds._parlist_values[10]
                     )
                     BI_eff_expweighted = (
-                        BI_eff_expweighted + ds._parlist_values[7] * ds._parlist_values[10]
+                        BI_eff_expweighted
+                        + ds._parlist_values[7] * ds._parlist_values[10]
                     )
                     BI_effunc_expweighted = (
-                        BI_effunc_expweighted + ds._parlist_values[8] * ds._parlist_values[10]
+                        BI_effunc_expweighted
+                        + ds._parlist_values[8] * ds._parlist_values[10]
                     )
                     Es_per_BI.extend(ds.data)
                 else:
@@ -136,9 +137,9 @@ class initial_guess_0vbb(Guess):
             BI_guesses.append(BI_guess)
 
         # Compute the total for the experiment, so that we can better guess an initial S value
-        sigma_expweighted = sigma_expweighted/totexp
-        eff_expweighted = eff_expweighted/totexp
-        effunc_expweighted = effunc_expweighted /totexp
+        sigma_expweighted = sigma_expweighted / totexp
+        eff_expweighted = eff_expweighted / totexp
+        effunc_expweighted = effunc_expweighted / totexp
 
         _, S_guess = self.guess_BI_S(Es, totexp, eff_expweighted, sigma_expweighted)
 
@@ -151,13 +152,7 @@ class initial_guess_0vbb(Guess):
 
         return guess
 
-    def guess_BI_S(
-        self,
-        Es, 
-        totexp, 
-        eff_expweighted, 
-        sigma_expweighted
-        ):  # noqa: N802
+    def guess_BI_S(self, Es, totexp, eff_expweighted, sigma_expweighted):  # noqa: N802
         """
         Give a better initial guess for the signal and background rate given an array of data
         The signal rate is estimated in a +/-5 keV window around Qbb, the BI is estimated from everything outside that window
@@ -203,5 +198,5 @@ class initial_guess_0vbb(Guess):
 
         if BI_guess <= 0:
             BI_guess = 0
-            
+
         return BI_guess, s_guess

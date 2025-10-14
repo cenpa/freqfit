@@ -95,7 +95,7 @@ def test_iminuit_integration():
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
+    assert np.abs(m.values["delta"]) < 1e-1  # within 1e-1 of the true value of 0.0
 
     c = cost.UnbinnedNLL(random_sample, gaussian_on_uniform.logpdf, log=True)
     m = Minuit(c, S=0.5, BI=0.1, delta=-0.01, sigma=0.6, eff=0.9, exp=0.9)
@@ -104,7 +104,7 @@ def test_iminuit_integration():
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
+    assert np.abs(m.values["delta"]) < 1e-1  # within 1e-1 of the true value of 0.0
 
 
 def test_density_gradient():
@@ -126,7 +126,7 @@ def test_density_gradient():
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
+    assert np.abs(m.values["delta"]) < 1e-1  # within 1e-1 of the true value of 0.0
 
 
 def test_logdensity():
@@ -146,4 +146,4 @@ def test_logdensity():
     m.migrad()
 
     assert np.allclose(m.values["sigma"], 1, rtol=1e-1)
-    assert np.abs(m.values["delta"]) < 1e-1 # within 1e-1 of the true value of 0.0
+    assert np.abs(m.values["delta"]) < 1e-1  # within 1e-1 of the true value of 0.0

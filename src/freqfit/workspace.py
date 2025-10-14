@@ -2,28 +2,29 @@
 Workspace class for freqfit that controls aspects of the statistical analysis.
 """
 import importlib
+import logging
+import multiprocessing as mp
+import os
+from collections import defaultdict
+from copy import deepcopy
+
+import h5py
 import numpy as np
 import yaml
 from numba import njit
-import multiprocessing as mp
-import h5py
-import os
-from copy import deepcopy
-from collections import defaultdict
 
-from .dataset import Dataset, ToyDataset, CombinedDataset
-from .parameters import Parameters
 from .constraints import Constraints, ToyConstraints
+from .dataset import CombinedDataset, Dataset, ToyDataset
 from .experiment import Experiment
-from .model import Model
 from .guess import Guess
-
-import logging
+from .model import Model
+from .parameters import Parameters
 
 log = logging.getLogger(__name__)
 
 SEED = 42
 NUM_CORES = int(os.cpu_count() / 2)
+
 
 class Workspace:
     def __init__(
@@ -31,7 +32,6 @@ class Workspace:
         config: dict,
         jobid: int = 0,
     ) -> None:
-
         # set internal variables relating to toy generation
         self.jobid = jobid
 
@@ -44,20 +44,20 @@ class Workspace:
         self.overwrite_files = self.options["overwrite_files"]
         self.name = self.options["name"]
         self.numtoy = self.options["numtoy"]
-        
+
         msg = f"setting backend to {config['options']['backend']}"
         logging.info(msg)
 
         if self.overwrite_files:
             msg = f"overwrite files set to {self.overwrite_files}"
-            logging.warn(msg)
+            logging.warning(msg)
 
         # create the Parameters
-        self.parameters = Parameters(config['parameters'])
+        self.parameters = Parameters(config["parameters"])
 
         # create the Datasets
         datasets = {}
-        for dsname, ds in config['datasets'].items():
+        for dsname, ds in config["datasets"].items():
             datasets[dsname] = Dataset(
                 data=ds["data"],
                 model=ds["model"],
@@ -66,7 +66,7 @@ class Workspace:
                 costfunction=ds["costfunction"],
                 name=dsname,
                 try_to_combine=self.options["try_to_combine_datasets"],
-                combined_dataset=ds['combined_dataset'],
+                combined_dataset=ds["combined_dataset"],
                 use_user_gradient=self.options["use_user_gradient"],
                 use_log=self.options["use_log"],
             )
@@ -74,22 +74,24 @@ class Workspace:
 
         # create the ToyDatasets
         self._toy_datasets = {}
-        for dsname, ds in config['datasets'].items():
+        for dsname, ds in config["datasets"].items():
             self._toy_datasets[dsname] = ToyDataset(
                 toy_model=ds["toy_model"],
-                toy_model_parameters=ds["toy_model_parameters"] if "toy_model_parameters" in ds else ds["model_parameters"],
+                toy_model_parameters=ds["toy_model_parameters"]
+                if "toy_model_parameters" in ds
+                else ds["model_parameters"],
                 model=ds["model"],
                 model_parameters=ds["model_parameters"],
                 parameters=self.parameters,
                 costfunction=ds["costfunction"],
                 name=dsname,
                 try_to_combine=self.options["try_to_combine_datasets"],
-                combined_dataset=ds['combined_dataset'],
+                combined_dataset=ds["combined_dataset"],
                 use_user_gradient=self.options["use_user_gradient"],
-                use_log=self.options["use_log"],                
+                use_log=self.options["use_log"],
             )
 
-        self._combined_datasets = config['combined_datasets']
+        self._combined_datasets = config["combined_datasets"]
 
         # create the CombinedDatasets
         # maybe there's more than one combined_dataset group
@@ -126,8 +128,10 @@ class Workspace:
                 # delete the combined datasets
                 for dsname in dsname_tocombine:
                     datasets.pop(dsname)
-                    
-                    msg = f"combined Dataset '{dsname}' into CombinedDataset '{cdsname}'"
+
+                    msg = (
+                        f"combined Dataset '{dsname}' into CombinedDataset '{cdsname}'"
+                    )
                     logging.info(msg)
 
         # create the Constraints and ToyConstraints
@@ -140,15 +144,17 @@ class Workspace:
             msg = "constraints were provided"
             logging.info(msg)
             self.constraints = Constraints(config["constraints"], self.parameters)
-            self.toy_constraints = ToyConstraints(config["constraints"], self.parameters)
+            self.toy_constraints = ToyConstraints(
+                config["constraints"], self.parameters
+            )
 
         # create the Experiment
         self.experiment = Experiment(
-            datasets=datasets, 
-            parameters=self.parameters, 
-            constraints=self.constraints, 
+            datasets=datasets,
+            parameters=self.parameters,
+            constraints=self.constraints,
             options=self.options,
-            )       
+        )
 
         return
 
@@ -171,11 +177,15 @@ class Workspace:
 
         # seed here
         np.random.seed(seed)
-        set_numba_random_seed(seed) # numba holds RNG seeds in thread local storage, so set it up here
+        set_numba_random_seed(
+            seed
+        )  # numba holds RNG seeds in thread local storage, so set it up here
 
         # check that the user hasn't accidentally passed the full output of `profile`
         if "fixed" in toy_parameters.keys():
-            raise KeyError("toy_parameters should be a dictionary parameter name : parameter value. Perhaps you meant to access the 'results' of a profile?")
+            raise KeyError(
+                "toy_parameters should be a dictionary parameter name : parameter value. Perhaps you meant to access the 'results' of a profile?"
+            )
 
         # vary the datasets
         rvs_datasets = {}
@@ -221,23 +231,24 @@ class Workspace:
 
         # create the toy Experiment
         self.toy = Experiment(
-            datasets=rvs_datasets, 
-            parameters=self.parameters, 
-            constraints=self.toy_constraints, 
+            datasets=rvs_datasets,
+            parameters=self.parameters,
+            constraints=self.toy_constraints,
             options=self.options,
             seed=seed,
-            )  
+        )
 
-        return self.toy    
+        return self.toy
 
     # has to allow for parallelization
     def toy_ts(
         self,
-        toy_parameters: dict, # parameters and values needed to generate the toys
-        profile_parameters: dict|list, # which parameters to fix and their value (rest are profiled)
+        toy_parameters: dict,  # parameters and values needed to generate the toys
+        profile_parameters: dict
+        | list,  # which parameters to fix and their value (rest are profiled)
         num: int = 1,
-        seeds: np.array = None,   
-        info: bool = False,     
+        seeds: np.array = None,
+        info: bool = False,
     ) -> tuple[np.array, dict]:
         """
         Parameters
@@ -247,7 +258,7 @@ class Workspace:
 
         profile_parameters
             Parameters to fix during profile during hypothesis testing/ in the toy. Either a dictionary of parameters, or
-            a list of dicitonaries of parameters. The list enables many different hypotheses to be tested using the same toy       
+            a list of dictionaries of parameters. The list enables many different hypotheses to be tested using the same toy
 
         num
             Number of toys to draw
@@ -255,7 +266,7 @@ class Workspace:
             Optional, array of integers to use for seeding the random variables during toy data draws
         info
             If true, return additional information about the toys such as their seed numbers,
-            toy data, and any requested nuisance parameters (default: False)    
+            toy data, and any requested nuisance parameters (default: False)
 
         Returns
         -------
@@ -278,19 +289,18 @@ class Workspace:
         Notes
         -----
         Makes a number of toys and returns their test statistics.
-        
+
         """
 
         # if seeds aren't provided, we need to generate them ourselves so all toys aren't the same
         if seeds is None:
             seeds = np.random.randint(1e9, size=num)
-        
+
         if len(seeds) != num:
             raise ValueError("Seeds must have same length as the number of toys!")
-        
+
         if isinstance(profile_parameters, dict):
             profile_parameters = [profile_parameters]
-
 
         # instantiate arrays to fill with output test statistics
         ts = np.zeros((len(profile_parameters), num))
@@ -313,27 +323,36 @@ class Workspace:
                 ts[j][i], denominators[j][i], numerators[j][i] = thistoy.ts(
                     profile_parameters=profile_parameters[j]
                 )
-                profiled_values_to_return[j][i].extend([thistoy.profiled_values[key] for key in self.options["profiled_params_to_save"]]) # NOTE: this does not check the keys 
+                profiled_values_to_return[j][i].extend(
+                    [
+                        thistoy.profiled_values[key]
+                        for key in self.options["profiled_params_to_save"]
+                    ]
+                )  # NOTE: this does not check the keys
 
             # Stuff optional outputs into arrays
             if info:
                 data = []
-                nd = [0,0]
+                ndrawn = [0, 0]
                 for ds in thistoy.datasets:
                     data.extend(thistoy.datasets[ds].data[:])
-                    if hasattr(thistoy.datasets[ds], "num_drawn"): # this is SO slow, see if we can save this info earlier on
-                        nd[0] += thistoy.datasets[ds].num_drawn[0]
-                        nd[1] += thistoy.datasets[ds].num_drawn[1]
+                    if hasattr(
+                        thistoy.datasets[ds], "num_drawn"
+                    ):  # this is SO slow, see if we can save this info earlier on
+                        ndrawn[0] += thistoy.datasets[ds].num_drawn[0]
+                        ndrawn[1] += thistoy.datasets[ds].num_drawn[1]
                 data_to_return.append(data)
-                num_drawn.append(nd)
-
+                num_drawn.append(ndrawn)
 
         # manipulate output data to make arrays of equal sized arrays to save in hdf5
         if info:
             # Need to flatten the data_to_return in order to save it in h5py
             data_to_return_flat = (
                 np.ones(
-                    (len(data_to_return), np.nanmax([len(arr) for arr in data_to_return]))
+                    (
+                        len(data_to_return),
+                        np.nanmax([len(arr) for arr in data_to_return]),
+                    )
                 )
                 * np.nan
             )
@@ -354,16 +373,19 @@ class Workspace:
                 "denominators": denominators,
                 "numerators": numerators,
                 "seeds": seeds,
-                }
+            }
 
             return (
                 ts,
                 info_to_return,
             )
         return (ts, {})
-    
+
     def scan_ts(
-        self, var_to_profile: str, var_values: np.array, profile_dict: dict = {}  # noqa:B006
+        self,
+        var_to_profile: str,
+        var_values: np.array,
+        profile_dict: dict = {},  # noqa:B006
     ) -> tuple[np.array]:
         """
         Parameters
@@ -379,150 +401,152 @@ class Workspace:
         -------
         ts
             Value of the specified test statistic at the scanned values, tuple of test statistics, denominators, and numerators
-        
+
         Notes
         -----
         Quickly generates a likelihood curve for a parameter of interest, multiprocessed
         """
         # Create the arguments to multiprocess over
-        args = [
-            [{f"{var_to_profile}": float(xx), **profile_dict}] for xx in var_values
-        ]
+        args = [[{f"{var_to_profile}": float(xx), **profile_dict}] for xx in var_values]
 
         with mp.Pool(self.numcores) as pool:
             ts = pool.starmap(self.experiment.ts, args)
         return ts
-        
+
     def toy_ts_mp(
-            self,
-            parameters: dict, 
-            profile_parameters: dict|list,  # which parameters to fix and their value (rest are profiled)
-            num: int = 0,
-            info: bool = False, 
-        ):
-            """
-            Parameters
-            ----------
-            parameters
-                Parameters to fix during profile for toy generation
+        self,
+        parameters: dict,
+        profile_parameters: dict
+        | list,  # which parameters to fix and their value (rest are profiled)
+        num: int = 0,
+        info: bool = False,
+    ):
+        """
+        Parameters
+        ----------
+        parameters
+            Parameters to fix during profile for toy generation
 
-            profile_parameters
-                Parameters to fix during profile during hypothesis testing/ in the toy. Either a dictionary of parameters, or
-                a list of dicitonaries of parameters. The list enables many different hypotheses to be tested using the same toy       
-            num
-                Number of toys to draw
-            info
-                If true, return additional information about the toys such as their seed numbers,
-                toy data, and any requested nuisance parameters (default: False)
+        profile_parameters
+            Parameters to fix during profile during hypothesis testing/ in the toy. Either a dictionary of parameters, or
+            a list of dictionaries of parameters. The list enables many different hypotheses to be tested using the same toy
+        num
+            Number of toys to draw
+        info
+            If true, return additional information about the toys such as their seed numbers,
+            toy data, and any requested nuisance parameters (default: False)
 
-            Returns
-            -------
-            tuple[np.array, dict]
-                First element in the tuple is an array of equal sized arrays corresponding to the test statistics. Each array is one-to-one
-                with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
-                The second element ```info_to_return``` is a dictionary with the following keys
-                    - "data": an array of equal sized arrays. Each array consists of the data from one toy, posisbly padded with np.nan so that all arrays are the same length
-                    - "profiled_values_to_return": an array of equal sized arrays filled with user requested values of profiled toy parameters. Each array is one-to-one
-                        with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
-                    - "seeds": list of the seeds used to generate toys, equal to the number of toys in length
-
-
-            Notes
-            -----
-                Makes a number of toys and returns their test statistics, multiprocessed. 
-            """    
+        Returns
+        -------
+        tuple[np.array, dict]
+            First element in the tuple is an array of equal sized arrays corresponding to the test statistics. Each array is one-to-one
+            with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
+            The second element ```info_to_return``` is a dictionary with the following keys
+                - "data": an array of equal sized arrays. Each array consists of the data from one toy, posisbly padded with np.nan so that all arrays are the same length
+                - "profiled_values_to_return": an array of equal sized arrays filled with user requested values of profiled toy parameters. Each array is one-to-one
+                    with the elements of ```profile_parameters```, and the length of that array is equal to ```num```.
+                - "seeds": list of the seeds used to generate toys, equal to the number of toys in length
 
 
-            self.numtoy = num if (num!=0) else self.numtoy
-            toys_per_core = np.full(self.numcores, self.numtoy // self.numcores)
-            toys_per_core = np.insert(
-                toys_per_core, len(toys_per_core), self.numtoy % self.numcores
+        Notes
+        -----
+            Makes a number of toys and returns their test statistics, multiprocessed.
+        """
+
+        self.numtoy = num if (num != 0) else self.numtoy
+        toys_per_core = np.full(self.numcores, self.numtoy // self.numcores)
+        toys_per_core = np.insert(
+            toys_per_core, len(toys_per_core), self.numtoy % self.numcores
+        )
+
+        # remove any cores with 0 toys
+        index = np.argwhere(toys_per_core == 0)
+        toys_per_core = np.delete(toys_per_core, index)
+
+        # In order to ensure toys aren't correlated between experiments, use the experiment name to set the seed
+
+        experiment_seed = 0
+
+        for c in self.name:
+            experiment_seed += ord(c)
+
+        if experiment_seed > 2**31:
+            raise ValueError(
+                "Experiment seed cannot be too large, try naming the experiment a smaller string."
             )
 
-            # remove any cores with 0 toys
-            index = np.argwhere(toys_per_core == 0)
-            toys_per_core = np.delete(toys_per_core, index)
+        # Pick the random seeds that we will pass to toys
+        seeds = np.arange(
+            experiment_seed + self.jobid * self.numtoy,
+            experiment_seed + (self.jobid + 1) * self.numtoy,
+        )
 
-            # In order to ensure toys aren't correlated between experiments, use the experiment name to set the seed
-
-            experiment_seed = 0
-
-            for c in self.name:
-                experiment_seed += ord(c)
-
-            if experiment_seed > 2**31:
-                raise ValueError(
-                    "Experiment seed cannot be too large, try naming the experiment a smaller string."
-                )
-
-            # Pick the random seeds that we will pass to toys
-            seeds = np.arange(
-                experiment_seed + self.jobid * self.numtoy,
-                experiment_seed + (self.jobid + 1) * self.numtoy,
+        if (seeds > 2**32).any():
+            raise ValueError(
+                "Experiment seed cannot be too large, try multiplying the seeds by a smaller number."
             )
+        seeds_per_toy = []
 
-            if (seeds > 2**32).any():
-                raise ValueError(
-                    "Experiment seed cannot be too large, try multiplying the seeds by a smaller number."
-                )
-            seeds_per_toy = []
+        j = 0
+        for i, num in enumerate(toys_per_core):
+            seeds_per_toy.append(seeds[j : j + num])
+            j = j + num
 
-            j = 0
-            for i, num in enumerate(toys_per_core):
-                seeds_per_toy.append(seeds[j : j + num])
-                j = j + num
+        args = [
+            [parameters, profile_parameters, num_toy, seeds_per_toy[i], info]
+            for i, num_toy in enumerate(toys_per_core)
+        ]  # give each core multiple MCs
 
-            args = [
-                [parameters, profile_parameters, num_toy, seeds_per_toy[i], info]
-                for i, num_toy in enumerate(toys_per_core)
-            ]  # give each core multiple MCs
+        with mp.Pool(self.numcores) as pool:
+            return_args = pool.starmap(self.toy_ts, args)
 
-            with mp.Pool(self.numcores) as pool:
-                return_args = pool.starmap(self.toy_ts, args)
+        if info:
+            ts = np.array([item[0][:] for item in return_args])
+            data_to_return = [item for _, val in return_args for item in val["data"]]
 
-
-            if info:  
-                ts = np.array([item[0][:] for item in return_args])
-                data_to_return = [item for _, val in return_args for item in val["data"]]
-
-                data_to_return_flat = (
-                    np.ones(
-                        (len(data_to_return), np.nanmax([len(arr) for arr in data_to_return]))
+            data_to_return_flat = (
+                np.ones(
+                    (
+                        len(data_to_return),
+                        np.nanmax([len(arr) for arr in data_to_return]),
                     )
-                    * np.nan
                 )
-                for i, arr in enumerate(data_to_return):
-                    data_to_return_flat[i, : len(arr)] = arr
+                * np.nan
+            )
+            for i, arr in enumerate(data_to_return):
+                data_to_return_flat[i, : len(arr)] = arr
 
+            # profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
 
+            profiled_values_to_return = np.array(
+                [item[1]["profiled_values_to_return"] for item in return_args]
+            )
+            profiled_values_to_return = np.hstack(profiled_values_to_return)
 
-                # profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
+            seeds = np.array([item[1]["seeds"] for item in return_args])
+            seeds = np.hstack(seeds)
 
-                profiled_values_to_return = np.array([item[1]["profiled_values_to_return"] for item in return_args])
-                profiled_values_to_return = np.hstack(profiled_values_to_return)
+            return (
+                np.hstack(ts),
+                {
+                    "data": data_to_return_flat,
+                    "profiled_values_to_return": profiled_values_to_return,
+                    "seeds": seeds,
+                },
+            )
 
-                seeds = np.array([item[1]["seeds"] for item in return_args])
-                seeds = np.hstack(seeds)
-
-
-                return (
-                    np.hstack(ts), {"data": data_to_return_flat, "profiled_values_to_return": profiled_values_to_return, "seeds": seeds}
-                )
-            
-            else:
-                ts = np.array([item[0][:] for item in return_args])
-                return (
-                    np.hstack(ts), {}
-                )
+        else:
+            ts = np.array([item[0][:] for item in return_args])
+            return (np.hstack(ts), {})
 
     def run_and_save_toys(
         self,
-        toy_generation_profile_dict: dict, 
-        toy_test_profile_dict: dict|list,
-        toy_generation_profile_dict_override: dict = {}, # noqa:B006
-        toy_pars_override: dict = {}, # noqa:B006
+        toy_generation_profile_dict: dict,
+        toy_test_profile_dict: dict | list,
+        toy_generation_profile_dict_override: dict = {},  # noqa:B006
+        toy_pars_override: dict = {},  # noqa:B006
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
         Generate toys at a hypothesis and test against a (potentially different) hypothesis.
@@ -531,19 +555,19 @@ class Workspace:
         ----------
         toy_generation_profile_dict
             A dictionary of values we want to fix during all of the profiles that generate the parameters to seed the toys
-        
+
         toy_test_profile_dict
-            A dicitonary of values we want to fix during the profile when computing the test statistic for a toy
-        
+            A dictionary of values we want to fix during the profile when computing the test statistic for a toy
+
         toy_generation_profile_dict_override
             If a dict is passed, generate toys at these values instead of the ones profiled out during toy_generation_profile_dict
-        
+
         toy_pars_override
             If provided, use these parameters for toy generation, skipping any profiling
-        
+
         overwrite_files
             whether to overwrite result files if found, uses global option of SetLimit as default
-        
+
         info
             If false, save only the test statistics. If true, save lots of information
 
@@ -564,33 +588,25 @@ class Workspace:
         if os.path.exists(filename) and not overwrite_files:
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
             raise RuntimeError(msg)
-        
+
         # First we need to pass the parameter values to generate the toys at: either profile out the variable we are scanning, or user supplied
         if toy_pars_override:
             toypars = toy_pars_override
         else:
-            toypars = self.experiment.profile(
-                toy_generation_profile_dict
-            )["values"]
-        
-        # override any of the toypars if we need to 
+            toypars = self.experiment.profile(toy_generation_profile_dict)["values"]
+
+        # override any of the toypars if we need to
         if toy_generation_profile_dict_override:
             for key in toy_generation_profile_dict_override:
                 if key in toypars.keys:
                     toypars[key] = toy_generation_profile_dict_override[key]
 
         # run the toys now
-        (
-            toyts,
-            info_dict
-        ) = self.toy_ts_mp(
-            toypars,
-            toy_test_profile_dict,
-            num=self.numtoy,
-            info=info
+        (toyts, info_dict) = self.toy_ts_mp(
+            toypars, toy_test_profile_dict, num=self.numtoy, info=info
         )
 
-       # Now, save the toys to a file
+        # Now, save the toys to a file
 
         if overwrite_files and os.path.exists(filename):
             msg = f"overwriting existing file {filename}"
@@ -604,7 +620,7 @@ class Workspace:
             for d in toy_test_profile_dict:
                 for k, v in d.items():
                     new_dict[k].append(v)
-            toy_test_profile_dict  = new_dict
+            toy_test_profile_dict = new_dict
 
         dset = f.create_dataset(
             "test_parameters_names", data=list(toy_test_profile_dict.keys())
@@ -621,20 +637,22 @@ class Workspace:
             # dset = f.create_dataset("ts_denom", data=toyts_denom)
             # dset = f.create_dataset("ts_num", data=toyts_num)
             dset = f.create_dataset("data", data=info_dict["data"])
-            dset = f.create_dataset("profiled_values_to_return", data=info_dict["profiled_values_to_return"])
-            dset  = f.create_dataset("seeds", data= info_dict["seeds"])
+            dset = f.create_dataset(
+                "profiled_values_to_return", data=info_dict["profiled_values_to_return"]
+            )
+            dset = f.create_dataset("seeds", data=info_dict["seeds"])
             # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
 
         f.close()
 
         return None
-    
+
     def run_hypothesis_test(
         self,
         poi_name: str,
-        poi_value: float,        
+        poi_value: float,
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
         Perform a hypothesis test for one parameter of interest. Toys are generated using the poi_value and tested against the poi_value
@@ -646,15 +664,20 @@ class Workspace:
             Value at which to generate and test toys
 
         """
-        self.run_and_save_toys({poi_name: poi_value}, {poi_name: poi_value}, overwrite_files=overwrite_files, info=info)
+        self.run_and_save_toys(
+            {poi_name: poi_value},
+            {poi_name: poi_value},
+            overwrite_files=overwrite_files,
+            info=info,
+        )
         return None
-    
+
     def run_exclusion(
         self,
         poi_name: str,
         poi_values: np.array,
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
         Perform an exclusion test for one parameter of interest. Toys are generated at 0 for the poi and tested against the poi_value
@@ -669,15 +692,20 @@ class Workspace:
         # Add 0 to the scan points if it is not there
         if 0.0 not in poi_values:
             poi_values = np.insert(poi_values, 0, 0.0)
-        self.run_and_save_toys({poi_name: 0.0}, [{poi_name: scan_point} for scan_point in poi_values], overwrite_files=overwrite_files, info=info)
+        self.run_and_save_toys(
+            {poi_name: 0.0},
+            [{poi_name: scan_point} for scan_point in poi_values],
+            overwrite_files=overwrite_files,
+            info=info,
+        )
         return None
-    
+
     def run_discovery(
         self,
         poi_name: str,
         poi_value: np.array,
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
         Perform a discovery test for one parameter of interest. Toys are generated at poi_value for the poi and tested against 0.0
@@ -689,16 +717,21 @@ class Workspace:
             Value at which to generate toys
 
         """
-        self.run_and_save_toys({poi_name: poi_value}, {poi_name: 0.0}, overwrite_files=overwrite_files, info=info)
+        self.run_and_save_toys(
+            {poi_name: poi_value},
+            {poi_name: 0.0},
+            overwrite_files=overwrite_files,
+            info=info,
+        )
         return None
-    
+
     def run_coverage(
         self,
         poi_name: str,
         poi_value: float,
         coverage_values: np.array,
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
         Check the coverage. Toys are generated at poi_value for the poi and tested against all the coverage_values
@@ -716,9 +749,14 @@ class Workspace:
             raise ValueError(
                 f"{poi_value} not in user specified grid {coverage_values}!"
             )
-        self.run_and_save_toys({poi_name: poi_value}, [{poi_name: scan_point} for scan_point in coverage_values], overwrite_files=overwrite_files, info=info)
+        self.run_and_save_toys(
+            {poi_name: poi_value},
+            [{poi_name: scan_point} for scan_point in coverage_values],
+            overwrite_files=overwrite_files,
+            info=info,
+        )
         return None
-    
+
     def run_mismodel(
         self,
         poi_name: str,
@@ -726,7 +764,7 @@ class Workspace:
         mismodel_pars: dict,
         coverage_values: np.array,
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
         Compute test statistics under mismodeling. Toys are generated at poi_value and with mismodel_pars, but mismodel_pars are allowed to float during testing at poi_value
@@ -743,7 +781,12 @@ class Workspace:
             raise ValueError(
                 f"{poi_value} not in user specified grid {coverage_values}!"
             )
-        self.run_and_save_toys({poi_name: poi_value, **mismodel_pars}, [{poi_name: scan_point} for scan_point in coverage_values], overwrite_files=overwrite_files, info=info)
+        self.run_and_save_toys(
+            {poi_name: poi_value, **mismodel_pars},
+            [{poi_name: scan_point} for scan_point in coverage_values],
+            overwrite_files=overwrite_files,
+            info=info,
+        )
         return None
 
     def run_joint_profile(
@@ -752,10 +795,10 @@ class Workspace:
         poi_value: float,
         joint_profile_pars: dict,
         overwrite_files: bool = None,
-        info: bool = False 
+        info: bool = False,
     ):
         """
-        Compute test statistics for multiple poi.  Toys are generated at poi_value and with joint_profile_pars, and are also tested agains poi_value and joint_profile_pars
+        Compute test statistics for multiple poi.  Toys are generated at poi_value and with joint_profile_pars, and are also tested against poi_value and joint_profile_pars
         Parameters
         ----------
         poi_name
@@ -765,7 +808,12 @@ class Workspace:
         mismodel_pars
             Additional parameters to fix during profiling for toy generation and testing
         """
-        self.run_and_save_toys({poi_name: poi_value, **joint_profile_pars}, {poi_name: poi_value, **joint_profile_pars}, overwrite_files=overwrite_files, info=info)
+        self.run_and_save_toys(
+            {poi_name: poi_value, **joint_profile_pars},
+            {poi_name: poi_value, **joint_profile_pars},
+            overwrite_files=overwrite_files,
+            info=info,
+        )
         return None
 
     @classmethod
@@ -819,28 +867,28 @@ class Workspace:
 
         # defaults
         options_defaults = {
-            "backend"                   : "minuit"  ,   # "minuit" or "scipy"
-            "iminuit_precision"         : 1e-10     ,
-            "iminuit_strategy"          : 0         , 
-            "iminuit_tolerance"         : 1e-5      ,
-            "initial_guess"             : {"fcn": None, "module": None},  
-            "minimizer_options"         : {}        ,   # dict of options to pass to the iminuit minimizer
-            "num_cores"                 : 1         ,
-            "num_toys"                  : 1000      ,
-            "scan"                      : False     ,
-            "scipy_minimizer"           : None      ,
-            "seed_start"                : 0         ,
-            "try_to_combine_datasets"   : False     ,
-            "test_statistic"            : "t_mu"    ,   # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
-            "use_grid_rounding"         : False     ,   # evaluate the test statistic on a parameter space grid after minimizing
-            "use_log"                   : False     ,
-            "use_user_gradient"         : False     ,
-            "out_path"                  : "."       ,
-            "numcores"                  : NUM_CORES ,
-            "overwrite_files"           : False     ,
-            "name"                      : ""        ,
-            "numtoy"                    : 0         ,
-            "profiled_params_to_save"   : []        , # list of parameter names to save their profiled values
+            "backend": "minuit",  # "minuit" or "scipy"
+            "iminuit_precision": 1e-10,
+            "iminuit_strategy": 0,
+            "iminuit_tolerance": 1e-5,
+            "initial_guess": {"fcn": None, "module": None},
+            "minimizer_options": {},  # dict of options to pass to the iminuit minimizer
+            "num_cores": 1,
+            "num_toys": 1000,
+            "scan": False,
+            "scipy_minimizer": None,
+            "seed_start": 0,
+            "try_to_combine_datasets": False,
+            "test_statistic": "t_mu",  # "t_mu", "q_mu", "t_mu_tilde", or "q_mu_tilde"
+            "use_grid_rounding": False,  # evaluate the test statistic on a parameter space grid after minimizing
+            "use_log": False,
+            "use_user_gradient": False,
+            "out_path": ".",
+            "numcores": NUM_CORES,
+            "overwrite_files": False,
+            "name": "",
+            "numtoy": 0,
+            "profiled_params_to_save": [],  # list of parameter names to save their profiled values
         }
 
         for key, val in options_defaults.items():
@@ -850,65 +898,77 @@ class Workspace:
         for option, optionval in config["options"].items():
             if optionval in ["none", "None"]:
                 config["options"][option] = None
-        
+
         if config["options"]["backend"] not in ["minuit", "scipy"]:
-            raise NotImplementedError(
-              "backend is not set to 'minuit' or 'scipy'"  
-            )
-        
+            raise NotImplementedError("backend is not set to 'minuit' or 'scipy'")
+
         if not isinstance(config["options"]["minimizer_options"], dict):
             raise ValueError("options: minimizer_options must be a dict")
 
         if config["options"]["initial_guess"]["fcn"] is not None:
-            config["options"]["initial_guess"] = Workspace.load_class(config["options"]["initial_guess"])
+            config["options"]["initial_guess"] = Workspace.load_class(
+                config["options"]["initial_guess"]
+            )
 
             if not issubclass(config["options"]["initial_guess"], Guess):
-                raise TypeError(f"initial guess must inherit from 'Guess'")
+                raise TypeError("initial guess must inherit from 'Guess'")
 
             # instantiate guess class and set guess function
-            config["options"]["initial_guess"] = config["options"]["initial_guess"]().guess
+            config["options"]["initial_guess"] = config["options"][
+                "initial_guess"
+            ]().guess
 
         if config["options"]["try_to_combine_datasets"]:
             if "combined_datasets" not in config:
-                msg = (f"option 'try_to_combine_datasets' is True but `combined_datasets` is missing")
-                raise KeyError(msg) 
+                msg = "option 'try_to_combine_datasets' is True but `combined_datasets` is missing"
+                raise KeyError(msg)
 
         # get list of models and cost functions to import
         models = []
         costfunctions = set()
         for dsname, ds in config["datasets"].items():
-
             for item in ["model", "costfunction"]:
                 if item not in ds:
                     msg = f"Dataset '{dsname} has no '{item}'"
                     raise KeyError(msg)
-            
+
             if ds["model"] not in models:
                 models.append(ds["model"])
-            
+
             if "toy_model" not in ds:
                 log.debug("`toy_model` not provided, using dataset model instead")
                 ds["toy_model"] = ds["model"]
 
             if ds["toy_model"] not in models:
                 models.append(ds["toy_model"])
-            
+
             if ds["costfunction"] not in ["ExtendedUnbinnedNLL", "UnbinnedNLL"]:
                 msg = f"Dataset '{dsname}': only 'ExtendedUnbinnedNLL' or 'UnbinnedNLL' are \
                     supported as cost functions"
-                raise NotImplementedError(msg)   
+                raise NotImplementedError(msg)
 
-            costfunctions.add(ds["costfunction"])                 
-                    
-            if config["options"]["try_to_combine_datasets"] and "combined_dataset" in ds and ds["combined_dataset"] is not None:
-                if (ds["combined_dataset"] not in config["combined_datasets"]):
-                    msg = (f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but " 
-                        + f"`combined_datasets` does not contain `{ds['combined_dataset']}`")
-                    raise KeyError(msg)   
-                elif (config["combined_datasets"][ds["combined_dataset"]]["model"] != ds["model"]):
-                    msg = (f" Dataset `{dsname}` Model `{ds['model']['fcn']}` not the same as CombinedDataset "
+            costfunctions.add(ds["costfunction"])
+
+            if (
+                config["options"]["try_to_combine_datasets"]
+                and "combined_dataset" in ds
+                and ds["combined_dataset"] is not None
+            ):
+                if ds["combined_dataset"] not in config["combined_datasets"]:
+                    msg = (
+                        f"Dataset `{dsname}` has `combined_dataset` `{ds['combined_dataset']}` but "
+                        + f"`combined_datasets` does not contain `{ds['combined_dataset']}`"
+                    )
+                    raise KeyError(msg)
+                elif (
+                    config["combined_datasets"][ds["combined_dataset"]]["model"]
+                    != ds["model"]
+                ):
+                    msg = (
+                        f" Dataset `{dsname}` Model `{ds['model']['fcn']}` not the same as CombinedDataset "
                         + f"`{ds['combined_dataset']}` Model "
-                        + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['fcn']}`")
+                        + f"`{config['combined_datasets'][ds['combined_dataset']]['model']['fcn']}`"
+                    )
                     raise ValueError(msg)
 
             # set default after checking previous
@@ -921,7 +981,7 @@ class Workspace:
             if "parameters" not in constraint:
                 msg = f"constraint `{ctname}` has no `parameters`"
                 raise KeyError(msg)
-            
+
             if "vary" not in constraint:
                 constraint["vary"] = False
 
@@ -934,17 +994,23 @@ class Workspace:
                 msg = f"constraint '{ctname}' has neither 'covariance' nor 'uncertainty' - one (and only one) must be provided!"
                 logging.error(msg)
                 raise KeyError(msg)
-                
+
             # these need to be lists for other stuff
             # NOTE: should these checks be performed here or inside the constraints class initialization?
             if not isinstance(constraint["parameters"], list):
-                constraint["parameters"] = [constraint["parameters"]] # NOTE: why is this the case? 
+                constraint["parameters"] = [
+                    constraint["parameters"]
+                ]  # NOTE: why is this the case?
             if not isinstance(constraint["values"], list):
-                constraint["values"] = [constraint["values"]] # NOTE: why is this the case? 
+                constraint["values"] = [
+                    constraint["values"]
+                ]  # NOTE: why is this the case?
             if "uncertainty" in constraint and not isinstance(
                 constraint["uncertainty"], list
             ):
-                constraint["uncertainty"] = [constraint["uncertainty"]]  # NOTE: why is this the case? 
+                constraint["uncertainty"] = [
+                    constraint["uncertainty"]
+                ]  # NOTE: why is this the case?
             if "covariance" in constraint and not isinstance(
                 constraint["covariance"], np.ndarray
             ):
@@ -1011,7 +1077,7 @@ class Workspace:
                     msg = f"constraint '{ctname}' 'covariance' matrix does not seem to contain proper correlation matrix"
                     logging.error(msg)
                     raise ValueError(msg)
-                    
+
         # combined datasets
         for cdsname, cds in config["combined_datasets"].items():
             for item in ["model", "costfunction"]:
@@ -1033,7 +1099,7 @@ class Workspace:
             for dsname, ds in config["datasets"].items():
                 if ds["model"] == model:
                     ds["model"] = modelclass
-                
+
                 if ds["toy_model"] == model:
                     ds["toy_model"] = modelclass
 
@@ -1056,38 +1122,43 @@ class Workspace:
                     cds["costfunction"] = costfunction
 
         # parameters
-        
+
         # convert any limits from string to fpython object
         # set defaults if options missing
         for par, pardict in config["parameters"].items():
-
             if "limits" not in pardict:
                 pardict["limits"] = [None, None]
 
             if "physical_limits" not in pardict:
                 pardict["physical_limits"] = None
-            
+
             if "value" not in pardict:
                 pardict["value"] = None
 
-            for item in ["includeinfit", "fixed", "fix_if_no_data", "value_from_combine", "poi"]:
+            for item in [
+                "includeinfit",
+                "fixed",
+                "fix_if_no_data",
+                "value_from_combine",
+                "poi",
+            ]:
                 if item not in pardict:
                     pardict[item] = False
-            
+
             if "grid_rounding_num_decimals" not in pardict:
                 pardict["grid_rounding_num_decimals"] = 128
 
             for item in ["limits", "physical_limits"]:
                 if type(pardict[item]) is str:
                     pardict[item] = eval(pardict[item])
-            
+
             # TODO: change this so that "domain" is passed by user and controls everything?
             pardict["domain"] = pardict["limits"]
-            if pardict["domain"][0] == None:
-                pardict["domain"][0] = -1*np.inf
-            if pardict["domain"][1] == None:
+            if pardict["domain"][0] is None:
+                pardict["domain"][0] = -1 * np.inf
+            if pardict["domain"][1] is None:
                 pardict["domain"][1] = np.inf
-                
+
         return config
 
     @staticmethod
@@ -1099,8 +1170,8 @@ class Workspace:
             logging.info(msg)
 
             raise KeyError(msg)
-        
-        try: 
+
+        try:
             lib = importlib.import_module(info["module"])
             thisclass = getattr(lib, info["fcn"])
 
@@ -1114,7 +1185,9 @@ class Workspace:
             logging.info(e)
 
             try:
-                spec = importlib.util.spec_from_file_location("fakemodule", info["module"])
+                spec = importlib.util.spec_from_file_location(
+                    "fakemodule", info["module"]
+                )
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 thisclass = getattr(module, info["fcn"])
@@ -1123,7 +1196,7 @@ class Workspace:
                 logging.info(msg)
 
                 return thisclass
-            
+
             except Exception as e:
                 msg = f"tried to load '{info['fcn']}' from '{info['module']}' but not a module or path - aborting"
                 logging.info(msg)
@@ -1131,9 +1204,10 @@ class Workspace:
                 pass
 
         raise KeyError(msg)
-        
+
+
 # use this YAML loader to detect duplicate keys in a config file
-# https://stackoverflow.com/a/76090386 
+# https://stackoverflow.com/a/76090386
 class UniqueKeyLoader(yaml.SafeLoader):
     def construct_mapping(self, node, deep=False):
         mapping = set()
@@ -1146,7 +1220,8 @@ class UniqueKeyLoader(yaml.SafeLoader):
                 )
             mapping.add(each_key)
         return super().construct_mapping(node, deep)
-    
+
+
 @njit
 def set_numba_random_seed(seed):
     np.random.seed(seed)

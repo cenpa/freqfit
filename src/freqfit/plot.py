@@ -20,12 +20,7 @@ from .models.constants import (
     m_prime_to_m,
     s_prime_to_s,
 )
-from .statistics import (
-    find_crossing,
-    get_p_values,
-    sensitivity,
-    ts_critical,
-)
+from .statistics import find_crossing, get_p_values, sensitivity, ts_critical
 
 plt.style.use(legendstyles.LEGEND)
 

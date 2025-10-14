@@ -40,7 +40,7 @@ def nb_pdf(
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    a   
+    a
         "normalized" slope between -1 and 1 inclusive
     BI
         rate of background in cts/exposure/energy (not used in pdf)
@@ -63,11 +63,17 @@ def nb_pdf(
 
     includedarea = 0.0
     for i in nb.prange(WINDOW.shape[0]):
-        includedarea += (2.0 * (WINDOW[i][1] - WINDOW[i][0]) 
-            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b))
+        includedarea += (
+            2.0
+            * (WINDOW[i][1] - WINDOW[i][0])
+            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
+        )
 
-    totarea = (2.0 * (WINDOW[-1][1] - WINDOW[0][0]) 
-        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b))
+    totarea = (
+        2.0
+        * (WINDOW[-1][1] - WINDOW[0][0])
+        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b)
+    )
 
     amp = totarea / includedarea
 
@@ -101,7 +107,7 @@ def nb_density(
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    a   
+    a
         "normalized" slope between -1 and 1 inclusive
     BI
         rate of background in cts/exposure/energy
@@ -124,11 +130,17 @@ def nb_density(
 
     includedarea = 0.0
     for i in nb.prange(WINDOW.shape[0]):
-        includedarea += (2.0 * (WINDOW[i][1] - WINDOW[i][0]) 
-            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b))
+        includedarea += (
+            2.0
+            * (WINDOW[i][1] - WINDOW[i][0])
+            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
+        )
 
-    totarea = (2.0 * (WINDOW[-1][1] - WINDOW[0][0]) 
-        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b))
+    totarea = (
+        2.0
+        * (WINDOW[-1][1] - WINDOW[0][0])
+        * (slope * (-2.0 * mid + WINDOW[0][0] + WINDOW[-1][1]) + 2 * b)
+    )
 
     amp = totarea / includedarea * BI * exp * WINDOWSIZE
 
@@ -145,8 +157,9 @@ def nb_density(
                     inwindow = True
             if not inwindow:
                 y[i] = 0.0
-    
+
     return WINDOWSIZE * BI * exp, y
+
 
 @nb.jit(nopython=True, fastmath=True, cache=True, error_model="numpy")
 def nb_extendedrvs(
@@ -159,14 +172,13 @@ def nb_extendedrvs(
     ----------
     Es
         Energies at which this function is evaluated, in keV
-    a   
+    a
         "normalized" slope between -1 and 1 inclusive
     BI
         rate of background in cts/exposure/energy
     exp
         exposure
     """
-
 
     n_bkg = np.random.poisson(BI * exp * WINDOWSIZE)
 
@@ -180,21 +192,25 @@ def nb_extendedrvs(
 
     # take normalized slope and convert to actual slope
     slope = a * (2.0 / (FULLWINDOWSIZE * FULLWINDOWSIZE))
-    
+
     # there's a precision issue with how I am drawing rvs when a is very small
-    if abs(a) < 1E-12:
+    if abs(a) < 1e-12:
         slope = 0.0
 
     b = 1.0 / FULLWINDOWSIZE
 
-    # find area of each section and percent of cdf 
+    # find area of each section and percent of cdf
     cumareas = np.zeros(len(WINDOW))
     percentages = np.zeros(len(WINDOW))
     areas = np.zeros(len(WINDOW))
 
     totarea = 0.0
     for i in nb.prange(WINDOW.shape[0]):
-        area = 2.0 * (WINDOW[i][1] - WINDOW[i][0]) * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
+        area = (
+            2.0
+            * (WINDOW[i][1] - WINDOW[i][0])
+            * (slope * (-2.0 * mid + WINDOW[i][0] + WINDOW[i][1]) + 2 * b)
+        )
         totarea += area
         cumareas[i] = totarea
         areas[i] = area
@@ -204,7 +220,7 @@ def nb_extendedrvs(
 
     # figure out which window each count belongs to
     whichwindow = np.random.uniform(0.0, 1.0, n_bkg)
-    numwindow = np.zeros(WINDOW.shape[0], dtype='i')
+    numwindow = np.zeros(WINDOW.shape[0], dtype="i")
     for i in nb.prange(n_bkg):
         for j in nb.prange(WINDOW.shape[0]):
             if whichwindow[i] < percentages[j]:
@@ -217,21 +233,33 @@ def nb_extendedrvs(
     k = 0
     for i in nb.prange(WINDOW.shape[0]):
         x0 = WINDOW[i][0]
-        rvs = 0.5*areas[i]*np.random.uniform(0.0, 1.0, numwindow[i])
+        rvs = 0.5 * areas[i] * np.random.uniform(0.0, 1.0, numwindow[i])
         for j in nb.prange(numwindow[i]):
             if m == 0.0:
-                Es[k] = WINDOW[i][0] + rvs[j] / (2.0*b)
+                Es[k] = WINDOW[i][0] + rvs[j] / (2.0 * b)
             else:
-                Es[k] = ((b**2 + 2*b*m*(x0-mid) + m*(mid**2*m - 2*mid*m*x0 + m*x0**2 + rvs[j]))**0.5 - b + mid*m) / m
-            
+                Es[k] = (
+                    (
+                        b**2
+                        + 2 * b * m * (x0 - mid)
+                        + m * (mid**2 * m - 2 * mid * m * x0 + m * x0**2 + rvs[j])
+                    )
+                    ** 0.5
+                    - b
+                    + mid * m
+                ) / m
+
             k += 1
 
     return (Es, (n_bkg, 0))
 
+
 class linear_bkg_gen(Model):
     def __init__(self):
         self.parameters = self.inspectparameters(self.density)
-        del self.parameters["check_window"] # used for plotting and stuff, screws up rvs since not present there
+        del self.parameters[
+            "check_window"
+        ]  # used for plotting and stuff, screws up rvs since not present there
         pass
 
     def pdf(
@@ -262,7 +290,7 @@ class linear_bkg_gen(Model):
         exp: float,
     ) -> np.array:
         return nb_extendedrvs(a, BI, exp)
-    
+
     def logpdf(
         self,
         Es: np.array,
@@ -271,7 +299,6 @@ class linear_bkg_gen(Model):
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-
         raise NotImplementedError
         return
 
@@ -283,7 +310,6 @@ class linear_bkg_gen(Model):
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-    
         raise NotImplementedError
         return
 
@@ -295,7 +321,6 @@ class linear_bkg_gen(Model):
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-    
         raise NotImplementedError
         return
 
@@ -307,7 +332,6 @@ class linear_bkg_gen(Model):
         exp: float,
         check_window: bool = False,
     ) -> np.array:
-    
         raise NotImplementedError
         return
 
@@ -321,13 +345,13 @@ class linear_bkg_gen(Model):
         check_window: bool = False,
     ) -> bool:
         return False
-    
+
     def combine(
         self,
-        datasets: list,#List[Tuple[np.array,...],...],
+        datasets: list,  # List[Tuple[np.array,...],...],
     ) -> list:
-    
         raise NotImplementedError
         return
+
 
 linear_bkg = linear_bkg_gen()

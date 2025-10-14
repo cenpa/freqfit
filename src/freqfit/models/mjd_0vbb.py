@@ -677,9 +677,8 @@ class mjd_0vbb_gen(Model):
 
     def combine(
         self,
-        datasets: list,#List[Tuple[np.array,...],...],
+        datasets: list,  # List[Tuple[np.array,...],...],
     ) -> list:
-
         Es = np.array([])  # both of these datasets are empty
         S = 0.0  # this should be overwritten in the fit later
         BI = 0.0  # this should be overwritten in the fit later
@@ -698,29 +697,52 @@ class mjd_0vbb_gen(Model):
         exps = np.zeros(num)
         for i, dataset in enumerate(datasets):
             # first few elements not needed (we know data is empty)
-            fracs[i]        = dataset[3]
-            deltas[i]       = dataset[4]
-            sigmas[i]       = dataset[5]
-            taus[i]         = dataset[6]
-            gammas[i]       = dataset[7]
-            effs[i]         = dataset[8]
-            effuncs[i]      = dataset[9]
+            fracs[i] = dataset[3]
+            deltas[i] = dataset[4]
+            sigmas[i] = dataset[5]
+            taus[i] = dataset[6]
+            gammas[i] = dataset[7]
+            effs[i] = dataset[8]
+            effuncs[i] = dataset[9]
             effuncscales[i] = dataset[10]
-            exps[i]         = dataset[11]        
+            exps[i] = dataset[11]
 
         totexp = np.sum(exps)  # total exposure
-        eff = np.sum(exps * effs) / totexp # exposure weighted efficiency
-        sigma = np.sum(sigmas * exps * effs) / (totexp * eff) # sensitive exposure weighted resolution
-        delta = np.sum(deltas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
-        tau = np.sum(taus * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
-        frac = np.sum(fracs * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
-        gamma = np.sum(gammas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+        eff = np.sum(exps * effs) / totexp  # exposure weighted efficiency
+        sigma = np.sum(sigmas * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted resolution
+        delta = np.sum(deltas * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted bias correction
+        tau = np.sum(taus * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted bias correction
+        frac = np.sum(fracs * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted bias correction
+        gamma = np.sum(gammas * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted bias correction
 
         # these are fully correlated in this model so the direct sum is appropriate
         # (maybe still appropriate even if not fully correlated?)
         effunc = np.sum(exps * effuncs) / totexp
 
-        return [Es, S, BI, frac, delta, sigma, tau, gamma, eff, effunc, effuncscale, totexp]
+        return [
+            Es,
+            S,
+            BI,
+            frac,
+            delta,
+            sigma,
+            tau,
+            gamma,
+            eff,
+            effunc,
+            effuncscale,
+            totexp,
+        ]
 
     def can_combine(
         self,

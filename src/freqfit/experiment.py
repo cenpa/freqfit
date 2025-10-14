@@ -1,10 +1,7 @@
 """
 A class that controls an experiment and calls the `Superset` class.
 """
-from collections.abc import Callable
-import itertools
 import logging
-from copy import deepcopy
 
 import numpy as np
 from iminuit import Minuit
@@ -15,6 +12,7 @@ from .parameters import Parameters
 
 log = logging.getLogger(__name__)
 
+
 class Experiment:
     def __init__(
         self,
@@ -24,8 +22,7 @@ class Experiment:
         options: dict,
         seed: int = 4,
     ) -> None:
-        
-        self.datasets = datasets 
+        self.datasets = datasets
         self.parameters = parameters
         self.options = options
         self.costfunction = None
@@ -34,11 +31,13 @@ class Experiment:
 
         # set initial guess function
         self.guessfcn = options["initial_guess"]
-        if (self.guessfcn is None) or (isinstance(self.guessfcn, dict) and (None in self.guessfcn.values())):
+        if (self.guessfcn is None) or (
+            isinstance(self.guessfcn, dict) and (None in self.guessfcn.values())
+        ):
             self.guessfcn = initial_guess
 
         # check which nuisance parameters can be fixed in the fit due to no data
-        self.fixed_bc_no_data = {}  
+        self.fixed_bc_no_data = {}
 
         # get the parameters of the fit
         self.fitparameters = parameters.get_fitparameters(self.datasets)
@@ -51,7 +50,7 @@ class Experiment:
                 first = False
             else:
                 self.costfunction += ds.costfunction
-        
+
         if constraints:
             fit_constraints = constraints.get_cost(self.fitparameters)
 
@@ -69,7 +68,9 @@ class Experiment:
         self.minuit.tol = options["iminuit_tolerance"]  # set the tolerance
         self.minuit.precision = options["iminuit_precision"]
         self.minuit.strategy = options["iminuit_strategy"]
-        self.minuit.throw_nan = True # raise a RunTime error if function evaluates to NaN
+        self.minuit.throw_nan = (
+            True  # raise a RunTime error if function evaluates to NaN
+        )
 
         # get fit parameters that are only part of Datasets with no data
         parsnodata = self.parameters.get_fitparameters(self.datasets, nodata=True)
@@ -85,8 +86,10 @@ class Experiment:
         self.minuit_reset()
 
         # check if there are no data so we can quickly return the test statistic
-        self.no_data= False
-        if len(self.datasets) == 1 and isinstance(self.datasets[list(self.datasets.keys())[0]], CombinedDataset):
+        self.no_data = False
+        if len(self.datasets) == 1 and isinstance(
+            self.datasets[list(self.datasets.keys())[0]], CombinedDataset
+        ):
             self.no_data = True
 
     def minuit_reset(
@@ -110,15 +113,15 @@ class Experiment:
                 self.minuit.limits[parname] = pardict["limits"]
                 if use_physical_limits and (pardict["physical_limits"] is not None):
                     self.minuit.limits[parname] = pardict["physical_limits"]
-                
+
                 # fix those nuisance parameters which can be fixed because they are not part of a
                 # Dataset that has data
                 if parname in self.fixed_bc_no_data:
                     self.minuit.fixed[parname] = True
-                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]    
+                    self.minuit.values[parname] = self.fixed_bc_no_data[parname]
 
         return
-    
+
     def grab_results(
         self,
     ) -> dict:
@@ -142,9 +145,7 @@ class Experiment:
             }  # returns dict
 
             # overwrite the fval at the truncated params point in parameter space
-            toreturn["fval"] = self.minuit._fcn(
-                toreturn["values"].values()
-            )  
+            toreturn["fval"] = self.minuit._fcn(toreturn["values"].values())
 
         return toreturn
 
@@ -172,9 +173,9 @@ class Experiment:
         try:
             if self.options["backend"] == "minuit":
                 self.minuit.migrad(**self.options["minimizer_options"])
-            else: # scipy
+            else:  # scipy
                 self.minuit.scipy(
-                    method=self.options["scipy_minimizer"], 
+                    method=self.options["scipy_minimizer"],
                     options=self.options["minimizer_options"],
                 )
         except RuntimeError:
@@ -218,9 +219,9 @@ class Experiment:
         try:
             if self.options["backend"] == "minuit":
                 self.minuit.migrad(**self.options["minimizer_options"])
-            else: # scipy
+            else:  # scipy
                 self.minuit.scipy(
-                    method=self.options["scipy_minimizer"], 
+                    method=self.options["scipy_minimizer"],
                     options=self.options["minimizer_options"],
                 )
 
@@ -252,11 +253,11 @@ class Experiment:
         force: bool = False,
     ) -> float:
         """
-        Compute the profiled test statistic at some point in the parameter space of interest, profiling out the other 
+        Compute the profiled test statistic at some point in the parameter space of interest, profiling out the other
         parameters.
 
-        To use the t_mu_tilde test statistic, you must specify a physical limit on the parameters or interest. 
-        Otherwise, the test statistic computed is t_mu (which is correct under no physical limit on the parameter). 
+        To use the t_mu_tilde test statistic, you must specify a physical limit on the parameters or interest.
+        Otherwise, the test statistic computed is t_mu (which is correct under no physical limit on the parameter).
         It is up to the user to specify this, and it is not checked.
 
         Parameters
@@ -264,12 +265,16 @@ class Experiment:
         profile_parameters : dict
             which parameters to fix and at what value (rest are profiled out)
         force : bool, optional
-            Whether to use the stored best fit (default: `False`) or to recompute it (`True`). 
+            Whether to use the stored best fit (default: `False`) or to recompute it (`True`).
             See `experiment.bestfit()` for description.
         """
 
         use_physical_limits = False  # for t_mu and q_mu
-        if self.options["test_statistic"] == "t_mu_tilde" or self.options["test_statistic"] == "q_mu_tilde" or self.options["test_statistic"] == "t_and_q_tilde":
+        if (
+            self.options["test_statistic"] == "t_mu_tilde"
+            or self.options["test_statistic"] == "q_mu_tilde"
+            or self.options["test_statistic"] == "t_and_q_tilde"
+        ):
             use_physical_limits = True
 
         denom = self.bestfit(force=force, use_physical_limits=use_physical_limits)[
@@ -277,7 +282,10 @@ class Experiment:
         ]
 
         # see G. Cowan, K. Cranmer, E. Gross, and O. Vitells,  Eur. Phys. J. C 71, 1554 (2011) - eqns 14 and 16
-        if self.options["test_statistic"] == "q_mu" or self.options["test_statistic"] == "q_mu_tilde":
+        if (
+            self.options["test_statistic"] == "q_mu"
+            or self.options["test_statistic"] == "q_mu_tilde"
+        ):
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
                     return 0.0, 0.0, 0.0
@@ -291,7 +299,7 @@ class Experiment:
         if ts < 0:
             msg = f"Experiment gave test statistic below zero: {ts}"
             logging.debug(msg)
-        
+
         if self.options["test_statistic"] == "t_and_q_tilde":
             for parname, parvalue in profile_parameters.items():
                 if self.best["values"][parname] > parvalue:
@@ -370,7 +378,7 @@ class Experiment:
             if k < len(self.datasets):
                 ax[i].set_title(self.datasets[list(self.datasets.keys())[k]].name)
             i += 1
-        
+
         return fig
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
@@ -441,19 +449,18 @@ class Experiment:
             plt.sca(ax)
             comp.visualize(cargs, **kwargs)
             i += 1
-        
+
         return fig
+
 
 # default initial guess function - user should probably provide their own
 def initial_guess(
     experiment: type[Experiment],
-    ) -> dict:
-
+) -> dict:
     # get fit parameters of these datasets
     pars = experiment.parameters.get_fitparameters(experiment.datasets)
 
-    return {p:pars[p]["value"] for p in list(pars)}
-
+    return {p: pars[p]["value"] for p in list(pars)}
 
 
 # class OLDExperiment(Superset):
@@ -874,7 +881,6 @@ def initial_guess(
 #             denominators,
 #             numerators,
 #         )
-
 
 
 #     def create_hypercube(self, scan_grid) -> list:

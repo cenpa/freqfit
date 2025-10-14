@@ -6,23 +6,30 @@ from freqfit.models import gaussian_on_uniform
 from freqfit.parameters import Parameters
 
 
-
 def test_parameters():
-    par_dict =  dict({"global_S": {"includeinfit": True, "value": 1e-9, "limits": [0, None], "poi":True},
-        "global_BI": {"includeinfit": True, "value": 1e-3, "limits": [0, None]},
-        "delta_dset0": {"includeinfit": False, "value": 1e-1, "limits": None},
-        "sigma_dset0": {"includeinfit": False, "value": 1e-2, "limits": None},
-        "eff_dset0": {"includeinfit": False, "value": 1e-3, "limits": [0, 1]},
-        "exp_dset0": {"includeinfit": False, "value": 1e-4, "limits": [0, None]}})
+    par_dict = dict(
+        {
+            "global_S": {
+                "includeinfit": True,
+                "value": 1e-9,
+                "limits": [0, None],
+                "poi": True,
+            },
+            "global_BI": {"includeinfit": True, "value": 1e-3, "limits": [0, None]},
+            "delta_dset0": {"includeinfit": False, "value": 1e-1, "limits": None},
+            "sigma_dset0": {"includeinfit": False, "value": 1e-2, "limits": None},
+            "eff_dset0": {"includeinfit": False, "value": 1e-3, "limits": [0, 1]},
+            "exp_dset0": {"includeinfit": False, "value": 1e-4, "limits": [0, None]},
+        }
+    )
 
     parameters = Parameters(par_dict)
-    
+
     # check the poi is set correctly
     assert parameters.poi[0] == "global_S"
 
     for key, value in par_dict.items():
         assert parameters(key) == value
-
 
     # check that the get_parameters method works correctly
 
@@ -58,7 +65,7 @@ def test_parameters():
         "eff": "eff_dset1",
         "exp": "exp_dset1",
     }
-    
+
     pardict2 = {
         "global_S": {"includeinfit": True, "value": 1e-9, "limits": [0, None]},
         "global_BI": {"includeinfit": True, "value": 1e-3, "limits": [0, None]},
@@ -69,7 +76,6 @@ def test_parameters():
     }
 
     parameters2 = Parameters(pardict2)
-
 
     costfunction = cost.ExtendedUnbinnedNLL
     name = "test_dset1"
@@ -82,7 +88,7 @@ def test_parameters():
 
     total_pars = Parameters({**pardict1, **pardict2})
     total_par_dict = total_pars.get_parameters({"dset1": dset1, "dset2": dset2})
-    
+
     # make sure that all items are accounted for
     pop_overlap_keys = []
     for key, value in pardict1.items():
@@ -98,12 +104,13 @@ def test_parameters():
 
         assert total_par_dict[key] == value
         total_par_dict.pop(key)
-    
+
     assert len(total_par_dict) == 0
 
-
     # Check we can grab datasets with no data correctly
-    total_par_dict = total_pars.get_parameters({"dset1": dset1, "dset2": dset2}, nodata=True) 
+    total_par_dict = total_pars.get_parameters(
+        {"dset1": dset1, "dset2": dset2}, nodata=True
+    )
     # make sure that all items are accounted for
 
     for key, value in pardict2.items():
@@ -112,13 +119,11 @@ def test_parameters():
         assert total_par_dict[key] == value
         total_par_dict.pop(key)
 
-
     assert len(total_par_dict) == 0
-
 
     # now check that fit parameters is constructed appropriately
     fit_par_dict = total_pars.get_fitparameters({"dset1": dset1, "dset2": dset2})
-    fit_dict =  {
+    fit_dict = {
         "global_S": {"includeinfit": True, "value": 1e-9, "limits": [0, None]},
         "global_BI": {"includeinfit": True, "value": 1e-3, "limits": [0, None]},
         "sigma_dset0": {"includeinfit": True, "value": 0.1, "limits": None},
@@ -130,10 +135,12 @@ def test_parameters():
         assert fit_par_dict[key] == value
         fit_par_dict.pop(key)
 
-    assert len(fit_par_dict) == 0 
+    assert len(fit_par_dict) == 0
 
     # Check that fitparameters works for empty datasets
-    fit_par_dict = total_pars.get_fitparameters({"dset1": dset1, "dset2": dset2}, nodata=True)
+    fit_par_dict = total_pars.get_fitparameters(
+        {"dset1": dset1, "dset2": dset2}, nodata=True
+    )
     fit_dict.pop("global_S")
     fit_dict.pop("global_BI")
     fit_dict.pop("sigma_dset0")
@@ -142,14 +149,4 @@ def test_parameters():
         assert fit_par_dict[key] == value
         fit_par_dict.pop(key)
 
-    assert len(fit_par_dict) == 0 
-
-
-
-
-
-
-
-    
-
-
+    assert len(fit_par_dict) == 0

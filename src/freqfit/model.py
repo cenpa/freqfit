@@ -2,14 +2,16 @@
 Abstract base class for freqfit models
 """
 
-from abc import ABC, abstractmethod
 import inspect
+from abc import ABC, abstractmethod
+
 import numpy as np
+
 
 class Model(ABC):
     @abstractmethod
     def pdf(
-        self, 
+        self,
         data: np.array,
         *parameters,
     ) -> np.array:
@@ -17,7 +19,7 @@ class Model(ABC):
 
     @abstractmethod
     def logpdf(
-        self, 
+        self,
         data: np.array,
         *parameters,
     ) -> np.array:
@@ -25,7 +27,7 @@ class Model(ABC):
 
     @abstractmethod
     def density(
-        self, 
+        self,
         data: np.array,
         *parameters,
     ) -> np.array:
@@ -33,7 +35,7 @@ class Model(ABC):
 
     @abstractmethod
     def logdensity(
-        self, 
+        self,
         data: np.array,
         *parameters,
     ) -> np.array:
@@ -41,7 +43,7 @@ class Model(ABC):
 
     @abstractmethod
     def graddensity(
-        self, 
+        self,
         data: np.array,
         *parameters,
     ) -> np.array:
@@ -49,34 +51,34 @@ class Model(ABC):
 
     @abstractmethod
     def rvs(
-        self, 
+        self,
         *parameters,
     ) -> np.array:
         pass
 
     @abstractmethod
     def extendedrvs(
-        self, 
+        self,
         *parameters,
     ) -> np.array:
         pass
 
     @abstractmethod
     def can_combine(
-        self, 
+        self,
         data: np.array,
         *parameters,
     ) -> bool:
         """
-        Should take a set of data and parameters and decide whether it could be combined with another set of data 
+        Should take a set of data and parameters and decide whether it could be combined with another set of data
         and parameters. Decision must be made on the basis of the single set alone.
         """
         pass
 
     @abstractmethod
     def combine(
-        self, 
-        x: list,#List[Tuple[np.array,...]],
+        self,
+        x: list,  # List[Tuple[np.array,...]],
     ) -> np.array:
         """
         Should take a list of N tuples of (data, parameters) and returned a combined single tuple of (data, parameters).

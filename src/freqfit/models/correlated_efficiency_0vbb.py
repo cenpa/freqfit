@@ -669,9 +669,7 @@ class correlated_efficiency_0vbb_gen(Model):
         effuncscale: float,
         exp: float,
     ) -> np.array:
-        return nb_extendedrvs(
-            S, BI, delta, sigma, eff, effunc, effuncscale, exp
-        )
+        return nb_extendedrvs(S, BI, delta, sigma, eff, effunc, effuncscale, exp)
 
     def plot(
         self,
@@ -694,9 +692,8 @@ class correlated_efficiency_0vbb_gen(Model):
 
     def combine(
         self,
-        datasets: list,#List[Tuple[np.array,...],...],
+        datasets: list,  # List[Tuple[np.array,...],...],
     ) -> list:
-
         Es = np.array([])  # both of these datasets are empty
         S = 0.0  # this should be overwritten in the fit later
         BI = 0.0  # this should be overwritten in the fit later
@@ -712,17 +709,21 @@ class correlated_efficiency_0vbb_gen(Model):
         exps = np.zeros(num)
         for i, dataset in enumerate(datasets):
             # first few elements not needed (we know data is empty)
-            deltas[i]       = dataset[3]
-            sigmas[i]       = dataset[4]
-            effs[i]         = dataset[5]
-            effuncs[i]      = dataset[6]
+            deltas[i] = dataset[3]
+            sigmas[i] = dataset[4]
+            effs[i] = dataset[5]
+            effuncs[i] = dataset[6]
             effuncscales[i] = dataset[7]
-            exps[i]         = dataset[8]        
+            exps[i] = dataset[8]
 
         totexp = np.sum(exps)  # total exposure
-        eff = np.sum(exps * effs) / totexp # exposure weighted efficiency
-        sigma = np.sum(sigmas * exps * effs) / (totexp * eff) # sensitive exposure weighted resolution
-        delta = np.sum(deltas * exps * effs) / (totexp * eff) # sensitive exposure weighted bias correction
+        eff = np.sum(exps * effs) / totexp  # exposure weighted efficiency
+        sigma = np.sum(sigmas * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted resolution
+        delta = np.sum(deltas * exps * effs) / (
+            totexp * eff
+        )  # sensitive exposure weighted bias correction
 
         # these are fully correlated in this model so the direct sum is appropriate
         # (maybe still appropriate even if not fully correlated?)

@@ -7,7 +7,6 @@ log = logging.getLogger(__name__)
 
 
 class Parameters:
-
     def __init__(
         self,
         parameters: dict,
@@ -24,21 +23,18 @@ class Parameters:
             if "poi" in par.keys():
                 self.poi.append(parname)
 
-                msg = (f"added '{parname}' as parameter of interest")
+                msg = f"added '{parname}' as parameter of interest"
                 logging.info(msg)
-
-        return None
 
     def __call__(
         self,
         par: str,
     ) -> dict:
-
         return self.parameters[par]
-    
+
     def get_parameters(
         self,
-        datasets: dict["Dataset"],
+        datasets: dict["Dataset"],  # noqa: F821
         nodata: bool = False,
     ) -> dict:
         """
@@ -50,18 +46,18 @@ class Parameters:
         for ds in datasets.values():
             allpars.update(ds._parlist)
 
-            if (ds.data.size > 0):
+            if ds.data.size > 0:
                 parswdata.update(ds._parlist)
-        
+
         if nodata:
             parsnodata = allpars.difference(parswdata)
-            return {p:self.parameters[p] for p in list(parsnodata)}
+            return {p: self.parameters[p] for p in list(parsnodata)}
 
-        return {p:self.parameters[p] for p in list(allpars)}
+        return {p: self.parameters[p] for p in list(allpars)}
 
     def get_fitparameters(
         self,
-        datasets: dict["Dataset"],
+        datasets: dict["Dataset"],  # noqa: F821
         nodata: bool = False,
     ) -> dict:
         """
@@ -73,12 +69,11 @@ class Parameters:
         for ds in datasets.values():
             allpars.update(list(ds.fitparameters.keys()))
 
-            if (ds.data.size > 0):
+            if ds.data.size > 0:
                 parswdata.update(list(ds.fitparameters.keys()))
-        
+
         if nodata:
             parsnodata = allpars.difference(parswdata)
-            return {p:self.parameters[p] for p in list(parsnodata)}
+            return {p: self.parameters[p] for p in list(parsnodata)}
 
-        return {p:self.parameters[p] for p in list(allpars)}
-
+        return {p: self.parameters[p] for p in list(allpars)}

@@ -5,6 +5,7 @@ import logging
 
 import numpy as np
 from iminuit import cost
+
 from freqfit.parameters import Parameters
 
 log = logging.getLogger(__name__)
@@ -91,16 +92,16 @@ class Dataset:
         self._parlist_indices = []
 
         # fit parameter names : index in self._parlist (same as in self._parlist_indices)
-        self.fitparameters = {}  
+        self.fitparameters = {}
 
         # whether to attempt to combine this Dataset into a combined_dataset
         # flag says whether to combine but must pass the combined_dataset
-        self.try_to_combine = False 
+        self.try_to_combine = False
         self.combined_dataset = None
         if try_to_combine and combined_dataset is not None:
-            self.try_to_combine = try_to_combine  
+            self.try_to_combine = try_to_combine
             self.combined_dataset = combined_dataset
-        
+
         # check that all passed parameters are valid
         for parameter in model_parameters:
             if parameter not in self.model.parameters:
@@ -115,10 +116,11 @@ class Dataset:
                 msg = f"`Dataset` `{self.name}`: required model parameter `{parameter}` not found in model_parameters"
                 raise KeyError(msg)
 
-        # check that the passed parameters are of the parameter class 
+        # check that the passed parameters are of the parameter class
         if not isinstance(parameters, Parameters):
-            raise ValueError(f"Parameters must be of class freqfit.Parameters, not type f{type(parameters)}")
-
+            raise ValueError(
+                f"Parameters must be of class freqfit.Parameters, not type f{type(parameters)}"
+            )
 
         # find the parameters for the fit
         for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):
@@ -128,8 +130,8 @@ class Dataset:
         # make the cost function
         if self.use_user_gradient:
             self.costfunction = self._costfunctioncall(
-                self.data, 
-                self.density, 
+                self.data,
+                self.density,
                 grad=self.graddensity,
                 name=list(self.fitparameters.keys()),
             )
@@ -146,7 +148,7 @@ class Dataset:
                 self.density,
                 name=list(self.fitparameters.keys()),
             )
-        
+
         # now we make the parameters of the cost function
         # need to go in order of the model
         for i, (par, defaultvalue) in enumerate(self.model.parameters.items()):
@@ -158,7 +160,6 @@ class Dataset:
 
             # parameter was passed and should be included in the fit
             elif parameters(model_parameters[par])["includeinfit"]:
-                
                 self._parlist.append(model_parameters[par])
                 self._parlist_values.append(parameters(model_parameters[par])["value"])
                 self._parlist_indices.append(i)
@@ -226,7 +227,7 @@ class Dataset:
 
 
 class ToyDataset(Dataset):
-    def __init__(        
+    def __init__(
         self,
         toy_model,
         toy_model_parameters: dict[str, str],
@@ -240,7 +241,6 @@ class ToyDataset(Dataset):
         use_user_gradient: bool = False,
         use_log: bool = False,
     ) -> None:
-        
         self.toy_model = toy_model
         self.num_drawn = 0
 
@@ -260,10 +260,12 @@ class ToyDataset(Dataset):
             ):
                 msg = f"ToyDataset '{self.name}': required toy_model parameter '{parameter}' not found in toy_model_parameters"
                 raise KeyError(msg)
-            
-        # check that the passed parameters are of the parameter class 
+
+        # check that the passed parameters are of the parameter class
         if not isinstance(parameters, Parameters):
-            raise ValueError(f"Parameters must be of class freqfit.Parameters, not type f{type(parameters)}")
+            raise ValueError(
+                f"Parameters must be of class freqfit.Parameters, not type f{type(parameters)}"
+            )
 
         # now we make the parameters of the cost function
         # need to go in order of the model
@@ -271,8 +273,8 @@ class ToyDataset(Dataset):
             # if not passed, use default value (already checked that required parameters passed)
             if par not in toy_model_parameters:
                 self._toy_pars[f"default{i}"] = [i, defaultvalue]
-            
-            else:  
+
+            else:
                 if (parameters(toy_model_parameters[par])["value"] is None) and (
                     defaultvalue == "nodefaultvalue"
                 ):
@@ -282,21 +284,23 @@ class ToyDataset(Dataset):
                     )
                     raise KeyError(msg)
 
-                self._toy_pars[toy_model_parameters[par]] = [i, parameters(toy_model_parameters[par])["value"]]
+                self._toy_pars[toy_model_parameters[par]] = [
+                    i,
+                    parameters(toy_model_parameters[par])["value"],
+                ]
 
         super().__init__(
-            data = [],
-            model = model,            
-            model_parameters = model_parameters,
-            parameters = parameters,
-            costfunction = costfunction,
-            name = name,
-            try_to_combine = try_to_combine,
-            combined_dataset = combined_dataset,
-            use_user_gradient = use_user_gradient,
-            use_log = use_log,
-        )        
-
+            data=[],
+            model=model,
+            model_parameters=model_parameters,
+            parameters=parameters,
+            costfunction=costfunction,
+            name=name,
+            try_to_combine=try_to_combine,
+            combined_dataset=combined_dataset,
+            use_user_gradient=use_user_gradient,
+            use_log=use_log,
+        )
 
     # resets some toy attributes
     def reset(
@@ -324,7 +328,7 @@ class ToyDataset(Dataset):
         Parameters
         ----------
         parameters: dict
-            Dict containing pairs of parameter name : parameter value for the toy generation. If a value for a 
+            Dict containing pairs of parameter name : parameter value for the toy generation. If a value for a
             parameter is not provided, that parameter's value will not be changed.
         """
 
@@ -337,15 +341,17 @@ class ToyDataset(Dataset):
         for par, parval in self._toy_pars.items():
             if par in toy_parameters:
                 self._toy_pars[par][1] = toy_parameters[par]
-                
+
         # TODO: extendedrvs here? make it more generic or require this in Model?
-        self.data, self.num_drawn = self.toy_model.extendedrvs(*[self._toy_pars[par][1] for par in self._toy_pars]) 
-        
+        self.data, self.num_drawn = self.toy_model.extendedrvs(
+            *[self._toy_pars[par][1] for par in self._toy_pars]
+        )
+
         # make the cost function
         if self.use_user_gradient:
             self.costfunction = self._costfunctioncall(
-                self.data, 
-                self.density, 
+                self.data,
+                self.density,
                 grad=self.graddensity,
                 name=list(self.fitparameters.keys()),
             )
@@ -394,12 +400,11 @@ class CombinedDataset(Dataset):
             if par in model_parameters:
                 parname = model_parameters[par]
                 # hence why it is important to check whether we should overwrite the value
-                if (parameters(parname)["value_from_combine"]
-                ):
+                if parameters(parname)["value_from_combine"]:
                     # i+1 because data occupies index 0
                     # update value in Parameters based on the combination
                     parameters(parname)["value"] = combination[i + 1]
-        
+
         data = combination[0]
 
         super().__init__(
@@ -413,4 +418,4 @@ class CombinedDataset(Dataset):
             use_log=use_log,
         )
 
-        return 
+        return

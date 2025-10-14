@@ -8,9 +8,10 @@ from scipy.stats import binom
 
 log = logging.getLogger(__name__)
 
+
 def emp_cdf(
     data: np.array,  # the data to make a cdf out of
-    bins:int|list=100,  # either number of bins or list of bin edges
+    bins: int | list = 100,  # either number of bins or list of bin edges
 ) -> Tuple[np.array, np.array]:
     """
     Parameters
@@ -49,8 +50,10 @@ def quantile(
     if isinstance(quantiles, float):
         quantiles = np.array([quantiles])
     results = np.zeros_like(quantiles)
-    for i, p in enumerate(quantiles): 
-        p_idx = min([int(p * nevts),nevts-1]) # make sure we never go out of the length of the array, if p=1 then the last value of the array is the closest observation
+    for i, p in enumerate(quantiles):
+        p_idx = min(
+            [int(p * nevts), nevts - 1]
+        )  # make sure we never go out of the length of the array, if p=1 then the last value of the array is the closest observation
         p_rem = p * nevts - p_idx
         results[i] = data[p_idx]
     return results
@@ -60,7 +63,7 @@ def binomial_unc_band(
     cdf: np.array,  # binned CDF
     nevts: int,  # number of events the CDF is based off of
     CL: float = 0.68,  # confidence level for band
-    continuity_correction: bool= False # if true, add a continuity correction to the uncertainty bands
+    continuity_correction: bool = False,  # if true, add a continuity correction to the uncertainty bands
 ):
     """
     Returns the confidence band for a given CDF by taking the confidence interval of a
@@ -71,9 +74,8 @@ def binomial_unc_band(
     hi_binom_band = interval[1] / nevts
 
     if continuity_correction:
-        lo_binom_band -= 0.5/nevts
-        hi_binom_band += 0.5/nevts
-
+        lo_binom_band -= 0.5 / nevts
+        hi_binom_band += 0.5 / nevts
 
     return lo_binom_band, hi_binom_band
 
@@ -115,7 +117,7 @@ def test_statistic_asymptotic_limit(
     non_centrality = (mu - mu_0) ** 2 / sigma**2
 
     if non_centrality == 0:
-        return 1 / np.sqrt(t_mus * 2 * np.pi) * np.exp(-t_mus/2)
+        return 1 / np.sqrt(t_mus * 2 * np.pi) * np.exp(-t_mus / 2)
     else:
         return (1 / np.sqrt(t_mus * 8 * np.pi)) * (
             np.exp(-0.5 * (np.sqrt(t_mus) + np.sqrt(non_centrality)) ** 2)
@@ -203,9 +205,7 @@ def ts_critical(
             alpha=0.75,
             label=rf"actual CL: ${100*threshold:0.1f} \pm {100*(hi_binom_quantile-lo_binom_quantile)/2.0:0.1f}$%",
         )
-        axs[0].axhspan(
-            lo_binom_quantile, hi_binom_quantile, color="orange", alpha=0.25
-        )
+        axs[0].axhspan(lo_binom_quantile, hi_binom_quantile, color="orange", alpha=0.25)
         axs[0].set_xlabel(r"$t$")
         axs[0].set_ylabel(r"CDF$(t)$")
         axs[0].legend()
@@ -278,7 +278,7 @@ def p_value(ts: np.array, ts_exp: float):
     -----
     This is not inclusive, i.e. the lower bound of the integral is NOT included in the computation of the p-value
     """
-    ts = np.array(ts) # force a cast
+    ts = np.array(ts)  # force a cast
     tot = 1.0 * len(ts)
     hi = np.sum(ts > ts_exp)
 
