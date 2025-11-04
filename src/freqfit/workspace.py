@@ -5,6 +5,7 @@ import importlib
 import logging
 import multiprocessing as mp
 import os
+import sys
 from collections import defaultdict
 from copy import deepcopy
 
@@ -1191,6 +1192,7 @@ class Workspace:
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
                 thisclass = getattr(module, info["fcn"])
+                sys.modules["fakemodule"] = module
 
                 msg = f"loaded '{info['fcn']}' from path '{info['module']}'"
                 logging.info(msg)
