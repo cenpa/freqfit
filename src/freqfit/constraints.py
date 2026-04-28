@@ -1,6 +1,5 @@
 """
-A class that holds constraints, which can represent auxiliary measurements.
-"""
+A class that holds constraints, which can represent auxiliary measurements."""
 import logging
 from copy import deepcopy
 
@@ -13,6 +12,26 @@ log = logging.getLogger(__name__)
 
 
 class Constraints:
+    """
+    Manage Gaussian (normal) constraints on nuisance parameters.
+
+    This class groups user-provided constraints into independent blocks (no shared
+    parameters) so they can be represented by a minimal set of
+    ``iminuit.cost.NormalConstraint`` terms.
+
+    Parameters
+    ----------
+    constraints
+        Mapping of constraint name to a constraint specification. Each constraint
+        entry must define:
+
+        - ``parameters``: list of parameter names constrained by this measurement.
+        - ``values``: array-like central values.
+        - ``covariance``: covariance matrix.
+        - ``vary``: whether the constrained parameters are floated in the fit.
+    parameters
+        :class:`freqfit.parameters.Parameters` instance.
+    """
     def __init__(
         self,
         constraints: dict,
@@ -84,6 +103,20 @@ class Constraints:
         self,
         parameters: list,
     ) -> type[cost.Cost]:
+        """
+        Build an ``iminuit`` cost term for the requested fit parameters.
+
+        Parameters
+        ----------
+        parameters
+            List of fit parameter names.
+
+        Returns
+        -------
+        cost
+            A summed :class:`iminuit.cost.Cost` object (or ``None`` if no constraints
+            apply).
+        """
         constraint_groups = self.get_constraints(parameters)
 
         # add the costfunctions together
@@ -113,6 +146,20 @@ class Constraints:
         self,
         parameters: list,
     ) -> dict:
+        """
+        Select constraint groups relevant for the requested parameters.
+
+        Parameters
+        ----------
+        parameters
+            List of fit parameter names.
+
+        Returns
+        -------
+        dict
+            Dictionary of constraint-group specifications restricted to the requested
+            parameters.
+        """
         toreturn = {}
 
         if len(self._constraint_groups) == 0:
@@ -140,6 +187,21 @@ class Constraints:
 
 
 class ToyConstraints(Constraints):
+    """
+    Generate toy (randomized) constraints for pseudo-experiments.
+
+    A ``ToyConstraints`` instance is constructed from an existing
+    :class:`~freqfit.constraints.Constraints` object and can be used to draw
+    constraint values from the multivariate normal defined by each constraint group.
+    This is used when generating toy datasets that include auxiliary measurements.
+
+    Parameters
+    ----------
+    constraints
+        Nominal constraints.
+    parameters
+        :class:`freqfit.parameters.Parameters` instance.        
+    """
     def __init__(
         self,
         constraints: dict,

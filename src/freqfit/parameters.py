@@ -1,12 +1,28 @@
 """
-A class that holds the parameters and associated functions.
-"""
+A class that holds the parameters and associated functions."""
 import logging
 
 log = logging.getLogger(__name__)
 
 
 class Parameters:
+    """
+    Container for fit-configuration parameters.
+
+    This class wraps the ``parameters`` section of a freqfit YAML configuration and
+    provides helpers to extract the subset of parameters used by a set of
+    :class:`~freqfit.dataset.Dataset` objects.
+
+    Parameters
+    ----------
+    parameters
+        Mapping from parameter name to a parameter specification dictionary.
+
+    Attributes
+    ----------
+    parameters
+        The raw parameter configuration.
+    """
     def __init__(
         self,
         parameters: dict,
@@ -30,6 +46,19 @@ class Parameters:
         self,
         par: str,
     ) -> dict:
+        """
+        Return the configuration dictionary for a given parameter name.
+
+        Parameters
+        ----------
+        par
+            Parameter name.
+
+        Returns
+        -------
+        dict
+            Parameter configuration.
+        """
         return self.parameters[par]
 
     def get_parameters(
@@ -39,6 +68,13 @@ class Parameters:
     ) -> dict:
         """
         Takes dict of Dataset and returns all parameters used in them as a dict.
+
+        Parameters
+        ----------
+        datasets 
+            dict of Dataset
+        nodata : bool
+            If `True`, returns parameters of passed datasets that have no data (are empty)
         """
 
         allpars = set()
@@ -62,6 +98,13 @@ class Parameters:
     ) -> dict:
         """
         Takes dict of Dataset and returns all fit parameters used in them as a dict.
+
+        Parameters
+        ----------
+        datasets 
+            dict of Dataset
+        nodata : bool
+            If `True`, returns parameters of passed datasets that have no data (are empty)
         """
 
         allpars = set()

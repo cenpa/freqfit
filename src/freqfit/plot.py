@@ -31,12 +31,29 @@ from matplotlib.ticker import MultipleLocator
 
 # define an object that will be used by the legend
 class MulticolorPatch:
+    """
+    Legend helper representing a multi-color patch.
+
+    This is used together with :class:`~freqfit.plot.MulticolorPatchHandler` to draw
+    custom legend entries composed of multiple colored rectangles.
+
+    Parameters
+    ----------
+    colors
+        Sequence of matplotlib-compatible colors.
+    """
     def __init__(self, colors):
         self.colors = colors
 
 
 # define a handler for the MulticolorPatch object
 class MulticolorPatchHandler:
+    """
+    Matplotlib legend handler for :class:`~freqfit.plot.MulticolorPatch`.
+
+    Implements ``legend_artist`` to draw a row of colored rectangles inside the
+    legend handle box.
+    """
     def legend_artist(self, legend, orig_handle, fontsize, handlebox):
         width, height = handlebox.width, handlebox.height
         patches = []
@@ -78,6 +95,24 @@ log = logging.getLogger(__name__)
 
 
 class PlotLimit:
+    """
+    Utility class for plotting limit-setting outputs.
+
+    This class loads test-statistic scan files and (optionally) Brazil-band toy
+    results from HDF5 files produced by freqfit workflows, then provides plotting
+    helpers for limits, p-values, and related diagnostic plots.
+
+    Parameters
+    ----------
+    ts_dir
+        Directory containing test-statistic scan files generated with and tested
+        against signal.
+    brazil_dir
+        Directory containing toy test-statistic files generated with no signal and
+        tested against signal.
+    TRUNC, TRUNC_SIZE, RANDOM, NME, RV_SIZE
+        Options controlling how toy distributions are post-processed before plotting.
+    """
     def __init__(
         self,
         ts_dir: str,
