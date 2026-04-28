@@ -28,6 +28,23 @@ NUM_CORES = int(os.cpu_count() / 2)
 
 
 class Workspace:
+    """
+    Top-level orchestration class for a freqfit statistical analysis.
+
+    A :class:`~freqfit.workspace.Workspace` is constructed from a validated
+    configuration dictionary (usually loaded from YAML). It builds
+    :class:`~freqfit.parameters.Parameters`, :class:`~freqfit.dataset.Dataset`/
+    :class:`~freqfit.dataset.ToyDataset` objects, combines datasets when possible,
+    constructs :class:`~freqfit.experiment.Experiment` instances, and manages toy
+    generation and output writing.
+
+    Parameters
+    ----------
+    config
+        Parsed configuration dictionary.
+    jobid
+        Integer job identifier used to decorrelate random seeds in batch workflows.
+    """
     def __init__(
         self,
         config: dict,
@@ -1211,6 +1228,12 @@ class Workspace:
 # use this YAML loader to detect duplicate keys in a config file
 # https://stackoverflow.com/a/76090386
 class UniqueKeyLoader(yaml.SafeLoader):
+    """
+    YAML loader that rejects duplicate keys.
+
+    This is used to catch configuration mistakes early by raising an error when a
+    YAML mapping contains the same key more than once.
+    """
     def construct_mapping(self, node, deep=False):
         mapping = set()
         for key_node, value_node in node.value:
@@ -1226,4 +1249,15 @@ class UniqueKeyLoader(yaml.SafeLoader):
 
 @njit
 def set_numba_random_seed(seed):
+    """
+    Set the random seed for Numba-compiled functions.
+
+    Numba maintains its own RNG state. This helper is called inside worker
+    processes to ensure reproducible toy generation.
+
+    Parameters
+    ----------
+    seed
+        Seed value.
+    """
     np.random.seed(seed)

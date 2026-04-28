@@ -1,6 +1,5 @@
 """
-A class that controls an experiment and calls the `Superset` class.
-"""
+A class that controls an experiment and calls the `Superset` class."""
 import logging
 
 import numpy as np
@@ -14,6 +13,29 @@ log = logging.getLogger(__name__)
 
 
 class Experiment:
+    """
+    Fit controller for a collection of datasets.
+
+    An :class:`~freqfit.experiment.Experiment` combines one or more
+    :class:`~freqfit.dataset.Dataset` (and optionally
+    :class:`~freqfit.dataset.CombinedDataset`) objects into a single ``iminuit``
+    cost function, applies Gaussian constraints, and exposes a configured
+    :class:`iminuit.Minuit` instance.
+
+    Parameters
+    ----------
+    datasets
+        Mapping of dataset name to :class:`~freqfit.dataset.Dataset` objects.
+    parameters
+        :class:`~freqfit.parameters.Parameters` class used to obtain
+        fit-parameter configuration.
+    constraints
+        Constraint class used to build auxiliary-measurement cost terms.
+    options
+        Global options dictionary (typically from the workspace config).
+    seed
+        Seed for random number generation.
+    """
     def __init__(
         self,
         datasets: dict,
@@ -99,6 +121,19 @@ class Experiment:
         # resets the minimization and stuff
         # does not change limits but does remove "fixed" attribute of variables
         # 2024/08/09: This no longer seems to be true? Not sure if something changed in iminuit or if I was wrong?
+        """
+        Reset the underlying :class:`iminuit.Minuit` object.
+
+        This restores the initial guess, re-applies parameter limits, and fixes any
+        parameters configured as fixed (including those fixed automatically because the
+        corresponding dataset has no data).
+
+        Parameters
+        ----------
+        use_physical_limits
+            If ``True``, apply ``physical_limits`` (when provided) instead of the
+            generic ``limits``.
+        """
         self.minuit.reset()
 
         # Restore the first initial guess
@@ -458,6 +493,23 @@ def initial_guess(
     experiment: type[Experiment],
 ) -> dict:
     # get fit parameters of these datasets
+    """
+    Default initial-guess function.
+
+    This function is used when no user-provided initial guess is configured. It
+    builds a dictionary of initial values using the ``value`` entries from the
+    parameter configuration.
+
+    Parameters
+    ----------
+    experiment
+        The :class:`~freqfit.experiment.Experiment` instance.
+
+    Returns
+    -------
+    dict
+        Mapping ``{parameter_name: initial_value}``.
+    """
     pars = experiment.parameters.get_fitparameters(experiment.datasets)
 
     return {p: pars[p]["value"] for p in list(pars)}

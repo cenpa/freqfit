@@ -9,6 +9,16 @@ import numpy as np
 
 
 class Model(ABC):
+    """
+    Abstract base class for statistical models used by freqfit.
+
+    A model provides PDF/density evaluation, optional gradients, random variate
+    sampling, and (optionally) logic for combining datasets.
+
+    Concrete subclasses are expected to implement the abstract methods defined here.
+    The signature of the model methods is inspected to determine parameter names and
+    default values via :meth:`inspectparameters`.
+    """
     @abstractmethod
     def pdf(
         self,
@@ -82,7 +92,7 @@ class Model(ABC):
     ) -> np.array:
         """
         Should take a list of N tuples of (data, parameters) and returned a combined single tuple of (data, parameters).
-        Assume that all passed datasets can be combined - this is checked by CombinedDataset using self.can_combine().
+        Assumes that all passed datasets can be combined - this is checked by CombinedDataset using self.can_combine().
         """
         pass
 

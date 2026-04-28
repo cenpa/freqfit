@@ -1,6 +1,7 @@
 """
-A class that holds a dataset and its associated model and cost function,
+A class that holds a dataset and its associated model and cost function
 """
+
 import logging
 
 import numpy as np
@@ -12,6 +13,20 @@ log = logging.getLogger(__name__)
 
 
 class Dataset:
+    """
+    Representation of an (unbinned) dataset together with its model and cost.
+
+    A :class:`~freqfit.dataset.Dataset` wraps:
+
+    - observed unbinned data,
+    - a :class:`~freqfit.model.Model` instance,
+    - an ``iminuit`` cost function (e.g. ``cost.UnbinnedNLL`` or
+    ``cost.ExtendedUnbinnedNLL``),
+    - a mapping from model-parameter names to global fit-parameter names.
+
+    It exposes callables (``density``, ``logdensity``, ``graddensity``) with the
+    parameter ordering expected by ``iminuit``.
+    """
     def __init__(
         self,
         data: np.array,
@@ -227,6 +242,13 @@ class Dataset:
 
 
 class ToyDataset(Dataset):
+    """
+    Dataset variant used for toy Monte Carlo generation.
+
+    A :class:`~freqfit.dataset.ToyDataset` holds both a *toy* model (used to generate
+    pseudo-data) and a potentially different *fit* model (used to evaluate the cost
+    function). This supports studies of model mismatch and systematic effects.
+    """
     def __init__(
         self,
         toy_model,
@@ -372,6 +394,14 @@ class ToyDataset(Dataset):
 
 
 class CombinedDataset(Dataset):
+    """
+    Dataset representing a combination of multiple compatible datasets.
+
+    When multiple :class:`~freqfit.dataset.Dataset` objects can be combined (as
+    determined by the underlying model's :meth:`~freqfit.model.Model.can_combine`),
+    this class merges their data and model-parameter settings into a single dataset
+    with a single cost function.
+    """
     def __init__(
         self,
         datasets: list[Dataset, ...],
