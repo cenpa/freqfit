@@ -36,6 +36,7 @@ class Experiment:
     seed
         Seed for random number generation.
     """
+
     def __init__(
         self,
         datasets: dict,
@@ -330,6 +331,13 @@ class Experiment:
         )["fval"]
 
         ts = num - denom
+        try:
+            ts = num - denom
+        except:  # noqa: B001, E722
+            logging.warning(f"{self.seed} has killed this run")
+            raise ValueError(
+                f"{self.seed} has killed the run, parameters {profile_parameters}"
+            )
 
         if ts < 0:
             msg = f"Experiment gave test statistic below zero: {ts}"

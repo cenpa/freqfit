@@ -16,6 +16,7 @@ from freqfit.models.gaussian_on_uniform import gaussian_on_uniform
 from freqfit.models.linear_bkg import linear_bkg
 from freqfit.models.mjd_0vbb import mjd_0vbb
 from freqfit.models.onebin_poisson import onebin_poisson
+from freqfit.models.onebin_poisson_scaled_bin import onebin_poisson_scaled_bin
 
 __all__ = [
     "gaussian_on_uniform",
@@ -26,4 +27,5 @@ __all__ = [
     "correlated_efficiency_0vbb_exponential_background",
     "correlated_efficiency_0vbb_linear_background",
     "correlated_efficiency_0vbb_correlate_delta",
+    "onebin_poisson_scaled_bin",
 ]
