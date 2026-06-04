@@ -1,9 +1,8 @@
 freqfit
 =======
 
-**freqfit** is a Python package for constructing frequentist limits from
-unbinned data, developed by the UW LEGEND Group on behalf of the LEGEND
-Collaboration.
+**freqfit** is a Python package for performing frequentist statistical inference
+from unbinned data, particularly with very low statistics.
 
 .. toctree::
    :maxdepth: 2
