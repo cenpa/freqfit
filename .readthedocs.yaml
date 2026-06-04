@@ -21,8 +21,8 @@ build:
         --module-first
         --force
         --output-dir docs/source/api
-        src/legendfreqfit
-        src/legendfreqfit/_version.py
+        src/freqfit
+        src/freqfit/_version.py
 
 python:
   install:
