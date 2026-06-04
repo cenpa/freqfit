@@ -1,21 +1,32 @@
-SHELL := /bin/bash
-SOURCEDIR = source
-BUILDDIR = build
+# Minimal makefile for Sphinx documentation
 
-all: apidoc
-	sphinx-build -M html "$(SOURCEDIR)" "$(BUILDDIR)" -W --keep-going
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
+SOURCEDIR     = source
+BUILDDIR      = build
 
-apidoc: clean-apidoc
-	sphinx-apidoc \
-      --private \
-      --module-first \
-      --force \
-      --output-dir "$(SOURCEDIR)/api" \
-      ../src/freqfit \
-      ../src/freqfit/_version.py
+.PHONY: help Makefile clean html epub pdf livehtml
 
-clean-apidoc:
-	rm -rf "$(SOURCEDIR)/api"
+help:
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-clean: clean-apidoc
-	rm -rf "$(BUILDDIR)"
+clean:
+	rm -rf $(BUILDDIR)
+	rm -rf $(SOURCEDIR)/api
+	rm -rf $(SOURCEDIR)/notebooks
+
+html:
+	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@echo "Build finished. HTML pages are in $(BUILDDIR)/html."
+
+epub:
+	@$(SPHINXBUILD) -M epub "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+pdf:
+	@$(SPHINXBUILD) -M latexpdf "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+livehtml:
+	sphinx-autobuild "$(SOURCEDIR)" "$(BUILDDIR)/html" $(SPHINXOPTS) $(O)
+
+%: Makefile
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

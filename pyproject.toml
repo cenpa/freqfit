@@ -40,6 +40,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "scipy>=1.15",
     "jinja2>=3.1.5",
+    "sphinx>=8.1.3",
 ]
 dynamic = [
     "version",
@@ -56,13 +57,23 @@ write_to = "src/freqfit/_version.py"
 
 [project.optional-dependencies]
 all = [
-    "freqfit[test]",
+    "freqfit[test,docs]",
 ]
 test = [
     "pre-commit",
     "pytest>=6.0",
     "pytest-cov",
 ]
+docs = [
+    "sphinx>=7.0",
+    "furo",
+    "sphinx-copybutton",
+    "sphinx-inline-tabs",
+    "myst-parser",
+    "nbsphinx",
+    "ipython",
+    "sphinx-autobuild",
+ ]
 
 [tool.setuptools]
 include-package-data = true
