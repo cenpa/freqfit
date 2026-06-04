@@ -10,7 +10,7 @@ sys.path.append(Path("extensions").resolve().as_posix())
 # -- Project information -----------------------------------------------------
 
 project = "freqfit"
-copyright = "2024, the UW LEGEND Group on Behalf of the LEGEND Collaboration"
+copyright = "2026"
 author = "UW LEGEND Group"
 
 # Use importlib.metadata instead of deprecated pkg_resources
