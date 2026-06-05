@@ -814,7 +814,7 @@ class Workspace:
         joint_profile_pars: dict,
         overwrite_files: bool = None,
         info: bool = False,
-    ):
+    ) -> None:
         """
         Compute test statistics for multiple poi.  Toys are generated at poi_value and with joint_profile_pars, and are also tested against poi_value and joint_profile_pars
         Parameters
@@ -838,7 +838,16 @@ class Workspace:
     def from_file(
         cls,
         file: str,
-    ):
+    ) -> Workspace:
+        """
+        Constructs a :class:`~freqfit.workspace.Workspace` by loading a config from a file. 
+        Performs some error checking and sets defaults for missing fields where possible.
+
+        Parameters
+        ----------
+        file : str | dict
+            path to a config file or a config dictionary
+        """
         config = cls.load_config(file=file)
         return cls(config=config)
 
@@ -846,7 +855,16 @@ class Workspace:
     def from_dict(
         cls,
         input: dict,
-    ):
+    ) -> Workspace:
+        """
+        Constructs a :class:`~freqfit.workspace.Workspace` by loading a config from a `dict`. 
+        Performs some error checking and sets defaults for missing fields where possible.
+
+        Parameters
+        ----------
+        file : str | dict
+            path to a config file or a config dictionary
+        """
         config = cls.load_config(file=input)
         return cls(config=config)
 
@@ -868,7 +886,7 @@ class Workspace:
         if not isinstance(file, dict):
             with open(file) as stream:
                 # switch from safe_load to load in order to check for duplicate keys
-                config = yaml.load(stream, Loader=UniqueKeyLoader)
+                config = yaml.load(stream, Loader=_UniqueKeyLoader)
         else:
             config = file
 
@@ -924,7 +942,7 @@ class Workspace:
             raise ValueError("options: minimizer_options must be a dict")
 
         if config["options"]["initial_guess"]["fcn"] is not None:
-            config["options"]["initial_guess"] = Workspace.load_class(
+            config["options"]["initial_guess"] = Workspace._load_class(
                 config["options"]["initial_guess"]
             )
 
@@ -1109,7 +1127,7 @@ class Workspace:
 
         # load models
         for model in models:
-            modelclass = Workspace.load_class(model)
+            modelclass = Workspace._load_class(model)
 
             if not issubclass(modelclass.__class__, Model):
                 raise TypeError(f"model '{modelclass}' must inherit from 'Model'")
@@ -1180,7 +1198,7 @@ class Workspace:
         return config
 
     @staticmethod
-    def load_class(
+    def _load_class(
         info: dict,
     ):
         if "fcn" not in info or "module" not in info:
@@ -1227,7 +1245,7 @@ class Workspace:
 
 # use this YAML loader to detect duplicate keys in a config file
 # https://stackoverflow.com/a/76090386
-class UniqueKeyLoader(yaml.SafeLoader):
+class _UniqueKeyLoader(yaml.SafeLoader):
     """
     YAML loader that rejects duplicate keys.
 
