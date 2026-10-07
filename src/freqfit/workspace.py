@@ -565,6 +565,7 @@ class Workspace:
         toy_pars_override: dict = {},  # noqa:B006
         overwrite_files: bool = None,
         info: bool = False,
+        raise_error_if_overwrite: bool = True,
     ):
         """
         Generate toys at a hypothesis and test against a (potentially different) hypothesis.
@@ -584,11 +585,12 @@ class Workspace:
             If provided, use these parameters for toy generation, skipping any profiling
 
         overwrite_files
-            whether to overwrite result files if found, uses global option of SetLimit as default
+            whether to overwrite result files if found, uses global option of SetLimit as default. If existing files are found and this
+            flag is `False`, a warning will be provided.
 
         info
             If false, save only the test statistics. If true, save lots of information
-
+        
         Returns
         -------
         None
@@ -603,9 +605,11 @@ class Workspace:
             + f"/{list(toy_generation_profile_dict.values())}_{self.jobid}.h5"
         )
 
+        # if existing file, do not run toys and save
         if os.path.exists(filename) and not overwrite_files:
             msg = f"file {filename} exists - use option `overwrite_files` to overwrite"
-            raise RuntimeError(msg)
+            logging.warning(msg)
+            return None
 
         # First we need to pass the parameter values to generate the toys at: either profile out the variable we are scanning, or user supplied
         if toy_pars_override:
