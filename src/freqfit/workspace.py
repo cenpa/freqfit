@@ -243,6 +243,11 @@ class Workspace:
                 for dsname in dsname_tocombine:
                     rvs_datasets.pop(dsname)
 
+        # make cost functions only for the toy datasets that were not combined (CombinedDatasets make their own)
+        for ds in rvs_datasets.values():
+            if ds.costfunction is None:
+                ds.make_costfunction()
+
         # vary the toy constraints, if provided
         if self.toy_constraints:
             self.toy_constraints.rvs(toy_parameters)

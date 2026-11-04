@@ -142,27 +142,7 @@ class Dataset:
             if parameters(model_parameters[par])["includeinfit"]:
                 self.fitparameters |= {model_parameters[par]: i}
 
-        # make the cost function
-        if self.use_user_gradient:
-            self.costfunction = self._costfunctioncall(
-                self.data,
-                self.density,
-                grad=self.graddensity,
-                name=list(self.fitparameters.keys()),
-            )
-        elif self.use_log:
-            self.costfunction = self._costfunctioncall(
-                self.data,
-                self.logdensity,
-                log=True,
-                name=list(self.fitparameters.keys()),
-            )
-        else:
-            self.costfunction = self._costfunctioncall(
-                self.data,
-                self.density,
-                name=list(self.fitparameters.keys()),
-            )
+        self.make_costfunction()
 
         # now we make the parameters of the cost function
         # need to go in order of the model
@@ -190,6 +170,35 @@ class Dataset:
                     raise KeyError(msg)
                 self._parlist.append(model_parameters[par])
                 self._parlist_values.append(parameters(model_parameters[par])["value"])
+
+        return
+
+    def make_costfunction(
+        self,
+    ) -> None:
+        """
+        Make the iminuit cost function for the current data.
+        """
+        if self.use_user_gradient:
+            self.costfunction = self._costfunctioncall(
+                self.data,
+                self.density,
+                grad=self.graddensity,
+                name=list(self.fitparameters.keys()),
+            )
+        elif self.use_log:
+            self.costfunction = self._costfunctioncall(
+                self.data,
+                self.logdensity,
+                log=True,
+                name=list(self.fitparameters.keys()),
+            )
+        else:
+            self.costfunction = self._costfunctioncall(
+                self.data,
+                self.density,
+                name=list(self.fitparameters.keys()),
+            )
 
         return
 
@@ -369,27 +378,8 @@ class ToyDataset(Dataset):
             *[self._toy_pars[par][1] for par in self._toy_pars]
         )
 
-        # make the cost function
-        if self.use_user_gradient:
-            self.costfunction = self._costfunctioncall(
-                self.data,
-                self.density,
-                grad=self.graddensity,
-                name=list(self.fitparameters.keys()),
-            )
-        elif self.use_log:
-            self.costfunction = self._costfunctioncall(
-                self.data,
-                self.logdensity,
-                log=True,
-                name=list(self.fitparameters.keys()),
-            )
-        else:
-            self.costfunction = self._costfunctioncall(
-                self.data,
-                self.density,
-                name=list(self.fitparameters.keys()),
-            )
+        # the cost function is not made here: building one is slow (iminuit inspects the density's signature) and
+        # it is not needed if this dataset gets combined, so call make_costfunction() once that is known
         return
 
 
