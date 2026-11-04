@@ -524,7 +524,8 @@ class Workspace:
             return_args = pool.starmap(self.toy_ts, args)
 
         if info:
-            ts = np.array([item[0][:] for item in return_args])
+            # lists, not np.array: the last core can have a different number of toys
+            ts = [item[0] for item in return_args]
             data_to_return = [item for _, val in return_args for item in val["data"]]
 
             data_to_return_flat = (
@@ -541,12 +542,12 @@ class Workspace:
 
             # profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
 
-            profiled_values_to_return = np.array(
-                [item[1]["profiled_values_to_return"] for item in return_args]
-            )
+            profiled_values_to_return = [
+                item[1]["profiled_values_to_return"] for item in return_args
+            ]
             profiled_values_to_return = np.hstack(profiled_values_to_return)
 
-            seeds = np.array([item[1]["seeds"] for item in return_args])
+            seeds = [item[1]["seeds"] for item in return_args]
             seeds = np.hstack(seeds)
 
             return (
@@ -559,7 +560,7 @@ class Workspace:
             )
 
         else:
-            ts = np.array([item[0][:] for item in return_args])
+            ts = [item[0] for item in return_args]
             return (np.hstack(ts), {})
 
     def run_and_save_toys(
