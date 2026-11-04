@@ -36,7 +36,7 @@ class Parameters:
         # get the parameters of interest
         self.poi = []
         for parname, par in self.parameters.items():
-            if "poi" in par.keys():
+            if par.get("poi", False):
                 self.poi.append(parname)
 
                 msg = f"added '{parname}' as parameter of interest"

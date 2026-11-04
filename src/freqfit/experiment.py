@@ -59,6 +59,12 @@ class Experiment:
         ):
             self.guessfcn = initial_guess
 
+        # the test statistics are defined with respect to the parameter(s) of interest, so at least one is required
+        if not parameters.poi:
+            raise ValueError(
+                "no parameter of interest found: set `poi: true` on at least one parameter in the config"
+            )
+
         # check which nuisance parameters can be fixed in the fit due to no data
         self.fixed_bc_no_data = {}
 
@@ -322,9 +328,8 @@ class Experiment:
             self.options["test_statistic"] == "q_mu"
             or self.options["test_statistic"] == "q_mu_tilde"
         ):
-            for parname, parvalue in profile_parameters.items():
-                if self.best["values"][parname] > parvalue:
-                    return 0.0, 0.0, 0.0
+            if self._poi_above_tested(profile_parameters):
+                return 0.0, 0.0, 0.0
 
         num = self.profile(
             parameters=profile_parameters, use_physical_limits=use_physical_limits
@@ -344,16 +349,25 @@ class Experiment:
             logging.debug(msg)
 
         if self.options["test_statistic"] == "t_and_q_tilde":
-            for parname, parvalue in profile_parameters.items():
-                if self.best["values"][parname] > parvalue:
-                    q_mu = 0.0
-                else:
-                    q_mu = ts
-
+            q_mu = 0.0 if self._poi_above_tested(profile_parameters) else ts
             ts = [ts, q_mu]
 
         # because these are already -2*ln(L) from iminuit
         return ts, denom, num
+
+    def _poi_above_tested(self, profile_parameters: dict) -> bool:
+        """
+        Whether the best fit of a parameter of interest is above its tested value, in which case the one-sided
+        test statistics (q_mu, q_mu_tilde, q in t_and_q_tilde) are 0. Nuisance parameters in `profile_parameters` are
+        ignored, since an upward fluctuation of e.g. the background says nothing about the signal hypothesis.
+        With multiple parameters of interest, this is true if any of the ones in `profile_parameters` is above its
+        tested value. Parameters of interest that are not in `profile_parameters` are ignored.
+        """
+        return any(
+            self.best["values"][parname] > profile_parameters[parname]
+            for parname in self.parameters.poi
+            if parname in profile_parameters
+        )
 
     # mostly pulled directly from iminuit, with some modifications to ignore empty Datasets and also to format
     # plots slightly differently

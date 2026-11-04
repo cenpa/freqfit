@@ -16,6 +16,7 @@ parameters:
     fixed: true
     grid_rounding_num_decimals: 10
   S:
+    poi: true
     includeinfit: true
     physical_limits: '[0.0, None]'
     value: 0.0

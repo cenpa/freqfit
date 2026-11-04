@@ -103,6 +103,7 @@ combined_datasets:
 
 parameters:
   S:
+    poi: true
     grid_rounding_num_decimals: 6
     includeinfit: true
     physical_limits: '[1.0e-9, None]'

@@ -43,6 +43,7 @@ datasets:
 
 parameters:
   "global_S":
+    poi: True
     includeinfit: True
     nuisance: False
     fixed: False
