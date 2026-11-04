@@ -3,7 +3,7 @@ A class that controls an experiment and calls the `Superset` class."""
 import logging
 
 import numpy as np
-from iminuit import Minuit
+from iminuit import Minuit, cost
 
 from .constraints import Constraints
 from .dataset import CombinedDataset
@@ -72,13 +72,13 @@ class Experiment:
         self.fitparameters = parameters.get_fitparameters(self.datasets)
 
         # add the costfunctions together
-        first = True
-        for dsname, ds in self.datasets.items():
-            if first:
-                self.costfunction = ds.costfunction
-                first = False
-            else:
-                self.costfunction += ds.costfunction
+        # build the sum in one go: adding them one at a time re-merges the signatures each time, which is quadratic
+        # in the number of datasets and dominated the toy time for experiments with many partitions
+        costfunctions = [ds.costfunction for ds in self.datasets.values()]
+        if len(costfunctions) == 1:
+            self.costfunction = costfunctions[0]
+        else:
+            self.costfunction = cost.CostSum(*costfunctions)
 
         if constraints:
             fit_constraints = constraints.get_cost(self.fitparameters)
