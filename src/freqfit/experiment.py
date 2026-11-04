@@ -132,8 +132,9 @@ class Experiment:
         Reset the underlying :class:`iminuit.Minuit` object.
 
         This restores the initial guess, re-applies parameter limits, and fixes any
-        parameters configured as fixed (including those fixed automatically because the
-        corresponding dataset has no data).
+        parameters configured as fixed at their configured ``value`` (the initial guess
+        function may have estimated them from data), including those fixed automatically
+        because the corresponding dataset has no data.
 
         Parameters
         ----------
@@ -152,6 +153,9 @@ class Experiment:
         for parname, pardict in self.fitparameters.items():
             if parname in self.minuit.parameters:
                 self.minuit.fixed[parname] = pardict["fixed"]
+                # a fixed parameter stays at its configured value, not at the initial guess
+                if pardict["fixed"]:
+                    self.minuit.values[parname] = pardict["value"]
                 self.minuit.limits[parname] = pardict["limits"]
                 if use_physical_limits and (pardict["physical_limits"] is not None):
                     self.minuit.limits[parname] = pardict["physical_limits"]
