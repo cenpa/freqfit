@@ -25,6 +25,8 @@ log = logging.getLogger(__name__)
 
 SEED = 42
 NUM_CORES = int(os.cpu_count() / 2)
+# optional per-toy outputs, chosen with the option `toy_info_to_save` (info=True means all of them)
+TOY_INFO_ITEMS = ("data", "profiled_values", "seeds")
 
 
 class Workspace:
@@ -264,6 +266,10 @@ class Workspace:
         return self.toy
 
     # has to allow for parallelization
+    def _toy_info_to_save(self, info: bool) -> set:
+        """Optional per-toy outputs to keep: all of TOY_INFO_ITEMS with info=True, else the option toy_info_to_save."""
+        return set(TOY_INFO_ITEMS) if info else set(self.options["toy_info_to_save"])
+
     def toy_ts(
         self,
         toy_parameters: dict,  # parameters and values needed to generate the toys
@@ -315,6 +321,8 @@ class Workspace:
 
         """
 
+        save = self._toy_info_to_save(info)
+
         # if seeds aren't provided, we need to generate them ourselves so all toys aren't the same
         if seeds is None:
             seeds = np.random.randint(1e9, size=num)
@@ -354,7 +362,7 @@ class Workspace:
                 )  # NOTE: this does not check the keys
 
             # Stuff optional outputs into arrays
-            if info:
+            if "data" in save:
                 data = []
                 ndrawn = [0, 0]
                 for ds in thistoy.datasets:
@@ -368,7 +376,8 @@ class Workspace:
                 num_drawn.append(ndrawn)
 
         # manipulate output data to make arrays of equal sized arrays to save in hdf5
-        if info:
+        info_to_return = {}
+        if "data" in save:
             # Need to flatten the data_to_return in order to save it in h5py
             data_to_return_flat = (
                 np.ones(
@@ -389,20 +398,17 @@ class Workspace:
             for i, arr in enumerate(num_drawn):
                 num_drawn_to_return_flat[i, : len(arr)] = arr
 
-            info_to_return = {
-                "data": data_to_return_flat,
-                "profiled_values_to_return": profiled_values_to_return,
-                "num_drawn": num_drawn_to_return_flat,
-                "denominators": denominators,
-                "numerators": numerators,
-                "seeds": seeds,
-            }
+            info_to_return["data"] = data_to_return_flat
+            info_to_return["num_drawn"] = num_drawn_to_return_flat
+        if "profiled_values" in save:
+            info_to_return["profiled_values_to_return"] = profiled_values_to_return
+        if "seeds" in save:
+            info_to_return["seeds"] = seeds
+        if info:
+            info_to_return["denominators"] = denominators
+            info_to_return["numerators"] = numerators
 
-            return (
-                ts,
-                info_to_return,
-            )
-        return (ts, {})
+        return (ts, info_to_return)
 
     def scan_ts(
         self,
@@ -523,9 +529,12 @@ class Workspace:
         with mp.Pool(self.numcores) as pool:
             return_args = pool.starmap(self.toy_ts, args)
 
-        if info:
-            # lists, not np.array: the last core can have a different number of toys
-            ts = [item[0] for item in return_args]
+        save = self._toy_info_to_save(info)
+        # lists, not np.array: the last core can have a different number of toys
+        ts = [item[0] for item in return_args]
+        info_to_return = {}
+
+        if "data" in save:
             data_to_return = [item for _, val in return_args for item in val["data"]]
 
             data_to_return_flat = (
@@ -539,29 +548,17 @@ class Workspace:
             )
             for i, arr in enumerate(data_to_return):
                 data_to_return_flat[i, : len(arr)] = arr
+            info_to_return["data"] = data_to_return_flat
 
-            # profiled_values_to_return =  [item for _, val in return_args for item in val["profiled_values_to_return"]]
-
-            profiled_values_to_return = [
-                item[1]["profiled_values_to_return"] for item in return_args
-            ]
-            profiled_values_to_return = np.hstack(profiled_values_to_return)
-
-            seeds = [item[1]["seeds"] for item in return_args]
-            seeds = np.hstack(seeds)
-
-            return (
-                np.hstack(ts),
-                {
-                    "data": data_to_return_flat,
-                    "profiled_values_to_return": profiled_values_to_return,
-                    "seeds": seeds,
-                },
+        if "profiled_values" in save:
+            info_to_return["profiled_values_to_return"] = np.hstack(
+                [item[1]["profiled_values_to_return"] for item in return_args]
             )
 
-        else:
-            ts = [item[0] for item in return_args]
-            return (np.hstack(ts), {})
+        if "seeds" in save:
+            info_to_return["seeds"] = np.hstack([item[1]["seeds"] for item in return_args])
+
+        return (np.hstack(ts), info_to_return)
 
     def run_and_save_toys(
         self,
@@ -595,7 +592,9 @@ class Workspace:
             flag is `False`, a warning will be provided.
 
         info
-            If false, save only the test statistics. If true, save lots of information
+            If true, also save the toy data, the profiled values of the parameters in the option
+            ```profiled_params_to_save``` and the seeds. If false, save the test statistics plus whichever of these the
+            option ```toy_info_to_save``` lists ("data", "profiled_values", "seeds"; default none).
         
         Returns
         -------
@@ -660,16 +659,10 @@ class Workspace:
         dset = f.create_dataset("ts", data=toyts)
         dset.attrs.update(toy_generation_profile_dict)
 
-        if info:
-            # raise NotImplementedError("not implemented, check back soon.")
-            # dset = f.create_dataset("ts_denom", data=toyts_denom)
-            # dset = f.create_dataset("ts_num", data=toyts_num)
-            dset = f.create_dataset("data", data=info_dict["data"])
-            dset = f.create_dataset(
-                "profiled_values_to_return", data=info_dict["profiled_values_to_return"]
-            )
-            dset = f.create_dataset("seeds", data=info_dict["seeds"])
-            # dset = f.create_dataset("num_sig_num_bkg_drawn", data=num_drawn)
+        # optional outputs: everything with info=True, otherwise what the option toy_info_to_save lists
+        for key in ("data", "profiled_values_to_return", "seeds"):
+            if key in info_dict:
+                dset = f.create_dataset(key, data=info_dict[key])
 
         f.close()
 
@@ -917,6 +910,7 @@ class Workspace:
             "name": "",
             "numtoy": 0,
             "profiled_params_to_save": [],  # list of parameter names to save their profiled values
+            "toy_info_to_save": [],  # any of TOY_INFO_ITEMS, saved with the toys even when info=False
         }
 
         for key, val in options_defaults.items():
@@ -932,6 +926,13 @@ class Workspace:
 
         if not isinstance(config["options"]["minimizer_options"], dict):
             raise ValueError("options: minimizer_options must be a dict")
+
+        toy_info = config["options"]["toy_info_to_save"] or []
+        if isinstance(toy_info, str) or not set(toy_info) <= set(TOY_INFO_ITEMS):
+            raise ValueError(
+                f"options: toy_info_to_save must be a list of {TOY_INFO_ITEMS}, got {toy_info}"
+            )
+        config["options"]["toy_info_to_save"] = list(toy_info)
 
         if config["options"]["initial_guess"]["fcn"] is not None:
             config["options"]["initial_guess"] = Workspace.load_class(
